@@ -1,0 +1,31 @@
+From http://forum.jotta.no/jotta/topics/api_http, retrieved 24th Nov 2011:
+
+Dersom du er flytende i XML og HTTP kan du helt sikkert raskt og enkelt lage noe som leser og laster ned filer
+fra Jotta.
+
+API'et er eksponert på denne URL'en:
+
+https://www.jotta.no/jfs/[username]
+
+Du må authentisere deg med brukernavn og passord. Vi benytter Basic Authentication, men siden alt går over HTTPS
+skal det være helt safe.
+
+Du kan deretter navigere deg inn på maskiner og mapper ved å legge disse til URL'en.
+
+Skal du inn i en mappe som heter "My Documents" på en maskin som heter "My PC", blir URL'en følgende:
+
+https://www.jotta.no/jfs/[username]/My PC/My Documents
+
+Da blir innholdet i "My Documents" mappen listet opp i XML.
+
+Du kan gå inn på en enkelt fil å lese detaljer om filen bare ved å legge til filnavnet i URL'en. La oss si at
+filen heter "image.jpg". Da blir URL'en slik:
+
+https://www.jotta.no/jfs/[username]/My PC/My Documents/image.jpg
+
+Dette lister bare metadata info om filen. Ønsker du å laste ned filen må du legge til en parameter "?mode=bin".
+Da blir URL'en slik:
+
+https://www.jotta.no/jfs/[username]/My PC/My Documents/image.jpg?mode=bin
+
+Du kan forsøke dette i en nettleser, eller lage et program/script som gjør GET requests.
