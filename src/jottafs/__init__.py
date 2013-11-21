@@ -38,6 +38,44 @@ logging.basicConfig(level=logging.INFO)
 class JFSError(Exception):
     pass
 
+class JFSFolder(object):
+    'OO interface to a folder, for convenient access. Type less, do more.'
+    def __init__(self, folderobject, mountPoint, jfsdevice): # folderobject from lxml.objectify
+        self.folder = folderobject
+        self.mountPoint = mountPoint
+        self.device = jfsdevice
+        self.synced = False
+
+    @property
+    def name(self):
+        return unicode(self.folder.attrib['name'])
+
+    @property
+    def path(self):
+        if hasattr(self.folder, 'path'):
+            return '%s/%s' % (unicode(self.folder.path), f.name)
+        else:
+            return '/%s' % '/'.join( (unicode(self.device.name), unicode(self.mountPoint.name), self.name) )
+
+    def sync(self):
+        'Update state from Jottacloud server'
+        logging.info("syncing %s" % self.path)
+        self.folder = self.device._jfs.get(self.path)
+        self.synced = True
+
+    def files(self):
+        if not self.synced:
+            self.sync()
+        logging.info(lxml.objectify.dump(self.folder))
+        return [JFSFile(f, self.mountPoint, self.device) for f in self.folder.files.iterchildren()]
+
+    def folders(self):
+        if not self.synced:
+            self.sync()
+        logging.info(lxml.objectify.dump(self.folder))
+        return [JFSFolder(f, self.mountPoint, self.device) for f in self.folder.folders.iterchildren()]
+
+
 class JFSFile(object):
     'OO interface to a file, for convenient access. Type less, do more.'
     def __init__(self, fileobject, mountPoint, jfsdevice): # fileobject from lxml.objectify
@@ -48,7 +86,7 @@ class JFSFile(object):
 
     def stream(self):
         'get the file contents'
-        self.device._jfs.get('%s?mode=bin' % self.path)
+        return self.device._jfs.raw('%s?mode=bin' % self.path)
         """
             * name = 'jottacloud.sync.pdfname'
             * uuid = '37530f11-d55b-4f31-acf4-27854813cd34'
@@ -70,7 +108,7 @@ class JFSFile(object):
 
     @property
     def path(self):
-        return '/'.join( (unicode(self.device.name), unicode(self.mountPoint.name), self.name) )
+        return '/%s' % '/'.join( (unicode(self.device.name), unicode(self.mountPoint.name), self.name) )
 
     @property
     def revisionNumber(self):
@@ -132,6 +170,19 @@ class JFSDevice(object):
             # no files at all 
             return [x for x in []]
 
+    def folders(self, mountPoint):
+        """Get an iterator of JFSFolder() from the given mountPoint. 
+        
+        "mountPoint" may be either an actual mountPoint element from JFSDevice.mountPoints{} or its .name. """
+        if isinstance(mountPoint, basestring):
+            # shortcut: pass a mountpoint name
+            mountPoint = self.mountPoints[mountPoint]
+        try:
+            return [JFSFolder(f, mountPoint, self) for f in self.contents(mountPoint).folders.iterchildren()]
+        except AttributeError as err:
+            # no files at all 
+            return [x for x in []]
+
     @property
     def modified(self):
         return dateutil.parser.parse(str(self.dev.modified))
@@ -160,7 +211,7 @@ class JFS(object):
         self.root = JFS_ROOT + username
         self.fs = self.get(self.root)
 
-    def get(self, url):
+    def raw(self, url):
         headers  = {'User-Agent':'JottaFS %s (https://git.gitorious.org/jottafs/jottafs.git)' % (__version__, ),
                     'From': __author__}
         if not url.startswith('http'):
@@ -170,7 +221,10 @@ class JFS(object):
         r = requests.get(url, headers=headers, auth=self.auth)
         if r.status_code in ( 500, ):
             raise JFSError(r.reason)
-        return lxml.objectify.fromstring(r.content)
+        return r.content
+
+    def get(self, url):
+        return lxml.objectify.fromstring(self.raw(url))
 
     # property overloading
     @property
@@ -205,11 +259,13 @@ class JFS(object):
 
 
 if __name__=='__main__':
-    jfs = JFS(os.environ['JOTTACLOUD_USERNAME'], password=os.environ['JOTTACLOUD_PASSWORD'])
+    # debug setup
+    from lxml.objectify import dump as xdump
     from pprint import pprint
-    print lxml.objectify.dump(jfs.fs)
-    x = list(jfs.devices)[2]
-    #print lxml.objectify.dump(x.contents(x.mountPoints['Sync']))
-    files = x.files('Sync')
+    jfs = JFS(os.environ['JOTTACLOUD_USERNAME'], password=os.environ['JOTTACLOUD_PASSWORD'])
+    logging.info(xdump(jfs.fs))
+    x = list(jfs.devices)[0]
+    files = x.files('Documents')
+    folders = x.folders('Documents')
 
 
