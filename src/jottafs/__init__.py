@@ -40,9 +40,9 @@ class JFSError(Exception):
 
 class JFSFolder(object):
     'OO interface to a folder, for convenient access. Type less, do more.'
-    def __init__(self, folderobject, mountPoint, jfsdevice): # folderobject from lxml.objectify
+    def __init__(self, folderobject, jfsdevice, parentpath): # folderobject from lxml.objectify
         self.folder = folderobject
-        self.mountPoint = mountPoint
+        self.parentPath = parentpath
         self.device = jfsdevice
         self.synced = False
 
@@ -52,10 +52,7 @@ class JFSFolder(object):
 
     @property
     def path(self):
-        if hasattr(self.folder, 'path'):
-            return '%s/%s' % (unicode(self.folder.path), f.name)
-        else:
-            return '/%s' % '/'.join( (unicode(self.device.name), unicode(self.mountPoint.name), self.name) )
+        return '%s/%s' % (self.parentPath, self.name)
 
     def sync(self):
         'Update state from Jottacloud server'
@@ -67,21 +64,27 @@ class JFSFolder(object):
         if not self.synced:
             self.sync()
         logging.info(lxml.objectify.dump(self.folder))
-        return [JFSFile(f, self.mountPoint, self.device) for f in self.folder.files.iterchildren()]
+        try:
+            return [JFSFile(f, self.device, self.path) for f in self.folder.files.iterchildren()]
+        except AttributeError:
+            return [x for x in []]
 
     def folders(self):
         if not self.synced:
             self.sync()
         logging.info(lxml.objectify.dump(self.folder))
-        return [JFSFolder(f, self.mountPoint, self.device) for f in self.folder.folders.iterchildren()]
+        try:
+            return [JFSFolder(f, self.device, self.path) for f in self.folder.folders.iterchildren()]
+        except AttributeError:
+            return [x for x in []]
 
 
 class JFSFile(object):
     'OO interface to a file, for convenient access. Type less, do more.'
-    def __init__(self, fileobject, mountPoint, jfsdevice): # fileobject from lxml.objectify
+    def __init__(self, fileobject, jfsdevice, parentpath): # fileobject from lxml.objectify
         self.f = fileobject
-        self.mountPoint = mountPoint
         self.device = jfsdevice
+        self.parentPath = parentpath
         lxml.objectify.dump(fileobject)
 
     def stream(self):
@@ -108,7 +111,7 @@ class JFSFile(object):
 
     @property
     def path(self):
-        return '/%s' % '/'.join( (unicode(self.device.name), unicode(self.mountPoint.name), self.name) )
+        return '%s/%s' % (self.parentPath, self.name)
 
     @property
     def revisionNumber(self):
@@ -145,16 +148,17 @@ class JFSFile(object):
 
 class JFSDevice(object):
     'OO interface to a device, for convenient access. Type less, do more.'
-    def __init__(self, deviceobject, jfs): # deviceobject from lxml.objectify
+    def __init__(self, deviceobject, jfs, parentpath): # deviceobject from lxml.objectify
         self.dev = deviceobject
         self._jfs = jfs
+        self.parentPath = parentpath
         self.mountPoints = {mp.name:mp for mp in self.contents().mountPoints.iterchildren()}
 
     def contents(self, path=None):
         if isinstance(path, lxml.objectify.ObjectifiedElement) and hasattr(path, 'name'):
             # passed an object, use .'name' as path value
             path = '/%s' % path.name
-        c = self._jfs.get('/%s%s' % (self.name, path or '/'))
+        c = self._jfs.get('%s%s' % (self.path, path or '/'))
         return c
 
     def files(self, mountPoint):
@@ -165,7 +169,7 @@ class JFSDevice(object):
             # shortcut: pass a mountpoint name
             mountPoint = self.mountPoints[mountPoint]
         try:
-            return [JFSFile(f, mountPoint, self) for f in self.contents(mountPoint).files.iterchildren()]
+            return [JFSFile(f, self, parentpath='%s/%s' % (self.path, mountPoint.name)) for f in self.contents(mountPoint).files.iterchildren()]
         except AttributeError as err:
             # no files at all 
             return [x for x in []]
@@ -178,7 +182,7 @@ class JFSDevice(object):
             # shortcut: pass a mountpoint name
             mountPoint = self.mountPoints[mountPoint]
         try:
-            return [JFSFolder(f, mountPoint, self) for f in self.contents(mountPoint).folders.iterchildren()]
+            return [JFSFolder(f, self, parentpath='%s/%s' % (self.path, mountPoint.name)) for f in self.contents(mountPoint).folders.iterchildren()]
         except AttributeError as err:
             # no files at all 
             return [x for x in []]
@@ -186,6 +190,10 @@ class JFSDevice(object):
     @property
     def modified(self):
         return dateutil.parser.parse(str(self.dev.modified))
+
+    @property
+    def path(self):
+        return '%s/%s' % (self.parentPath, self.name)
 
     @property
     def name(self):
@@ -208,15 +216,15 @@ class JFS(object):
     def __init__(self, username, password):
         from requests.auth import HTTPBasicAuth
         self.auth = HTTPBasicAuth(username, password)
-        self.root = JFS_ROOT + username
-        self.fs = self.get(self.root)
+        self.path = JFS_ROOT + username
+        self.fs = self.get(self.path)
 
     def raw(self, url):
         headers  = {'User-Agent':'JottaFS %s (https://git.gitorious.org/jottafs/jottafs.git)' % (__version__, ),
                     'From': __author__}
         if not url.startswith('http'):
             # relative url
-            url = self.root + url
+            url = self.path + url
         logging.info("getting url: %s" % url)
         r = requests.get(url, headers=headers, auth=self.auth)
         if r.status_code in ( 500, ):
@@ -230,7 +238,7 @@ class JFS(object):
     @property
     def devices(self):
         'return generator of configured devices'
-        return self.fs is not None and [JFSDevice(d, self) for d in self.fs.devices.iterchildren()] or [x for x in []]
+        return self.fs is not None and [JFSDevice(d, self, parentpath=self.path) for d in self.fs.devices.iterchildren()] or [x for x in []]
 
     @property
     def locked(self):
