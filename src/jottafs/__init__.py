@@ -36,6 +36,22 @@ JFS_ROOT='https://www.jotta.no/jfs/'
 logging.basicConfig(level=logging.INFO)
 
 class JFSError(Exception):
+    @staticmethod
+    def raiseError(e, path):
+        if(e.code) == 404:
+            raise JFSNotFoundError('%s does not exist (%s)' % (path, e.message))
+        elif(e.code) == 403:
+            raise JFSAuthenticationError("You don't have access to %s (%s)" % (path, e.message))
+        else:
+            raise JFSError('Error accessing %s (%s)' % (path, e.message))
+
+class JFSNotFoundError(JFSError):
+    pass
+
+class JFSAccessError(JFSError):
+    pass
+
+class JFSAuthenticationError(JFSError):
     pass
 
 class JFSFolder(object):
@@ -232,7 +248,10 @@ class JFS(object):
         return r.content
 
     def get(self, url):
-        return lxml.objectify.fromstring(self.raw(url))
+        o = lxml.objectify.fromstring(self.raw(url))
+        if o.tag == 'error':
+            JFSError.raiseError(o, url)
+        return o
 
     # property overloading
     @property
