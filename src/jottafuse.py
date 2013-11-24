@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 #
 # This file is part of jottafs.
@@ -23,7 +24,7 @@ __author__ = 'havard@gulldahl.no'
 __version__ = '0.1'
 
 # importing stdlib
-import sys, os
+import sys, os, pwd, stat, errno
 import urllib, logging, datetime
 from time import time
 import itertools
@@ -31,6 +32,7 @@ try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
+
 
 # import jotta
 import jottafs
@@ -45,7 +47,7 @@ class JottaFuse(LoggingMixIn, Operations):
     '''
 
     def __init__(self, username, password, path='.'):
-        self.client = jotta.JFS(username, password)
+        self.client = jottafs.JFS(username, password)
         self.root = path
 
     def xx_create(self, path, mode):
@@ -59,7 +61,10 @@ class JottaFuse(LoggingMixIn, Operations):
         pass
 
     def getattr(self, path, fh=None):
-        f = self.client.get(path)
+        try:
+            f = self.client.getObject(path)
+        except jottafs.JFSError:
+            raise OSError(errno.ENOENT, '')
         pw = pwd.getpwuid( os.getuid() )
         return {
                 'st_atime': isinstance(f, jottafs.JFSFile) and w.updated or time(),
@@ -74,7 +79,10 @@ class JottaFuse(LoggingMixIn, Operations):
         return self.sftp.mkdir(path, mode)
 
     def read(self, path, size, offset, fh):
-        f = StringIO(self.client.get(path).stream())
+        try:
+            f = StringIO(self.client.getObject(path).stream())
+        except jottafs.JFSError:
+            raise OSError(errno.ENOENT, '')
         f.seek(offset, 0)
         buf = f.read(size)
         f.close()
@@ -83,9 +91,17 @@ class JottaFuse(LoggingMixIn, Operations):
     def readdir(self, path, fh):
         yield '.'
         yield '..'
-        p = self.client.get(path)
-        for el in itertools.chain(p.folders(), p.files()):
-            yield el.encode('utf-8')
+        if path == '/':
+            for d in self.client.devices:
+                yield d.name
+        else:
+            p = self.client.getObject(path)
+            if isinstance(p, jottafs.JFSDevice):
+                for el in p.mountPoints.keys():
+                    yield el.encode('utf-8')
+            else:    
+                for el in itertools.chain(p.folders(), p.files()):
+                    yield el.name.encode('utf-8')
 
     def xx_rename(self, old, new):
         return self.sftp.rename(old, self.root + new)
@@ -110,6 +126,6 @@ if __name__ == '__main__':
         sys.exit(1)
 
     fuse = FUSE(JottaFuse(username=os.environ['JOTTACLOUD_USERNAME'], password=os.environ['JOTTACLOUD_PASSWORD']), 
-                sys.argv[2], foreground=True, nothreads=True)
+                sys.argv[1], foreground=True, nothreads=True)
 
 
