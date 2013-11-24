@@ -28,6 +28,8 @@ import urllib, logging, datetime
 
 # importing external dependencies (pip these, please!)
 import requests
+import requests_cache
+requests_cache.install_cache('jfs', backend='sqlite', expire_after=300)
 import lxml, lxml.objectify
 import dateutil, dateutil.parser
 
