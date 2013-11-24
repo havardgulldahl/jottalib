@@ -67,10 +67,10 @@ class JottaFuse(LoggingMixIn, Operations):
             raise OSError(errno.ENOENT, '')
         pw = pwd.getpwuid( os.getuid() )
         return {
-                'st_atime': isinstance(f, jottafs.JFSFile) and w.updated or time(),
+                'st_atime': isinstance(f, jottafs.JFSFile) and f.updated or time(),
                 'st_gid': pw.pw_gid,
                 'st_mode': isinstance(f, jottafs.JFSFile) and (stat.S_IFREG | 0444)  or (stat.S_IFDIR | 0755), 
-                'st_mtime': isinstance(f, jottafs.JFSFile) and w.modified or time(),
+                'st_mtime': isinstance(f, jottafs.JFSFile) and f.modified or time(),
                 'st_size': isinstance(f, jottafs.JFSFile) and f.size  or 0,
                 'st_uid': pw.pw_uid,
                 }
@@ -100,6 +100,7 @@ class JottaFuse(LoggingMixIn, Operations):
                 for el in p.mountPoints.keys():
                     yield el.encode('utf-8')
             else:    
+                print "xxx: ", repr(p), path
                 for el in itertools.chain(p.folders(), p.files()):
                     yield el.name.encode('utf-8')
 

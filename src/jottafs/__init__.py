@@ -56,15 +56,15 @@ class JFSAuthenticationError(JFSError):
 
 class JFSFolder(object):
     'OO interface to a folder, for convenient access. Type less, do more.'
-    def __init__(self, folderobject, jfsdevice, parentpath): # folderobject from lxml.objectify
+    def __init__(self, folderobject, jfs, parentpath): # folderobject from lxml.objectify
         self.folder = folderobject
         self.parentPath = parentpath
-        self.device = jfsdevice
+        self.jfs = jfs
         self.synced = False
 
     @property
     def name(self):
-        return unicode(self.folder.attrib['name'])
+        return self.folder.attrib.has_key('name') and unicode(self.folder.attrib['name']) or unicode(self.folder.name)
 
     @property
     def path(self):
@@ -73,39 +73,36 @@ class JFSFolder(object):
     def sync(self):
         'Update state from Jottacloud server'
         logging.info("syncing %s" % self.path)
-        self.folder = self.device._jfs.get(self.path)
+        self.folder = self.jfs.get(self.path)
         self.synced = True
 
     def files(self):
         if not self.synced:
             self.sync()
-        logging.info(lxml.objectify.dump(self.folder))
         try:
-            return [JFSFile(f, self.device, self.path) for f in self.folder.files.iterchildren()]
+            return [JFSFile(f, self.jfs, self.path) for f in self.folder.files.iterchildren()]
         except AttributeError:
             return [x for x in []]
 
     def folders(self):
         if not self.synced:
             self.sync()
-        logging.info(lxml.objectify.dump(self.folder))
         try:
-            return [JFSFolder(f, self.device, self.path) for f in self.folder.folders.iterchildren()]
+            return [JFSFolder(f, self.jfs, self.path) for f in self.folder.folders.iterchildren()]
         except AttributeError:
             return [x for x in []]
 
 
 class JFSFile(object):
     'OO interface to a file, for convenient access. Type less, do more.'
-    def __init__(self, fileobject, jfsdevice, parentpath): # fileobject from lxml.objectify
+    def __init__(self, fileobject, jfs, parentpath): # fileobject from lxml.objectify
         self.f = fileobject
-        self.device = jfsdevice
+        self.jfs = jfs
         self.parentPath = parentpath
-        lxml.objectify.dump(fileobject)
 
     def stream(self):
         'get the file contents'
-        return self.device._jfs.raw('%s?mode=bin' % self.path)
+        return self.jfs.raw('%s?mode=bin' % self.path)
         """
             * name = 'jottacloud.sync.pdfname'
             * uuid = '37530f11-d55b-4f31-acf4-27854813cd34'
@@ -257,8 +254,9 @@ class JFS(object):
         o = self.get(url)
         parent = os.path.dirname(url)
         if o.tag == 'device': return JFSDevice(o, jfs=self, parentpath=parent)
-        elif o.tag == 'folder': return JFSFolder(o, jfs=self, parentpath=parent)
+        elif o.tag in ('folder', 'mountPoint'): return JFSFolder(o, jfs=self, parentpath=parent)
         elif o.tag == 'file': return JFSFile(o, jfs=self, parentpath=parent)
+        print "invalid object: %s <- %s" % (repr(o), url)
 
     # property overloading
     @property
