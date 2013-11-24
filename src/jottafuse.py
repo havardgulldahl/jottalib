@@ -80,7 +80,7 @@ class JottaFuse(LoggingMixIn, Operations):
 
     def read(self, path, size, offset, fh):
         try:
-            f = StringIO(self.client.getObject(path).stream())
+            f = StringIO(self.client.getObject(path).read())
         except jottafs.JFSError:
             raise OSError(errno.ENOENT, '')
         f.seek(offset, 0)

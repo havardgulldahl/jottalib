@@ -100,7 +100,11 @@ class JFSFile(object):
         self.jfs = jfs
         self.parentPath = parentpath
 
-    def stream(self):
+    def stream(self, chunkSize=1024):
+        'returns a generator to iterate over the file contents'
+        return self.jfs.stream(chunkSize)
+
+    def read(self):
         'get the file contents'
         return self.jfs.raw('%s?mode=bin' % self.path)
         """
@@ -232,7 +236,7 @@ class JFS(object):
         self.path = JFS_ROOT + username
         self.fs = self.get(self.path)
 
-    def raw(self, url):
+    def request(self, url):
         headers  = {'User-Agent':'JottaFS %s (https://git.gitorious.org/jottafs/jottafs.git)' % (__version__, ),
                     'From': __author__}
         if not url.startswith('http'):
@@ -242,6 +246,10 @@ class JFS(object):
         r = requests.get(url, headers=headers, auth=self.auth)
         if r.status_code in ( 500, ):
             raise JFSError(r.reason)
+        return r
+
+    def raw(self, url):
+        r = self.request(url)
         return r.content
 
     def get(self, url):
@@ -257,6 +265,10 @@ class JFS(object):
         elif o.tag in ('folder', 'mountPoint'): return JFSFolder(o, jfs=self, parentpath=parent)
         elif o.tag == 'file': return JFSFile(o, jfs=self, parentpath=parent)
         print "invalid object: %s <- %s" % (repr(o), url)
+
+    def stream(self, url, chunkSize=1024):
+        r = self.request(url)
+        return r.iter_content(chunkSize)
 
     # property overloading
     @property
