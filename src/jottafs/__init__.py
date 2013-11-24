@@ -23,7 +23,7 @@ __author__ = 'havard@gulldahl.no'
 __version__ = '0.1'
 
 # importing stdlib
-import sys, os
+import sys, os, os.path
 import urllib, logging, datetime
 
 # importing external dependencies (pip these, please!)
@@ -168,7 +168,7 @@ class JFSDevice(object):
         self.dev = deviceobject
         self._jfs = jfs
         self.parentPath = parentpath
-        self.mountPoints = {mp.name:mp for mp in self.contents().mountPoints.iterchildren()}
+        self.mountPoints = {unicode(mp.name):mp for mp in self.contents().mountPoints.iterchildren()}
 
     def contents(self, path=None):
         if isinstance(path, lxml.objectify.ObjectifiedElement) and hasattr(path, 'name'):
@@ -252,6 +252,13 @@ class JFS(object):
         if o.tag == 'error':
             JFSError.raiseError(o, url)
         return o
+
+    def getObject(self, url):
+        o = self.get(url)
+        parent = os.path.dirname(url)
+        if o.tag == 'device': return JFSDevice(o, jfs=self, parentpath=parent)
+        elif o.tag == 'folder': return JFSFolder(o, jfs=self, parentpath=parent)
+        elif o.tag == 'file': return JFSFile(o, jfs=self, parentpath=parent)
 
     # property overloading
     @property
