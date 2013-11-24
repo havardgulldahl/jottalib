@@ -38,7 +38,7 @@ except ImportError:
 import jottafs
 
 # import dependenceis (get them with pip!)
-from fuse import FUSE, Operations, LoggingMixIn
+from fuse import FUSE, Operations, LoggingMixIn # this is 'fusepy'
 
 class JottaFuse(LoggingMixIn, Operations):
     '''
@@ -97,12 +97,11 @@ class JottaFuse(LoggingMixIn, Operations):
         else:
             p = self.client.getObject(path)
             if isinstance(p, jottafs.JFSDevice):
-                for el in p.mountPoints.keys():
-                    yield el.encode('utf-8')
+                for name in p.mountPoints.keys():
+                    yield name
             else:    
-                print "xxx: ", repr(p), path
                 for el in itertools.chain(p.folders(), p.files()):
-                    yield el.name.encode('utf-8')
+                    yield el.name
 
     def xx_rename(self, old, new):
         return self.sftp.rename(old, self.root + new)
