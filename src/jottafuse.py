@@ -26,7 +26,7 @@ __version__ = '0.1'
 # importing stdlib
 import sys, os, pwd, stat, errno
 import urllib, logging, datetime
-from time import time
+import time
 import itertools
 try:
     from cStringIO import StringIO
@@ -67,10 +67,10 @@ class JottaFuse(LoggingMixIn, Operations):
             raise OSError(errno.ENOENT, '')
         pw = pwd.getpwuid( os.getuid() )
         return {
-                'st_atime': isinstance(f, jottafs.JFSFile) and f.updated or time(),
+                'st_atime': isinstance(f, jottafs.JFSFile) and time.mktime(f.updated.timetuple()) or time.time(),
                 'st_gid': pw.pw_gid,
                 'st_mode': isinstance(f, jottafs.JFSFile) and (stat.S_IFREG | 0444)  or (stat.S_IFDIR | 0755), 
-                'st_mtime': isinstance(f, jottafs.JFSFile) and f.modified or time(),
+                'st_mtime': isinstance(f, jottafs.JFSFile) and time.mktime(f.modified.timetuple()) or time.time(),
                 'st_size': isinstance(f, jottafs.JFSFile) and f.size  or 0,
                 'st_uid': pw.pw_uid,
                 }
