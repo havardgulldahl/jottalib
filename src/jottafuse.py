@@ -35,7 +35,7 @@ except ImportError:
 
 
 # import jotta
-import jottalib
+from jottalib import JFS
 
 # import dependenceis (get them with pip!)
 from fuse import FUSE, Operations, LoggingMixIn # this is 'fusepy'
@@ -47,7 +47,7 @@ class JottaFuse(LoggingMixIn, Operations):
     '''
 
     def __init__(self, username, password, path='.'):
-        self.client = jottalib.JFS(username, password)
+        self.client = JFS.JFS(username, password)
         self.root = path
 
     def xx_create(self, path, mode):
@@ -63,15 +63,15 @@ class JottaFuse(LoggingMixIn, Operations):
     def getattr(self, path, fh=None):
         try:
             f = self.client.getObject(path)
-        except jottalib.JFSError:
+        except JFS.JFSError:
             raise OSError(errno.ENOENT, '')
         pw = pwd.getpwuid( os.getuid() )
         return {
-                'st_atime': isinstance(f, jottalib.JFSFile) and time.mktime(f.updated.timetuple()) or time.time(),
+                'st_atime': isinstance(f, JFS.JFSFile) and time.mktime(f.updated.timetuple()) or time.time(),
                 'st_gid': pw.pw_gid,
-                'st_mode': isinstance(f, jottalib.JFSFile) and (stat.S_IFREG | 0444)  or (stat.S_IFDIR | 0755), 
-                'st_mtime': isinstance(f, jottalib.JFSFile) and time.mktime(f.modified.timetuple()) or time.time(),
-                'st_size': isinstance(f, jottalib.JFSFile) and f.size  or 0,
+                'st_mode': isinstance(f, JFS.JFSFile) and (stat.S_IFREG | 0444)  or (stat.S_IFDIR | 0755), 
+                'st_mtime': isinstance(f, JFS.JFSFile) and time.mktime(f.modified.timetuple()) or time.time(),
+                'st_size': isinstance(f, JFS.JFSFile) and f.size  or 0,
                 'st_uid': pw.pw_uid,
                 }
 
@@ -81,7 +81,7 @@ class JottaFuse(LoggingMixIn, Operations):
     def read(self, path, size, offset, fh):
         try:
             f = StringIO(self.client.getObject(path).read())
-        except jottalib.JFSError:
+        except JFS.JFSError:
             raise OSError(errno.ENOENT, '')
         f.seek(offset, 0)
         buf = f.read(size)
@@ -96,7 +96,7 @@ class JottaFuse(LoggingMixIn, Operations):
                 yield d.name
         else:
             p = self.client.getObject(path)
-            if isinstance(p, jottalib.JFSDevice):
+            if isinstance(p, JFS.JFSDevice):
                 for name in p.mountPoints.keys():
                     yield name
             else:    
