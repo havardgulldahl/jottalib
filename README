@@ -1,2 +1,46 @@
+===========
+JOTTALIB
+===========
+
+This is not an official Jottacloud client. It is developed according to the company founder's instructions at
 http://forum.jotta.no/jotta/topics/api_http
+
+So what is it, then?
+===========
+
+This is a bare-bones, pythonic interface to the Jottacloud backup/cloud storage service. The service itself exposes
+a nice and simple HTTP REST api, and this library wraps that interface in a python module, in the hope that it may
+be useful.
+
+All code is GPLv3 licensed. 
+
+There is also a FUSE implementation in here, mostly to test the library, but it is fully working and ready for use as 
+a file system.
+
+Caveats
+=======
+
+As per February 2014, there still is no official word on how to get write permission to the API. As such, the library
+will only read from Jottacloud, and cannot write anything.
+
+How to get started 
+======================
+
+Export your Jottacloud username and password to the running environment. Running macosx or linux, it would normally go 
+like this:
+
+export JOTTACLOUD_USERNAME=""
+export JOTTACLOUD_PASSWORD=""
+
+Fuse client
+===========
+
+1. Create a folder where you want your Jottacloud file system: 
+
+       mkdir $HOME/jottafs
+
+2. Run Fuse: 
+
+       jottafuse.py $HOME/jottafs
+
 
