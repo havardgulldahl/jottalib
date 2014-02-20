@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with jottafs.  If not, see <http://www.gnu.org/licenses/>.
 # 
-# Copyright 2011,2013 Håvard Gulldahl <havard@gulldahl.no>
+# Copyright 2011,2013,2014 Håvard Gulldahl <havard@gulldahl.no>
 
 # metadata
 
@@ -261,7 +261,7 @@ class JFS(object):
         self.fs = self.get(self.path)
 
     def request(self, url):
-        headers  = {'User-Agent':'JottaFS %s (https://git.gitorious.org/jottafs/jottafs.git)' % (__version__, ),
+        headers  = {'User-Agent':'JottaFS %s (https://gitorious.org/jottafs/)' % (__version__, ),
                     'From': __author__}
         if not url.startswith('http'):
             # relative url
@@ -274,6 +274,10 @@ class JFS(object):
 
     def raw(self, url):
         r = self.request(url)
+        # uncomment to dump raw xml
+        #f = open('/tmp/%s.xml' % time.time(), 'wb')
+        #f.write(r.content)
+        #f.close()
         return r.content
 
     def get(self, url):
