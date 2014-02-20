@@ -17,7 +17,11 @@
 # 
 # Copyright 2011,2013,2014 Håvard Gulldahl <havard@gulldahl.no>
 
+#stdlib
+import os.path
+import logging
 
+#jottalib
 from . import JFS
 
 class JFSTree(object):
@@ -31,18 +35,24 @@ class JFSTree(object):
         node = self.client.getObject(self.currentpath)
         return node.parentPath
 
-    def children(self):
+    def childrenFullPath(self):
         if self.currentpath == '/':
             for d in self.devices():
-                yield d.name
+                yield '%s%s' % (self.currentpath, d.name)
         else:
             p = self.client.getObject(self.currentpath)
             if isinstance(p, JFS.JFSDevice):
                 for name in p.mountPoints.keys():
-                    yield name
+                    yield os.path.join(self.currentpath, name)
+                    #yield name
             else:    
                 for el in itertools.chain(p.folders(), p.files()):
-                    yield el.name
+                    #yield el.name
+                    yield el.path
+
+    def children(self):
+        return [os.path.basename(n) for n in self.childrenFullPath()]
+
 
     def changePath(self, newPath):
         if newPath == '..':

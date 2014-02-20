@@ -17,16 +17,17 @@
 # 
 # Copyright 2011,2013,2014 Håvard Gulldahl <havard@gulldahl.no>
 
-# Part of jottalib. QT4 models
+# stdlib
+import os.path
+import logging
+
+# Part of jottalib. QT4 models. pip install pyqt4
 
 # This is only needed for Python v2 but is harmless for Python v3.
 import sip
 sip.setapi('QString', 2)
 
 from PyQt4 import QtCore, QtGui
-
-#from . import JFS
-
 
 class JFSModel(QtCore.QAbstractListModel):
     
@@ -44,14 +45,15 @@ class JFSModel(QtCore.QAbstractListModel):
     def __init__(self, jfs, rootPath, parent=None):
         super(JFSModel, self).__init__(parent)
         self.tree = jfs # a jfstree.JFSTree instance
+        self.__currentChildren = [] # a quick cache to avoid too many lookups. Regenerated in .jfsChangePath(), when path is changed
         self.jfsChangePath(rootPath)
 
     def jfsChangePath(self, newPath):
         self.tree.changePath(newPath)
+        self.__currentChildren = list(self.tree.childrenFullPath())
 
     def rowCount(self, parentidx):
-        #print "rowcount: ", parentidx, ": ", len(self.albums)
-        return len(list(self.tree.children()))
+        return len(self.__currentChildren)
 
     def data(self, idx, role):
         #print "data: ",idx, role
@@ -85,13 +87,15 @@ class JFSModel(QtCore.QAbstractListModel):
 
         #print "idxrow: ", idx.row()
         try:
-            nodeName = list(self.tree.children())[idx.row()]
+            path = self.__currentChildren[idx.row()]
         except IndexError:
             print "inxesxxerror: ", idx.row()
             return QtCore.QVariant()
 
         if role in ( QtCore.Qt.DisplayRole, QtCore.Qt.ToolTipRole ):
-            return QtCore.QVariant(nodeName)
+            return QtCore.QVariant(os.path.basename(path))
+        elif role == QtCore.Qt.UserRole: # return full path
+            return QtCore.QVariant(path)
 
         #elif role == QtCore.Qt.DecorationRole:
             # coverPix = QtGui.QPixmap()
