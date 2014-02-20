@@ -115,6 +115,10 @@ class JFSFile(object):
 </file>
 
     """
+    BIGTHUMB=1
+    MEDIUMTHUMB=2
+    SMALLTHUMB=3
+
     def __init__(self, fileobject, jfs, parentpath): # fileobject from lxml.objectify
         self.f = fileobject
         self.jfs = jfs
@@ -141,11 +145,15 @@ class JFSFile(object):
                 md5 = 'a0dc8233169b238681c43f9981efe8e1' [StringElement]
                 updated = '2010-11-19-T12:34:28Z' [StringElement]
         """
-    def thumb(self):
+    def thumb(self, size=BIGTHUMB):
         'Get a thumbnail'
         if not os.path.dirname(self.mime) == 'image':
             return ''
-        return self.jfs.raw('%s?mode=thumb&ts=WM' % self.path)
+
+        thumbmap = {self.BIGTHUMB:'WL',
+                    self.MEDIUMTHUMB:'WM',
+                    self.SMALLTHUMB:'WS'}
+        return self.jfs.raw('%s?mode=thumb&ts=%s' % (self.path, thumbmap[size]))
 
     @property
     def name(self):
