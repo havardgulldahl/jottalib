@@ -46,11 +46,11 @@ class JFSModel(QtCore.QAbstractListModel):
         self.tree = jfstree.JFSTree(username, password, rootpath, jailed)
 
     def jfsChangePath(self, newPath):
-    	self.tree.changePath(newPath)
+        self.tree.changePath(newPath)
 
     def rowCount(self, parentidx):
         #print "rowcount: ", parentidx, ": ", len(self.albums)
-        return len(self.tree.children())
+        return len(list(self.tree.children()))
 
     def data(self, idx, role):
         #print "data: ",idx, role
@@ -84,7 +84,7 @@ class JFSModel(QtCore.QAbstractListModel):
 
         #print "idxrow: ", idx.row()
         try:
-            nodeName = self.tree[idx.row()]
+            nodeName = list(self.tree.children())[idx.row()]
         except IndexError:
             print "inxesxxerror: ", idx.row()
             return QtCore.QVariant()

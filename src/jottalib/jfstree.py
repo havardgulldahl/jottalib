@@ -21,7 +21,7 @@
 from . import JFS
 
 class JFSTree(object):
-	def __init__(self, username, password, rootpath=None, jailed=False):
+    def __init__(self, username, password, rootpath=None, jailed=False):
         self.rootpath = rootpath is not None and rootpath or '/'
         self.client = JFS.JFS(username, password)
         self.currentpath = self.rootpath
@@ -30,8 +30,8 @@ class JFSTree(object):
         node = self.client.getObject(self.currentpath)
         return node.parentPath
 
-	def children(self):
-		if self.currentpath == '/':
+    def children(self):
+        if self.currentpath == '/':
             for d in self.client.devices:
                 yield d.name
         else:
@@ -44,14 +44,14 @@ class JFSTree(object):
                     yield el.name
 
     def changePath(self, newPath):
-    	if newPath == '..':
-    		n = self.parent()
-    		self.currentpath = n.path
-    		return n
-    	else:
-    		if newPath.startswith('./'):
-    			self.currentpath = self.currentpath + newPath[:1]
-    		else:
-    			self.currentpath = newPath
+        if newPath == '..':
+            n = self.parent()
+            self.currentpath = n.path
+            return n
+        else:
+            if newPath.startswith('./'):
+                self.currentpath = self.currentpath + newPath[:1]
+            else:
+                self.currentpath = newPath
 
-    		return self.client.getObject(self.currentpath)
+            return self.client.getObject(self.currentpath)
