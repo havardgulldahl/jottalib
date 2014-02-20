@@ -23,6 +23,15 @@ Caveats
 As per February 2014, there still is no official word on how to get write permission to the API. As such, the library
 will only read from Jottacloud, and cannot write anything.
 
+Requirements
+============
+The mandatory modules are listed in requirements.txt (`pip -r requirements.txt` will get you everything you need).
+
+Optional requirements
+---------------------
+fusepy for Fuse client
+python-qt4 for the Qt models
+
 How to get started 
 ======================
 
