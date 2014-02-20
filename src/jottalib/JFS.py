@@ -23,7 +23,7 @@ __author__ = 'havard@gulldahl.no'
 __version__ = '0.1'
 
 # importing stdlib
-import sys, os, os.path
+import sys, os, os.path, time
 import urllib, logging, datetime
 
 # importing external dependencies (pip these, please!)
@@ -186,14 +186,75 @@ class JFSFile(object):
     def abspath(self):
         return unicode(self.f.abspath)
     
+class JFSMountPoint(JFSFolder):
+    'OO interface to a mountpoint, for convenient access. Type less, do more.'
+    def __init__(self, mountpointobject, jfs, parentpath): # folderobject from lxml.objectify
+        super(JFSMountPoint, self).__init__(mountpointobject, jfs, parentpath)
+        self.mp = mountpointobject
+        del(self.folder)
+
+    @property
+    def name(self):
+        return unicode(self.mp.name)
+
+    @property
+    def size(self):
+        return int(self.mp.size)
+
+    @property
+    def modified(self):
+        return dateutil.parser.parse(str(self.dev.modified))
 
 class JFSDevice(object):
     'OO interface to a device, for convenient access. Type less, do more.'
+    """
+    <device time="2014-02-20-T21:02:42Z" host="dn-036.site-000.jotta.no">
+  <name xml:space="preserve">laptop</name>
+  <type>LAPTOP</type>
+  <sid>d831efc4-f885-4d97-bd8d-</sid>
+  <size>371951820971</size>
+  <modified>2014-02-20-T14:03:52Z</modified>
+  <user>hgl</user>
+  <mountPoints>
+    <mountPoint>
+      <name xml:space="preserve">backup</name>
+      <size>372544055053</size>
+      <modified>2014-02-20-T14:03:52Z</modified>
+    </mountPoint>
+    <mountPoint>
+      <name xml:space="preserve">Desktop</name>
+      <size>581758</size>
+      <modified>2010-11-12-T20:44:15Z</modified>
+    </mountPoint>
+    <mountPoint>
+      <name xml:space="preserve">Documents</name>
+      <size>417689097</size>
+      <modified>2010-12-19-T22:40:16Z</modified>
+    </mountPoint>
+    <mountPoint>
+      <name xml:space="preserve">Downloads</name>
+      <size>0</size>
+      <modified>2010-11-14-T21:00:07Z</modified>
+    </mountPoint>
+    <mountPoint>
+      <name xml:space="preserve">Pictures</name>
+      <size>5150529</size>
+      <modified>2010-11-29-T11:13:03Z</modified>
+    </mountPoint>
+    <mountPoint>
+      <name xml:space="preserve">Videos</name>
+      <size>13679997</size>
+      <modified>2010-11-29-T11:13:46Z</modified>
+    </mountPoint>
+  </mountPoints>
+  <metadata first="" max="" total="6" num_mountpoints="6"/>
+</device>
+"""
     def __init__(self, deviceobject, jfs, parentpath): # deviceobject from lxml.objectify
         self.dev = deviceobject
         self._jfs = jfs
         self.parentPath = parentpath
-        self.mountPoints = {unicode(mp.name):mp for mp in self.contents().mountPoints.iterchildren()}
+        self.mountPoints = {unicode(mp.name):mp for mp in self.mountpointobjects()}
 
     def contents(self, path=None):
         if isinstance(path, lxml.objectify.ObjectifiedElement) and hasattr(path, 'name'):
@@ -201,6 +262,9 @@ class JFSDevice(object):
             path = '/%s' % path.name
         c = self._jfs.get('%s%s' % (self.path, path or '/'))
         return c
+
+    def mountpointobjects(self):
+        return [ JFSMountPoint(obj, self._jfs, self.path) for obj in self.contents().mountPoints.iterchildren() ]
 
     def files(self, mountPoint):
         """Get an iterator of JFSFile() from the given mountPoint. 
@@ -275,9 +339,9 @@ class JFS(object):
     def raw(self, url):
         r = self.request(url)
         # uncomment to dump raw xml
-        #f = open('/tmp/%s.xml' % time.time(), 'wb')
-        #f.write(r.content)
-        #f.close()
+        f = open('/tmp/%s.xml' % time.time(), 'wb')
+        f.write(r.content)
+        f.close()
         return r.content
 
     def get(self, url):
@@ -290,7 +354,8 @@ class JFS(object):
         o = self.get(url)
         parent = os.path.dirname(url)
         if o.tag == 'device': return JFSDevice(o, jfs=self, parentpath=parent)
-        elif o.tag in ('folder', 'mountPoint'): return JFSFolder(o, jfs=self, parentpath=parent)
+        elif o.tag == 'folder': return JFSFolder(o, jfs=self, parentpath=parent)
+        elif o.tag == 'mountPoint': return JFSMountPoint(o, jfs=self, parentpath=parent)
         elif o.tag == 'file': return JFSFile(o, jfs=self, parentpath=parent)
         elif o.tag == 'user': 
             self.fs = o

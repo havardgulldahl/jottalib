@@ -50,7 +50,7 @@ class JFSModel(QtCore.QAbstractListModel):
 
     def jfsChangePath(self, newPath):
         self.tree.changePath(newPath)
-        self.__currentChildren = list(self.tree.childrenFullPath())
+        self.__currentChildren = list(self.tree.childrenObjects())
 
     def rowCount(self, parentidx):
         return len(self.__currentChildren)
@@ -87,15 +87,16 @@ class JFSModel(QtCore.QAbstractListModel):
 
         #print "idxrow: ", idx.row()
         try:
-            path = self.__currentChildren[idx.row()]
+            item = self.__currentChildren[idx.row()]
+            # print repr(item)
         except IndexError:
             print "inxesxxerror: ", idx.row()
             return QtCore.QVariant()
 
         if role in ( QtCore.Qt.DisplayRole, QtCore.Qt.ToolTipRole ):
-            return QtCore.QVariant(os.path.basename(path))
+            return QtCore.QVariant(item.name)
         elif role == QtCore.Qt.UserRole: # return full path
-            return QtCore.QVariant(path)
+            return QtCore.QVariant(item.path)
 
         #elif role == QtCore.Qt.DecorationRole:
             # coverPix = QtGui.QPixmap()

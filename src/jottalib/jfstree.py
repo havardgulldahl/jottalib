@@ -35,24 +35,23 @@ class JFSTree(object):
         node = self.client.getObject(self.currentpath)
         return node.parentPath
 
-    def childrenFullPath(self):
+    def childrenObjects(self):
         if self.currentpath == '/':
             for d in self.devices():
-                yield '%s%s' % (self.currentpath, d.name)
+                yield d
         else:
             p = self.client.getObject(self.currentpath)
             if isinstance(p, JFS.JFSDevice):
-                for name in p.mountPoints.keys():
-                    yield os.path.join(self.currentpath, name)
+                for key, item in p.mountPoints.iteritems():
+                    yield item
                     #yield name
             else:    
                 for el in itertools.chain(p.folders(), p.files()):
                     #yield el.name
-                    yield el.path
+                    yield el
 
     def children(self):
-        return [os.path.basename(n) for n in self.childrenFullPath()]
-
+        return [o.name for o in self.childrenObjects()]
 
     def changePath(self, newPath):
         if newPath == '..':
