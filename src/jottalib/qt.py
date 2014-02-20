@@ -49,11 +49,18 @@ class JFSModel(QtCore.QAbstractListModel):
         self.jfsChangePath(rootPath)
 
     def jfsChangePath(self, newPath):
+        self.layoutAboutToBeChanged.emit()
         self.tree.changePath(newPath)
         self.__currentChildren = list(self.tree.childrenObjects())
+        self.layoutChanged.emit()
 
     def rowCount(self, parentidx):
         return len(self.__currentChildren)
+
+    def index(self, row, column, parent):
+        item = self.__currentChildren[row]
+        return self.createIndex(row, column, item)
+
 
     def data(self, idx, role):
         #print "data: ",idx, role

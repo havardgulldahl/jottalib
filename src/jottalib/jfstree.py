@@ -19,7 +19,7 @@
 
 #stdlib
 import os.path
-import logging
+import logging, itertools
 
 #jottalib
 from . import JFS

@@ -35,7 +35,7 @@ import dateutil, dateutil.parser
 
 # some setup
 JFS_ROOT='https://www.jotta.no/jfs/'
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 class JFSError(Exception):
     @staticmethod
@@ -141,6 +141,11 @@ class JFSFile(object):
                 md5 = 'a0dc8233169b238681c43f9981efe8e1' [StringElement]
                 updated = '2010-11-19-T12:34:28Z' [StringElement]
         """
+    def thumb(self):
+        'Get a thumbnail'
+        if not os.path.dirname(self.mime) == 'image':
+            return ''
+        return self.jfs.raw('%s?mode=thumb&ts=WM' % self.path)
 
     @property
     def name(self):
@@ -298,7 +303,8 @@ class JFSDevice(object):
 
     @property
     def path(self):
-        return '%s/%s' % (self.parentPath, self.name)
+        return os.path.join(self.parentPath, self.name)
+        # return '%s/%s' % (self.parentPath, self.name)
 
     @property
     def name(self):
@@ -330,7 +336,7 @@ class JFS(object):
         if not url.startswith('http'):
             # relative url
             url = self.path + url
-        logging.info("getting url: %s" % url)
+        logging.debug("getting url: %s" % url)
         r = requests.get(url, headers=headers, auth=self.auth)
         if r.status_code in ( 500, ):
             raise JFSError(r.reason)
@@ -339,9 +345,9 @@ class JFS(object):
     def raw(self, url):
         r = self.request(url)
         # uncomment to dump raw xml
-        f = open('/tmp/%s.xml' % time.time(), 'wb')
-        f.write(r.content)
-        f.close()
+        # f = open('/tmp/%s.xml' % time.time(), 'wb')
+        # f.write(r.content)
+        # f.close()
         return r.content
 
     def get(self, url):
