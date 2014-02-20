@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with jottafs.  If not, see <http://www.gnu.org/licenses/>.
 # 
-# Copyright 2011,2013 Håvard Gulldahl <havard@gulldahl.no>
+# Copyright 2011,2013,2014 Håvard Gulldahl <havard@gulldahl.no>
 
 # metadata
 
