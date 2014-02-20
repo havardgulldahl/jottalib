@@ -25,6 +25,7 @@ class JFSTree(object):
         self.rootpath = rootpath is not None and rootpath or '/'
         self.client = JFS.JFS(username, password)
         self.currentpath = self.rootpath
+        self.jailed = jailed
 
     def parent(self):
         node = self.client.getObject(self.currentpath)
@@ -32,7 +33,7 @@ class JFSTree(object):
 
     def children(self):
         if self.currentpath == '/':
-            for d in self.client.devices:
+            for d in self.devices():
                 yield d.name
         else:
             p = self.client.getObject(self.currentpath)
@@ -55,3 +56,6 @@ class JFSTree(object):
                 self.currentpath = newPath
 
             return self.client.getObject(self.currentpath)
+
+    def devices(self):
+        return self.client.devices

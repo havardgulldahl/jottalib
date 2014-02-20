@@ -25,7 +25,7 @@ sip.setapi('QString', 2)
 
 from PyQt4 import QtCore, QtGui
 
-from . import JFS, jfstree
+#from . import JFS
 
 
 class JFSModel(QtCore.QAbstractListModel):
@@ -41,9 +41,10 @@ class JFSModel(QtCore.QAbstractListModel):
     #implemented for interoperability with all kinds of views, but by default
     #informs views that the model contains only one column.
 
-    def __init__(self, username, password, rootpath=None, jailed=False, parent=None):
+    def __init__(self, jfs, rootPath, parent=None):
         super(JFSModel, self).__init__(parent)
-        self.tree = jfstree.JFSTree(username, password, rootpath, jailed)
+        self.tree = jfs # a jfstree.JFSTree instance
+        self.jfsChangePath(rootPath)
 
     def jfsChangePath(self, newPath):
         self.tree.changePath(newPath)
