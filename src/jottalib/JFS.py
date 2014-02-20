@@ -97,6 +97,24 @@ class JFSFolder(object):
 
 class JFSFile(object):
     'OO interface to a file, for convenient access. Type less, do more.'
+    """
+<file name="jottacloud.sync.pdfname" uuid="37530f11-d55b-4f31-acf4-27854813cd34" time="2013-12-15-T01:11:52Z" host="dn-029.site-000.jotta.no">
+  <path xml:space="preserve">/havardgulldahl/Jotta/Sync</path>
+  <abspath xml:space="preserve">/havardgulldahl/Jotta/Sync</abspath>
+  <currentRevision>
+    <number>1</number>
+    <state>COMPLETED</state>
+    <created>2013-07-19-T22:59:16Z</created>
+    <modified>2013-07-19-T22:59:17Z</modified>
+    <mime>application/octet-stream</mime>
+    <mstyle>APPLICATION_OCTET_STREAM</mstyle>
+    <size>218028</size>
+    <md5>e8f05ca4ebd70bc93ce2f18e26cee2a3</md5>
+    <updated>2013-07-19-T22:59:31Z</updated>
+  </currentRevision>
+</file>
+
+    """
     def __init__(self, fileobject, jfs, parentpath): # fileobject from lxml.objectify
         self.f = fileobject
         self.jfs = jfs
@@ -163,6 +181,10 @@ class JFSFile(object):
     @property
     def state(self):
         return unicode(self.f.currentRevision.state)
+
+    @property
+    def abspath(self):
+        return unicode(self.f.abspath)
     
 
 class JFSDevice(object):
@@ -266,6 +288,9 @@ class JFS(object):
         if o.tag == 'device': return JFSDevice(o, jfs=self, parentpath=parent)
         elif o.tag in ('folder', 'mountPoint'): return JFSFolder(o, jfs=self, parentpath=parent)
         elif o.tag == 'file': return JFSFile(o, jfs=self, parentpath=parent)
+        elif o.tag == 'user': 
+            self.fs = o
+            return self.fs
         print "invalid object: %s <- %s" % (repr(o), url)
 
     def stream(self, url, chunkSize=1024):
