@@ -1,0 +1,458 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"not",
+				"notify"
+			],
+			[
+				"notif",
+				"notification"
+			],
+			[
+				"aut",
+				"authorized_access_token"
+			],
+			[
+				"acce",
+				"access_token"
+			],
+			[
+				"send",
+				"sendResponse"
+			],
+			[
+				"acces",
+				"access_token"
+			],
+			[
+				"acc",
+				"access_token"
+			],
+			[
+				"ac",
+				"access_token"
+			],
+			[
+				"resp",
+				"responseUrl"
+			],
+			[
+				"auth",
+				"auth_uri"
+			],
+			[
+				"fb",
+				"fb_cb"
+			],
+			[
+				"redire",
+				"redirect_uri"
+			],
+			[
+				"for",
+				"for	for (…) {…}"
+			],
+			[
+				"get_wa",
+				"get_watch_later"
+			],
+			[
+				"ind",
+				"indexOf"
+			],
+			[
+				"watch",
+				"watchlist"
+			],
+			[
+				"wa",
+				"watchlist"
+			],
+			[
+				"pro",
+				"programid"
+			],
+			[
+				"pr",
+				"programid"
+			],
+			[
+				"loca",
+				"localStorage"
+			],
+			[
+				"playhea",
+				"playheadPosition"
+			],
+			[
+				"seaso",
+				"seasonid"
+			],
+			[
+				"pla",
+				"playerWrapper"
+			],
+			[
+				"flahs",
+				"flashPlayer"
+			],
+			[
+				"las",
+				"lastPlayheadPosition"
+			],
+			[
+				"playh",
+				"playheadPosition"
+			],
+			[
+				"flash",
+				"flashPlayer"
+			],
+			[
+				"JSsets",
+				"JSsetSeekPosition"
+			],
+			[
+				"JSget",
+				"JSgetCurrentPosition"
+			],
+			[
+				"JSto",
+				"JStogglePlayPause"
+			],
+			[
+				"JS",
+				"JSplay"
+			],
+			[
+				"s",
+				"swfobject"
+			],
+			[
+				"epi",
+				"episodesupdated"
+			],
+			[
+				"del",
+				"deltaepisode"
+			],
+			[
+				"f",
+				"for	for (…) {…} (Improved Native For-Loop)"
+			],
+			[
+				"proto",
+				"prototype"
+			],
+			[
+				"season",
+				"season"
+			],
+			[
+				"Ser",
+				"Series"
+			],
+			[
+				"Ep",
+				"Episode"
+			],
+			[
+				"metad",
+				"metadataurl"
+			],
+			[
+				"seas",
+				"seasonid"
+			],
+			[
+				"ep",
+				"episodeno"
+			],
+			[
+				"Season",
+				"Season"
+			],
+			[
+				"episo",
+				"episodes"
+			]
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 107.0,
+		"selected_items":
+		[
+			[
+				"q",
+				"Git: Quick Commit"
+			],
+			[
+				"git: q",
+				"Git: Quick Commit"
+			],
+			[
+				"g",
+				"Git: Diff Staged"
+			],
+			[
+				"git: ",
+				"Git: Commit"
+			],
+			[
+				"git",
+				"Git: Quick Commit"
+			],
+			[
+				"git q",
+				"Git: Quick Commit"
+			],
+			[
+				"git qu",
+				"Git: Quick Commit"
+			],
+			[
+				"Package Control: ins",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 449.0
+	},
+	"console":
+	{
+		"height": 126.0,
+		"history":
+		[
+			"import urllib.request,os,hashlib; h = '7183a2d3e96f11eeadd761d777e62404e330c659d4bb41d3bdf022e94cab3cd0'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://sublime.wbond.net/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/Users/n18040/Documents/Utvikling/nrksofa/src/nrksofa.js",
+		"/Users/n18040/Library/Application Support/Sublime Text 3/Packages/User/Preferences.sublime-settings",
+		"/Applications/Sublime Text.app/Contents/MacOS/changelog.txt",
+		"/Users/n18040/Documents/Utvikling/jottalib/src/jottalib/jfstree.py",
+		"/Users/n18040/Documents/Utvikling/jottagui/src/main.py",
+		"/Users/n18040/Documents/Utvikling/jottalib/src/jottalib/qt.py",
+		"/Volumes/Media/Dropbox/xmeml/dnpr6370211-alt-offline.hg.xml",
+		"/Users/n18040/Documents/Utvikling/jottalib/src/jottalib/__init__.py",
+		"/Volumes/Media/Dropbox/xmeml/msub20000112-knut.xml",
+		"/Users/n18040/Documents/Utvikling/fingerspill/src/musicplayer.py"
+	],
+	"find":
+	{
+		"height": 35.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"fbxhr",
+			"fbxhr.me",
+			"notify",
+			"fbauth",
+			"notify",
+			"access",
+			"fbauth",
+			"appid",
+			"login",
+			"bg",
+			"fbstatus",
+			"TVSeries",
+			"watch_later",
+			"programid",
+			"kø",
+			"watchlist",
+			"sofa-queue",
+			"watchlistupdate",
+			"sofaliste",
+			"openGenre",
+			"watchlistupdate",
+			"jcarousel",
+			"ep:",
+			"SOFA",
+			"watch_later",
+			"parse_url",
+			"progid",
+			"function Show",
+			"programid",
+			"watch_later",
+			"⧆",
+			"next",
+			"goto",
+			"next",
+			"deltaepis",
+			"pullepisodes",
+			"episodesupdated",
+			"next",
+			"current_show",
+			"episodeno",
+			"function Season",
+			"function Series",
+			"episodenumber",
+			"parse_url",
+			"setseason",
+			"var sofaplayer",
+			"var show",
+			"function Show",
+			"var show",
+			"function Show",
+			"Show",
+			"parse_url",
+			"playpause",
+			"console.log",
+			"player inst",
+			"playpause_p",
+			"playpause_",
+			"playpause_pla",
+			"playpause",
+			"playerobj",
+			",",
+			"swfobj",
+			"trigger",
+			"head",
+			"next_episode",
+			"console.log(\"next",
+			"readepisodes",
+			"readmetadata",
+			"seasonid",
+			"next:",
+			"   coverPix = QtGui.QPixmap()\n            coverPix.loadFromData(album['cover'])\n         ",
+			"pathurl",
+			"teasere sesong 2",
+			"pathurl",
+			"teasere sesong 2"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"programid",
+			"▤",
+			"this",
+			";",
+			"pullepisodes",
+			"pullmetadata"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 23.0
+	},
+	"input":
+	{
+		"height": 31.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"output.git":
+	{
+		"height": 100.0
+	},
+	"project": "jottalib.sublime-project",
+	"replace":
+	{
+		"height": 64.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"selected_items":
+		[
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 392.0,
+		"selected_items":
+		[
+		],
+		"width": 392.0
+	},
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 150.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
