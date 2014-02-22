@@ -19,9 +19,10 @@
 
 # stdlib
 import os.path
-import logging
+import logging, itertools
 
-# Part of jottalib. QT4 models. pip install pyqt4
+# Part of jottalib. 
+import jottalib.JFS as JFS
 
 # This is only needed for Python v2 but is harmless for Python v3.
 import sip
@@ -29,40 +30,86 @@ sip.setapi('QString', 2)
 
 from PyQt4 import QtCore, QtGui
 
-class JFSModel(QtCore.QAbstractListModel):
-    
-    #Simple models can be created by subclassing this class and implementing
-    #the minimum number of required functions. For example, we could implement a
-    #simple read-only QStringList-based model that provides a list of strings to
-    #a QListView widget. In such a case, we only need to implement the
-    #rowCount() function to return the number of items in the list, and the
-    #data() function to retrieve items from the list.  Since the model
-    #represents a one-dimensional structure, the rowCount() function returns the
-    #total number of items in the model. The columnCount() function is
-    #implemented for interoperability with all kinds of views, but by default
-    #informs views that the model contains only one column.
+class JFSNode(QtGui.QStandardItem):
+    def __init__(self, obj, jfs, parent=None):
+        super(JFSNode, self).__init__(parent)
+        self.obj = obj
+        self.setText(obj.name)
+        self.jfs = jfs
+        self.childNodes = [] 
+
+    def columnCount(self): return 1
+    def hasChildren(self): return len(self.childNodes) > 0
+    def rowCount(self): return len(self.childNodes)
+    def pullChildren(self): pass
+    def child(self, row, col=0): return self.childNodes[row]
+
+class JFSFileNode(JFSNode):
+    def __init__(self, obj, jfs, parent=None):
+        super(JFSFileNode, self).__init__(obj, jfs, parent)
+
+class JFSFolderNode(JFSNode):
+    def __init__(self, obj, jfs, parent=None):
+        super(JFSFolderNode, self).__init__(obj, jfs, parent)
+
+    def pullChildren(self):
+    #     self.childNodes = list(self.iterChildren())
+    # def iterChildren(self):
+    #     'iterate through folders and files'
+        for obj in self.obj.folders():
+            # yield JFSFolderNode(obj, self.jfs, self)
+            self.appendRow(JFSFolderNode(obj, self.jfs, self))
+        for obj in self.obj.files():
+            # yield JFSFileNode(obj, self.jfs, self)
+            self.appendRow(JFSFileNode(obj, self.jfs, self))
+
+class JFSDeviceNode(JFSNode):
+    def __init__(self, obj, jfs, parent=None):
+        super(JFSDeviceNode, self).__init__(obj, jfs, parent)
+        self.childNodes = list([JFSFolderNode(item, self.jfs, self) for item in self.obj.mountPoints.values()])
+        #self.appendRows(list([JFSFolderNode(item, self.jfs, self) for item in self.obj.mountPoints.values()]))
+
+class JFSModel(QtGui.QStandardItemModel):
 
     def __init__(self, jfs, rootPath, parent=None):
         super(JFSModel, self).__init__(parent)
-        self.tree = jfs # a jfstree.JFSTree instance
-        self.__currentChildren = [] # a quick cache to avoid too many lookups. Regenerated in .jfsChangePath(), when path is changed
-        self.jfsChangePath(rootPath)
+        self.jfs = jfs # a jottalib.JFS.JFS instance
+        self.rootItem = self.invisibleRootItem() # top item
+        self.rootPath = rootPath
+        rawObj = self.jfs.getObject(self.rootPath)
+        if isinstance(rawObj, JFS.JFSDevice):
+            self.rootObject = JFSDeviceNode(rawObj, jfs)
+        elif isinstance(rawObj, (JFS.JFSMountPoint, JFS.JFSFolder)):
+            self.rootObject = JFSFolderNode(rawObj, jfs)
+        elif isinstance(rawObj, JFS.JFSFile):
+            self.rootObject = JFSFileNode(rawObj, jfs)
+        self.rootItem.appendRows(self.rootObject.childNodes)
 
-    def jfsChangePath(self, newPath):
-        self.layoutAboutToBeChanged.emit()
-        self.tree.changePath(newPath)
-        self.__currentChildren = list(self.tree.childrenObjects())
-        self.layoutChanged.emit()
+    def xrowCount(self, idx):
+        item = self.itemFromIndex(idx)
+        print 'top item: %s' % item
+        return item.rowCount()
 
-    def rowCount(self, parentidx):
-        return len(self.__currentChildren)
+    def populateChildNodes(self, idx):
+        print 'populateChildNodes %s' % idx
+        item = self.itemFromIndex(idx)
+        print 'populate item: %s' % item
+        item.pullChildren()
 
-    def index(self, row, column, parent):
+    def hasChildren(self, idx): 
+        item = self.itemFromIndex(idx)
+        if item is not None:
+            print 'hasChildren item: %s (%s)' % (item, unicode(item.text()))
+        if isinstance(item, JFSFileNode):
+            return False
+        return True
+
+    def xindex(self, row, column, parent):
         item = self.__currentChildren[row]
         return self.createIndex(row, column, item)
 
 
-    def data(self, idx, role):
+    def xdata(self, idx, role):
         #print "data: ",idx, role
         #The general purpose roles are:
         #Qt::DisplayRole  0 The key data to be rendered (usually text).
@@ -119,12 +166,12 @@ class JFSModel(QtCore.QAbstractListModel):
         else:
             return QtCore.QVariant()
             
-    def headerData(self, section, orientation, role):
+    def xheaderData(self, section, orientation, role):
         #print "headerData", section, orientation, role
         if role != QtCore.Qt.DisplayRole:
             return QtCore.QVariant()
 
-    def canFetchMore(self, idx):
+    def xcanFetchMore(self, idx):
         return False
 
     def fxetchMore(self, parentidx):

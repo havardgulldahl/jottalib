@@ -204,7 +204,7 @@ class JFSMountPoint(JFSFolder):
     def __init__(self, mountpointobject, jfs, parentpath): # folderobject from lxml.objectify
         super(JFSMountPoint, self).__init__(mountpointobject, jfs, parentpath)
         self.mp = mountpointobject
-        del(self.folder)
+        # del(self.folder)
 
     @property
     def name(self):
