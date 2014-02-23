@@ -83,14 +83,14 @@ class JFSModel(QtGui.QStandardItemModel):
         self.rootItem.appendRows(self.rootObject.childNodes)
 
     def populateChildNodes(self, idx):
-        print 'populateChildNodes %s' % idx
+        logging.debug('populateChildNodes %s', idx)
         if self.hasChildren(idx):
             self.itemFromIndex(idx).pullChildren()
 
     def hasChildren(self, idx): 
         item = self.itemFromIndex(idx)
         if item is not None:
-            print 'hasChildren item: %s (%s)' % (item, unicode(item.text()))
+            logging.debug('hasChildren item: %s (%s)', item, unicode(item.text()))
         if isinstance(item, JFSFileNode):
             return False
         return True
