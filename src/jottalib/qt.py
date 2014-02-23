@@ -81,9 +81,8 @@ class JFSModel(QtGui.QStandardItemModel):
 
     def populateChildNodes(self, idx):
         print 'populateChildNodes %s' % idx
-        item = self.itemFromIndex(idx)
-        print 'populate item: %s' % item
-        item.pullChildren()
+        if self.hasChildren(idx):
+            self.itemFromIndex(idx).pullChildren()
 
     def hasChildren(self, idx): 
         item = self.itemFromIndex(idx)

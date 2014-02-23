@@ -147,13 +147,17 @@ class JFSFile(object):
         """
     def thumb(self, size=BIGTHUMB):
         'Get a thumbnail'
-        if not os.path.dirname(self.mime) == 'image':
-            return ''
+        if not self.is_image:
+            return None
 
         thumbmap = {self.BIGTHUMB:'WL',
                     self.MEDIUMTHUMB:'WM',
                     self.SMALLTHUMB:'WS'}
         return self.jfs.raw('%s?mode=thumb&ts=%s' % (self.path, thumbmap[size]))
+
+    def is_image(self):
+        'return bool'
+        return os.path.dirname(self.mime) == 'image'
 
     @property
     def name(self):
