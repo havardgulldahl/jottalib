@@ -51,12 +51,15 @@ class JFSFileNode(JFSNode):
 class JFSFolderNode(JFSNode):
     def __init__(self, obj, jfs, parent=None):
         super(JFSFolderNode, self).__init__(obj, jfs, parent)
+        self.childrenAlreadyPulled = False
 
     def pullChildren(self):
+        if self.childrenAlreadyPulled: return
         for obj in self.obj.folders():
             self.appendRow(JFSFolderNode(obj, self.jfs, self))
         for obj in self.obj.files():
             self.appendRow(JFSFileNode(obj, self.jfs, self))
+        self.childrenAlreadyPulled = True
 
 class JFSDeviceNode(JFSNode):
     def __init__(self, obj, jfs, parent=None):
