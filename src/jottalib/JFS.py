@@ -130,6 +130,7 @@ class JFSFile(object):
 
     def read(self):
         'get the file contents'
+        # TODO: dont cache these requests, as the files may be quite large
         return self.jfs.raw('%s?mode=bin' % self.path)
         """
             * name = 'jottacloud.sync.pdfname'
@@ -147,7 +148,7 @@ class JFSFile(object):
         """
     def thumb(self, size=BIGTHUMB):
         'Get a thumbnail'
-        if not self.is_image:
+        if not self.is_image():
             return None
 
         thumbmap = {self.BIGTHUMB:'WL',
@@ -350,6 +351,8 @@ class JFS(object):
             url = self.path + url
         logging.debug("getting url: %s" % url)
         r = requests.get(url, headers=headers, auth=self.auth)
+        #with requests_cache.disabled(): TODO: add nocache for mode=bin requests
+            #requests.get('http://...com')
         if r.status_code in ( 500, ):
             raise JFSError(r.reason)
         return r
