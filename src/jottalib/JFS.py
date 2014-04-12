@@ -126,12 +126,11 @@ class JFSFile(object):
 
     def stream(self, chunkSize=1024):
         'returns a generator to iterate over the file contents'
-        return self.jfs.stream(chunkSize)
+        return self.jfs.stream(chunkSize) # TODO: fix this. does it actually work?
 
     def read(self):
         'get the file contents'
-        # TODO: dont cache these requests, as the files may be quite large
-        return self.jfs.raw('%s?mode=bin' % self.path)
+        return self.jfs.raw('%s?mode=bin' % self.path, usecache=False) # dont cache this, they may be quite large
         """
             * name = 'jottacloud.sync.pdfname'
             * uuid = '37530f11-d55b-4f31-acf4-27854813cd34'
@@ -343,22 +342,24 @@ class JFS(object):
         self.path = JFS_ROOT + username
         self.fs = self.get(self.path)
 
-    def request(self, url):
+    def request(self, url, usecache=True):
         headers  = {'User-Agent':'JottaFS %s (https://gitorious.org/jottafs/)' % (__version__, ),
                     'From': __author__}
         if not url.startswith('http'):
             # relative url
             url = self.path + url
         logging.debug("getting url: %s" % url)
-        r = requests.get(url, headers=headers, auth=self.auth)
-        #with requests_cache.disabled(): TODO: add nocache for mode=bin requests
-            #requests.get('http://...com')
+        if usecache:
+            r = requests.get(url, headers=headers, auth=self.auth)
+        else:
+            with requests_cache.disabled(): 
+                r = requests.get(url, headers=headers, auth=self.auth)
         if r.status_code in ( 500, ):
             raise JFSError(r.reason)
         return r
 
-    def raw(self, url):
-        r = self.request(url)
+    def raw(self, url, usecache=True):
+        r = self.request(url, usecache)
         # uncomment to dump raw xml
         # f = open('/tmp/%s.xml' % time.time(), 'wb')
         # f.write(r.content)
