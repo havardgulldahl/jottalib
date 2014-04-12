@@ -4,6 +4,122 @@
 		"selected_items":
 		[
 			[
+				"is",
+				"isUploading"
+			],
+			[
+				"__",
+				"__preview"
+			],
+			[
+				"chi",
+				"childrenAlreadyPulled"
+			],
+			[
+				"ch",
+				"childrenAlreadyPulled"
+			],
+			[
+				"_",
+				"__thumbnail"
+			],
+			[
+				"roo",
+				"rootItem"
+			],
+			[
+				"JFSF",
+				"JFSFileNode"
+			],
+			[
+				"get",
+				"getChildren"
+			],
+			[
+				"JFSFo",
+				"JFSFolderNode"
+			],
+			[
+				"pra",
+				"parentidx"
+			],
+			[
+				"populat",
+				"populateChildNodes"
+			],
+			[
+				"jo",
+				"jottafsView"
+			],
+			[
+				"root",
+				"rootObject"
+			],
+			[
+				"chil",
+				"childNodes"
+			],
+			[
+				"JFSFI",
+				"JFSFileNode"
+			],
+			[
+				"JFSFolder",
+				"JFSFolderNode"
+			],
+			[
+				"JFSMo",
+				"JFSMountPoint"
+			],
+			[
+				"JFS",
+				"JFSNodeInstance"
+			],
+			[
+				"thumb",
+				"thumbmap"
+			],
+			[
+				"cover",
+				"coverPix"
+			],
+			[
+				"iter",
+				"iterchildren"
+			],
+			[
+				"mounn",
+				"mountpoint"
+			],
+			[
+				"mo",
+				"mountpointobject"
+			],
+			[
+				"item",
+				"itempath"
+			],
+			[
+				"po",
+				"populateJottaRoot"
+			],
+			[
+				"show",
+				"showJottaDetails"
+			],
+			[
+				"populate",
+				"populateJottaItems"
+			],
+			[
+				"jfs",
+				"jfstree"
+			],
+			[
+				"login",
+				"loginStatusChanged"
+			],
+			[
 				"not",
 				"notify"
 			],
@@ -183,6 +299,70 @@
 	},
 	"buffers":
 	[
+		{
+			"file": "requirements.txt",
+			"settings":
+			{
+				"buffer_size": 45,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/jottalib/qt.py",
+			"settings":
+			{
+				"buffer_size": 4792,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/jottalib/JFS.py",
+			"settings":
+			{
+				"buffer_size": 14260,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/n18040/Documents/Utvikling/jottagui/src/main.py",
+			"settings":
+			{
+				"buffer_size": 5456,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "README",
+			"settings":
+			{
+				"buffer_size": 1471,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/jottafuse.py",
+			"settings":
+			{
+				"buffer_size": 3911,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/jottalib/__init__.py",
+			"settings":
+			{
+				"buffer_size": 0,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/Users/n18040/Documents/Utvikling/jottagui/src/ui/main_ui.py",
+			"settings":
+			{
+				"buffer_size": 3749,
+				"line_ending": "Unix"
+			}
+		}
 	],
 	"build_system": "",
 	"command_palette":
@@ -195,6 +375,22 @@
 				"Git: Quick Commit"
 			],
 			[
+				"git:q",
+				"Git: Quick Commit"
+			],
+			[
+				"gi",
+				"Git: Pull"
+			],
+			[
+				"git: ad",
+				"Git: Add Current File"
+			],
+			[
+				"git",
+				"Git: Pull"
+			],
+			[
 				"git: q",
 				"Git: Quick Commit"
 			],
@@ -205,10 +401,6 @@
 			[
 				"git: ",
 				"Git: Commit"
-			],
-			[
-				"git",
-				"Git: Quick Commit"
 			],
 			[
 				"git q",
@@ -244,10 +436,10 @@
 	},
 	"file_history":
 	[
+		"/Users/n18040/Documents/Utvikling/jottalib/src/jottalib/jfstree.py",
 		"/Users/n18040/Documents/Utvikling/nrksofa/src/nrksofa.js",
 		"/Users/n18040/Library/Application Support/Sublime Text 3/Packages/User/Preferences.sublime-settings",
 		"/Applications/Sublime Text.app/Contents/MacOS/changelog.txt",
-		"/Users/n18040/Documents/Utvikling/jottalib/src/jottalib/jfstree.py",
 		"/Users/n18040/Documents/Utvikling/jottagui/src/main.py",
 		"/Users/n18040/Documents/Utvikling/jottalib/src/jottalib/qt.py",
 		"/Volumes/Media/Dropbox/xmeml/dnpr6370211-alt-offline.hg.xml",
@@ -261,7 +453,7 @@
 	},
 	"find_in_files":
 	{
-		"height": 0.0,
+		"height": 93.0,
 		"where_history":
 		[
 		]
@@ -271,6 +463,21 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"print",
+			"obj",
+			"jottaView",
+			"hide",
+			"detailsBox",
+			"detailsText",
+			"detailsPix",
+			"listItems",
+			"comboDevices",
+			"sys.",
+			"JFS_ROOT",
+			"username",
+			"modified",
+			"logging.",
+			"raw",
 			"fbxhr",
 			"fbxhr.me",
 			"notify",
@@ -353,6 +560,12 @@
 		"regex": false,
 		"replace_history":
 		[
+			"rawObj",
+			"details",
+			"metadata",
+			"preview",
+			"jottaView",
+			"listDevices",
 			"programid",
 			"▤",
 			"this",
@@ -369,8 +582,243 @@
 	"groups":
 	[
 		{
+			"selected": 2,
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"file": "requirements.txt",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 45,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								44,
+								44
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "src/jottalib/qt.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4792,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4587,
+								4587
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1302.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "src/jottalib/JFS.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 14260,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4284,
+								4284
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1851.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "/Users/n18040/Documents/Utvikling/jottagui/src/main.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5456,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								3631,
+								3631
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 989.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "README",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1471,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1063,
+								1063
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 127.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "src/jottafuse.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3911,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								3757,
+								3843
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "src/jottalib/__init__.py",
+					"semi_transient": true,
+					"settings":
+					{
+						"buffer_size": 0,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "/Users/n18040/Documents/Utvikling/jottagui/src/ui/main_ui.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3749,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								361,
+								374
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				}
 			]
 		}
 	],
@@ -405,6 +853,10 @@
 		]
 	},
 	"menu_visible": true,
+	"output.exec":
+	{
+		"height": 100.0
+	},
 	"output.find_results":
 	{
 		"height": 0.0

@@ -38,6 +38,8 @@ class JFSNode(QtGui.QStandardItem):
         self.jfs = jfs
         self.childNodes = [] 
 
+    def flags(self):
+        return QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
     def columnCount(self): return 1
     def hasChildren(self): return len(self.childNodes) > 0
     def rowCount(self): return len(self.childNodes)
@@ -47,11 +49,20 @@ class JFSNode(QtGui.QStandardItem):
 class JFSFileNode(JFSNode):
     def __init__(self, obj, jfs, parent=None):
         super(JFSFileNode, self).__init__(obj, jfs, parent)
+        self.isUploading = False # a flag that is True when the file is currently uploadign
+
+    def flags(self):
+        if self.isUploading:
+            return QtCore.Qt.NoItemFlags
+        return QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled
 
 class JFSFolderNode(JFSNode):
     def __init__(self, obj, jfs, parent=None):
         super(JFSFolderNode, self).__init__(obj, jfs, parent)
         self.childrenAlreadyPulled = False
+
+    def flags(self):
+        return QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDropEnabled
 
     def pullChildren(self):
         if self.childrenAlreadyPulled: return
@@ -89,10 +100,32 @@ class JFSModel(QtGui.QStandardItemModel):
 
     def hasChildren(self, idx): 
         item = self.itemFromIndex(idx)
-        if item is not None:
-            logging.debug('hasChildren item: %s (%s)', item, unicode(item.text()))
+        # if item is not None:
+        #     logging.debug('hasChildren item: %s (%s)', item, unicode(item.text()))
         if isinstance(item, JFSFileNode):
             return False
         return True
 
- 
+    def flags(self, idx):
+        item = self.itemFromIndex(idx)
+        if item is not None: return item.flags()
+
+    def xmimeData(self, idx):
+        item = self.itemFromIndex(idx)
+        if item is not None:
+            logging.debug('mximeData item: %s (%s)', item, unicode(item.text()))
+
+    def mimeData(self, idxes):
+        item = self.itemFromIndex(idxes.pop())
+        if item is None:
+            return
+        logging.debug('mimeData item: %s (%s)', item, unicode(item.text()))
+
+        md = QtCore.QMimeData()
+        data = item.obj.read()
+        md.setData(item.obj.mime, data)
+        if item.obj.is_image():
+            img = QtGui.QImage(item.obj.name)
+            img.loadFromData(data)
+            md.setImageData(img)
+        return md
