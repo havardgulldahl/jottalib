@@ -411,13 +411,13 @@ class JFS(object):
 
     @property
     def capacity(self):
-        'return int of storage capacity in bytes'
-        return self.fs is not None and int(self.fs.capacity) or -1
+        'Return int of storage capacity in bytes. A value of -1 means "unlimited"'
+        return self.fs is not None and int(self.fs.capacity) or 0
 
     @property
     def usage(self):
-        'return int of storage usage in bytes'
-        return self.fs is not None and int(self.fs.usage) or -1
+        'Return int of storage usage in bytes'
+        return self.fs is not None and int(self.fs.usage) or 0
 
 
 if __name__=='__main__':
