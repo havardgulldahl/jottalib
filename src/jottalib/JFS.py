@@ -1,20 +1,20 @@
 # -*- encoding: utf-8 -*-
 #
 # This file is part of jottafs.
-# 
+#
 # jottafs is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # jottafs is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with jottafs.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
 # Copyright 2011,2013,2014 Håvard Gulldahl <havard@gulldahl.no>
 
 # metadata
@@ -126,7 +126,7 @@ class JFSFile(object):
 
     def stream(self, chunkSize=1024):
         'returns a generator to iterate over the file contents'
-        return self.jfs.stream(chunkSize) # TODO: fix this. does it actually work?
+        return self.jfs.stream(url='%s?mode=bin' % self.path, chunkSize=chunkSize)
 
     def read(self):
         'get the file contents'
@@ -164,13 +164,17 @@ class JFSFile(object):
         return unicode(self.f.attrib['name'])
 
     @property
+    def uuid(self):
+        return unicode(self.f.attrib['uuid'])
+
+    @property
     def path(self):
         return '%s/%s' % (self.parentPath, self.name)
 
     @property
     def revisionNumber(self):
         return int(self.f.currentRevision.number)
-    
+
     @property
     def created(self):
         return dateutil.parser.parse(str(self.f.currentRevision.created))
@@ -186,15 +190,15 @@ class JFSFile(object):
     @property
     def size(self):
         return int(self.f.currentRevision.size)
-    
+
     @property
     def md5(self):
         return str(self.f.currentRevision.md5)
-    
+
     @property
     def mime(self):
         return unicode(self.f.currentRevision.mime)
-    
+
     @property
     def state(self):
         return unicode(self.f.currentRevision.state)
@@ -202,7 +206,7 @@ class JFSFile(object):
     @property
     def abspath(self):
         return unicode(self.f.abspath)
-    
+
 class JFSMountPoint(JFSFolder):
     'OO interface to a mountpoint, for convenient access. Type less, do more.'
     def __init__(self, mountpointobject, jfs, parentpath): # folderobject from lxml.objectify
@@ -284,8 +288,8 @@ class JFSDevice(object):
         return [ JFSMountPoint(obj, self._jfs, self.path) for obj in self.contents().mountPoints.iterchildren() ]
 
     def files(self, mountPoint):
-        """Get an iterator of JFSFile() from the given mountPoint. 
-        
+        """Get an iterator of JFSFile() from the given mountPoint.
+
         "mountPoint" may be either an actual mountPoint element from JFSDevice.mountPoints{} or its .name. """
         if isinstance(mountPoint, basestring):
             # shortcut: pass a mountpoint name
@@ -293,12 +297,12 @@ class JFSDevice(object):
         try:
             return [JFSFile(f, self, parentpath='%s/%s' % (self.path, mountPoint.name)) for f in self.contents(mountPoint).files.iterchildren()]
         except AttributeError as err:
-            # no files at all 
+            # no files at all
             return [x for x in []]
 
     def folders(self, mountPoint):
-        """Get an iterator of JFSFolder() from the given mountPoint. 
-        
+        """Get an iterator of JFSFolder() from the given mountPoint.
+
         "mountPoint" may be either an actual mountPoint element from JFSDevice.mountPoints{} or its .name. """
         if isinstance(mountPoint, basestring):
             # shortcut: pass a mountpoint name
@@ -306,7 +310,7 @@ class JFSDevice(object):
         try:
             return [JFSFolder(f, self, parentpath='%s/%s' % (self.path, mountPoint.name)) for f in self.contents(mountPoint).folders.iterchildren()]
         except AttributeError as err:
-            # no files at all 
+            # no files at all
             return [x for x in []]
 
     @property
@@ -352,7 +356,7 @@ class JFS(object):
         if usecache:
             r = requests.get(url, headers=headers, auth=self.auth)
         else:
-            with requests_cache.disabled(): 
+            with requests_cache.disabled():
                 r = requests.get(url, headers=headers, auth=self.auth)
         if r.status_code in ( 500, ):
             raise JFSError(r.reason)
@@ -379,14 +383,15 @@ class JFS(object):
         elif o.tag == 'folder': return JFSFolder(o, jfs=self, parentpath=parent)
         elif o.tag == 'mountPoint': return JFSMountPoint(o, jfs=self, parentpath=parent)
         elif o.tag == 'file': return JFSFile(o, jfs=self, parentpath=parent)
-        elif o.tag == 'user': 
+        elif o.tag == 'user':
             self.fs = o
             return self.fs
         print "invalid object: %s <- %s" % (repr(o), url)
 
     def stream(self, url, chunkSize=1024):
         r = self.request(url)
-        return r.iter_content(chunkSize)
+        for chunk in r.iter_content(chunkSize):
+            yield chunk
 
     # property overloading
     @property

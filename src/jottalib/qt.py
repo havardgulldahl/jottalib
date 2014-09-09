@@ -1,27 +1,27 @@
 # -*- encoding: utf-8 -*-
 #
 # This file is part of jottafs.
-# 
+#
 # jottafs is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # jottafs is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with jottafs.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
 # Copyright 2011,2013,2014 Håvard Gulldahl <havard@gulldahl.no>
 
 # stdlib
 import os.path
-import logging, itertools
+import logging, itertools, tempfile
 
-# Part of jottalib. 
+# Part of jottalib.
 import jottalib.JFS as JFS
 
 # This is only needed for Python v2 but is harmless for Python v3.
@@ -36,7 +36,7 @@ class JFSNode(QtGui.QStandardItem):
         self.obj = obj
         self.setText(obj.name)
         self.jfs = jfs
-        self.childNodes = [] 
+        self.childNodes = []
 
     def flags(self):
         return QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled
@@ -78,6 +78,7 @@ class JFSDeviceNode(JFSNode):
         self.childNodes = list([JFSFolderNode(item, self.jfs, self) for item in self.obj.mountPoints.values()])
 
 class JFSModel(QtGui.QStandardItemModel):
+    tempfileCreated = QtCore.pyqtSignal(unicode)
 
     def __init__(self, jfs, rootPath, parent=None):
         super(JFSModel, self).__init__(parent)
@@ -98,7 +99,7 @@ class JFSModel(QtGui.QStandardItemModel):
         if self.hasChildren(idx):
             self.itemFromIndex(idx).pullChildren()
 
-    def hasChildren(self, idx): 
+    def hasChildren(self, idx):
         item = self.itemFromIndex(idx)
         # if item is not None:
         #     logging.debug('hasChildren item: %s (%s)', item, unicode(item.text()))
@@ -110,22 +111,40 @@ class JFSModel(QtGui.QStandardItemModel):
         item = self.itemFromIndex(idx)
         if item is not None: return item.flags()
 
-    def xmimeData(self, idx):
-        item = self.itemFromIndex(idx)
-        if item is not None:
-            logging.debug('mximeData item: %s (%s)', item, unicode(item.text()))
-
     def mimeData(self, idxes):
         item = self.itemFromIndex(idxes.pop())
         if item is None:
             return
         logging.debug('mimeData item: %s (%s)', item, unicode(item.text()))
 
-        md = QtCore.QMimeData()
+        md = jottaMimeData()
         data = item.obj.read()
+        md.dataRequested.connect(lambda mt: self.createData(mt, data))
+        self.tempfileCreated.connect(lambda fn: md.setTempfile(fn))
         md.setData(item.obj.mime, data)
         if item.obj.is_image():
             img = QtGui.QImage(item.obj.name)
             img.loadFromData(data)
             md.setImageData(img)
         return md
+
+    def createData(self, mimeType, data):
+      if not mimeType.split('/')[0] in ('image', ):
+          return
+      print "createData", mimeType
+      with tempfile.NamedTemporaryFile(delete=False) as f:
+          f.write(data)
+          print f.name
+          self.tempfileCreated.emit(f.name)
+
+class jottaMimeData(QtCore.QMimeData):
+    dataRequested = QtCore.pyqtSignal(unicode)
+
+    def retrieveData(self, mimeType, _type):
+      print "retrieveData", mimeType, _type
+      self.dataRequested.emit(mimeType)
+      return super(jottaMimeData, self).retrieveData(mimeType, _type)
+
+    def setTempfile(self, fn):
+      print "setTempfile", fn
+      self.setUrls([QtCore.QUrl(fn), ])
