@@ -67,6 +67,7 @@ class JFSFolder(object):
 
     @property
     def name(self):
+        return self.folder.attrib.has_key('name') and unicode(self.folder.attrib['name']) or unicode(self.folder.name)
         return unicode(self.folder.attrib.get('name', self.folder.name))
 
     @property
@@ -433,8 +434,8 @@ class JFS(object):
             o = lxml.objectify.fromstring(url_or_requests_response.content)
             parent = os.path.dirname(url_or_requests_response.url).replace('up.jottacloud.com', 'www.jotta.no')
         else:
-            o = self.get(url)
-            parent = os.path.dirname(url).replace('up.jottacloud.com', 'www.jotta.no')
+            o = self.get(url_or_requests_response)
+            parent = os.path.dirname(url_or_requests_response).replace('up.jottacloud.com', 'www.jotta.no')
         if o.tag == 'device': return JFSDevice(o, jfs=self, parentpath=parent)
         elif o.tag == 'folder': return JFSFolder(o, jfs=self, parentpath=parent)
         elif o.tag == 'mountPoint': return JFSMountPoint(o, jfs=self, parentpath=parent)

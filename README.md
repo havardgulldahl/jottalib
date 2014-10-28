@@ -1,8 +1,8 @@
 # JOTTALIB #
 
-This is not an official Jottacloud client. It is developed [according to the company founder's instructions at](http://forum.jotta.no/jotta/topics/api_http), with write support reverse engineered [with the company's blessing](http://forum.jotta.no/jotta/topics/jotta_api_for_remote_storage_fetch?).
+This is not an official Jottacloud client. It is developed [according to the company founder's instructions](http://forum.jotta.no/jotta/topics/api_http), with write support reverse engineered [with the company's blessing](http://forum.jotta.no/jotta/topics/jotta_api_for_remote_storage_fetch?).
 
-## So what is it, then? ## 
+## So what is it, then?
 
 This is a bare-bones, pythonic interface to the Jottacloud backup/cloud storage service. The service itself exposes a nice and simple HTTP REST api, and this library wraps that interface in a python module, in the hope that it may be useful.
 
@@ -27,8 +27,8 @@ python-qt4 for the Qt models
 
 Export your Jottacloud username and password to the running environment. Running macosx or linux, it would normally go like this:
 
-`export JOTTACLOUD_USERNAME="yourusername"`
-`export JOTTACLOUD_PASSWORD="yourpassword"`
+    `export JOTTACLOUD_USERNAME="yourusername"`
+    `export JOTTACLOUD_PASSWORD="yourpassword"`
 
 ## Fuse client ##
 
@@ -50,7 +50,7 @@ Note. Being a remote mounted folder, it won't be as snappy as a locally synchron
 Take a look at qt.py, where you'll find a JFSModel(QtGui.QStandardItemModel) and various JFSNode(QtGui.QStandardItem) to match the jottacloud api.
 
 
-## QT Gui ##
+## QT Gui
 
 A simple try at a usable gui lives [in its own repository](https://gitorious.org/jottafs/jottagui).
 
