@@ -24,7 +24,7 @@ __version__ = '0.1'
 
 # importing stdlib
 import sys, os, os.path, time
-import urllib, logging, datetime
+import urllib, logging, datetime, hashlib
 
 # importing external dependencies (pip these, please!)
 import requests
@@ -94,6 +94,25 @@ class JFSFolder(object):
         except AttributeError:
             return [x for x in []]
 
+    def mkdir(self, foldername):
+        'Create a new subfolder'
+        url = '%s?mkDir=true' % os.path.join(self.path, foldername)
+        r = self.jfs.post(url)
+        self.sync()
+        return r
+
+    def rmdir(self):
+        'Delete folder'
+        url = '%s?dlDir=true' % self.path
+        r = self.jfs.post(url)
+        self.sync()
+        return r
+
+    def up(self, filepath):
+        'Upload a file to current folder'
+        r = self.jfs.up('%s/%s' % (self.path, os.path.basename(filepath)), open(filepath, 'rb'))
+        self.sync()
+        return r
 
 class JFSFile(object):
     'OO interface to a file, for convenient access. Type less, do more.'
@@ -340,24 +359,28 @@ class JFSDevice(object):
 
 
 class JFS(object):
-    def __init__(self, username, password):
+    def __init__(self, username, password, ca_bundle=True):
         from requests.auth import HTTPBasicAuth
+        self.ca_bundle = ca_bundle
         self.auth = HTTPBasicAuth(username, password)
         self.path = JFS_ROOT + username
+        self.apiversion = '2.2' # hard coded per october 2014
+        self.headers =  {'User-Agent':'JottaFS %s (https://gitorious.org/jottafs/)' % (__version__, ),
+                         'X-JottaAPIVersion': self.apiversion,
+                         #'From': __author__
+                         } 
         self.fs = self.get(self.path)
 
     def request(self, url, usecache=True):
-        headers  = {'User-Agent':'JottaFS %s (https://gitorious.org/jottafs/)' % (__version__, ),
-                    'From': __author__}
         if not url.startswith('http'):
             # relative url
             url = self.path + url
         logging.debug("getting url: %s" % url)
         if usecache:
-            r = requests.get(url, headers=headers, auth=self.auth)
+            r = requests.get(url, headers=self.headers, auth=self.auth, verify=self.ca_bundle)
         else:
             with requests_cache.disabled():
-                r = requests.get(url, headers=headers, auth=self.auth)
+                r = requests.get(url, headers=self.headers, auth=self.auth, verify=self.ca_bundle)
         if r.status_code in ( 500, ):
             raise JFSError(r.reason)
         return r
@@ -393,6 +416,64 @@ class JFS(object):
         for chunk in r.iter_content(chunkSize):
             yield chunk
 
+    def post(self, url, content='', files=None, params=None, extra_headers={}):
+        'HTTP Post to url'
+        logging.debug('posting content (len %s) to url %s', content is not None and len(content) or '?', url)
+        headers = self.headers.copy()
+        #headers.update({'Content-Type':'application/octet-stream'})
+        headers.update(**extra_headers)
+        r = requests.post(url, data=content, params=params, files=files, headers=headers, auth=self.auth, verify=self.ca_bundle)
+        #if r.status_code in ( 500, 404, 401, 403 ):
+        #    raise JFSError(r.reason)
+        return r
+
+    def up(self, path, fileobject):
+        "Upload a fileobject to path, HTTP POST-ing to up.jottacloud.com"
+        """
+
+        *** WHAT DID I DO?: created file
+        ***
+         
+        POST https://up.jottacloud.com/jfs/**USERNAME**/Jotta/Sync/testFolder/testFile.txt?cphash=d41d8cd98f00b204e9800998ecf8427e HTTP/1.1
+        User-Agent: Desktop_Jottacloud 3.0.22.203 Windows_8 6.2.9200 x86_64
+        Authorization: Basic ******************
+        X-JottaAPIVersion: 2.2
+        X-Jfs-DeviceName: **CENSORED**
+        JCreated: 2014-10-26T12:33:09Z+00:00
+        JModified: 2014-10-26T12:33:09Z+00:00
+        JMd5: d41d8cd98f00b204e9800998ecf8427e
+        JSize: 0
+        jx_csid: dOq1NCRer6uxuR/bFxihasj4QzBU3Tn7S2jVF1CE71YW1fGhxPFYYsw2T0XYjnJBtxKQzhWixmg+u5kp8bJtvMpIFHbhSDmPPSk+PVBf2UdFhXxli4YEII9a97eO4XBfn5QWAV1LJ2Z9l59jmnLkJQgfOyexkuQbxHdSLgQPXu8=
+        jx_lisence: M1v3p31oQf2OXvyAn2GvfS2I2oiMXrw+cofuMVHHI/2K+wlxhj22VkON6fN6fJMsGNcMzvcFYfmKPgL0Yf8TCO5A/6ULk6N8LctY3+fPegx+Jgbyc4hh0IXwnOdqa+UZ6Lg1ub4VXr5XnX3P3IxeVDg0VbcJnzv4TbFA+oMXmfM=
+        Content-Type: application/octet-stream
+        Content-Length: 0
+        Connection: Keep-Alive
+        Accept-Encoding: gzip
+        Accept-Language: nb-NO,en,*
+        Host: up.jottacloud.com
+        """
+        url = path.replace('www.jotta.no', 'up.jottacloud.com')
+        content = fileobject.read()
+        fileobject.seek(0) # rewind read index for requests.post
+        md5hash = hashlib.md5(content).hexdigest()
+        logging.debug('posting content (len %s, hash %s) to url %s', len(content), md5hash, url)
+        now = '2014-10-05T10:23:18Z+00:00' #datetime.datetime.now().isoformat()
+        headers = {'JMd5':md5hash,
+                   'JCreated': now,
+                   'JModified': now,
+                   'X-Jfs-DeviceName': 'Jotta', 
+                   'JSize': len(content),
+                   'jx_csid': '',
+                   'jx_lisence': ''
+                   }
+        params = {'cphash':md5hash,}
+        files = {'md5': ('', md5hash),
+                 'modified': ('', now),
+                 'created': ('', now),
+                 'file': (os.path.basename(url), fileobject, 'application/octet-stream', {'Content-Transfer-Encoding':'binary'})}
+        return self.post(url, None, files=files, params=params, extra_headers=headers)
+
+
     # property overloading
     @property
     def devices(self):
@@ -427,12 +508,20 @@ class JFS(object):
 
 if __name__=='__main__':
     # debug setup
+    import httplib as http_client
+    http_client.HTTPConnection.debuglevel = 1
+    requests_log = logging.getLogger("requests.packages.urllib3")
+    requests_log.setLevel(logging.DEBUG)
+    requests_log.propagate = True    
     from lxml.objectify import dump as xdump
     from pprint import pprint
     jfs = JFS(os.environ['JOTTACLOUD_USERNAME'], password=os.environ['JOTTACLOUD_PASSWORD'])
-    logging.info(xdump(jfs.fs))
-    x = list(jfs.devices)[0]
-    files = x.files('Documents')
-    folders = x.folders('Documents')
+    #logging.info(xdump(jfs.fs))
+    jottadev = None
+    for j in jfs.devices:
+        if j.name == 'Jotta':
+            jottadev = j
+    jottasync = jottadev.mountPoints['Sync']
+    r = jottasync.up('/tmp/test.pdf')    
 
 
