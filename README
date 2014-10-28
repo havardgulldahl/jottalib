@@ -20,8 +20,7 @@ a file system.
 Caveats
 =======
 
-As per February 2014, there still is no official word on how to get write permission to the API. As such, the library
-will only read from Jottacloud, and cannot write anything.
+Write support is reverse engineered and not based on official docs. Bugs patrol these waters! (Add them to the [https://github.com/havardgulldahl/jottalib/issues/ bug tracker]!)
 
 Requirements
 ============
@@ -44,6 +43,8 @@ export JOTTACLOUD_PASSWORD=""
 Fuse client
 ===========
 
+This will "mount" jottacloud as a folder on your system, allowing you to use your normal file system utilities to browse your account.
+
 1. Create a folder where you want your Jottacloud file system: 
 
        mkdir $HOME/jottafs
@@ -51,5 +52,20 @@ Fuse client
 2. Run Fuse: 
 
        jottafuse.py $HOME/jottafs
+
+Note. Being a remote mounted folder, it won't be as snappy as a locally synchronised folder like the official JottaCloud client. 
+
+
+QT models 
+=========
+
+Take a look at qt.py, where you'll find a JFSModel(QtGui.QStandardItemModel) and various JFSNode(QtGui.QStandardItem) to match the jottacloud api.
+
+
+QT Gui
+======
+
+A simple try at a usable gui lives [https://gitorious.org/jottafs/jottagui in its own repository].
+
 
 
