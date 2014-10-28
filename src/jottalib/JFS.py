@@ -35,6 +35,7 @@ import dateutil, dateutil.parser
 
 # some setup
 JFS_ROOT='https://www.jotta.no/jfs/'
+JFS_CACHELIMIT=1024*1024 # stuff below this threshold (in bytes) will be cached
 logging.basicConfig(level=logging.DEBUG)
 
 class JFSError(Exception):
@@ -66,14 +67,14 @@ class JFSFolder(object):
 
     @property
     def name(self):
-        return self.folder.attrib.has_key('name') and unicode(self.folder.attrib['name']) or unicode(self.folder.name)
+        return unicode(self.folder.attrib.get('name', self.folder.name))
 
     @property
     def path(self):
         return '%s/%s' % (self.parentPath, self.name)
 
     def sync(self):
-        'Update state from Jottacloud server'
+        'Update state of folder from Jottacloud server'
         logging.info("syncing %s" % self.path)
         self.folder = self.jfs.get(self.path)
         self.synced = True
@@ -95,27 +96,28 @@ class JFSFolder(object):
             return [x for x in []]
 
     def mkdir(self, foldername):
-        'Create a new subfolder'
+        'Create a new subfolder and return the new JFSFolder'
         url = '%s?mkDir=true' % os.path.join(self.path, foldername)
         r = self.jfs.post(url)
         self.sync()
         return r
 
-    def rmdir(self):
-        'Delete folder'
+    def delete(self):
+        'Delete this folder and return a deleted JFSFolder'
         url = '%s?dlDir=true' % self.path
         r = self.jfs.post(url)
         self.sync()
         return r
 
     def up(self, filepath):
-        'Upload a file to current folder'
+        'Upload a file to current folder and return the new JFSFile'
         r = self.jfs.up('%s/%s' % (self.path, os.path.basename(filepath)), open(filepath, 'rb'))
         self.sync()
         return r
 
 class JFSFile(object):
     'OO interface to a file, for convenient access. Type less, do more.'
+    ## TODO: add <revisions> iterator for all 
     """
 <file name="jottacloud.sync.pdfname" uuid="37530f11-d55b-4f31-acf4-27854813cd34" time="2013-12-15-T01:11:52Z" host="dn-029.site-000.jotta.no">
   <path xml:space="preserve">/havardgulldahl/Jotta/Sync</path>
@@ -144,12 +146,12 @@ class JFSFile(object):
         self.parentPath = parentpath
 
     def stream(self, chunkSize=1024):
-        'returns a generator to iterate over the file contents'
+        'Returns a generator to iterate over the file contents'
         return self.jfs.stream(url='%s?mode=bin' % self.path, chunkSize=chunkSize)
 
     def read(self):
-        'get the file contents'
-        return self.jfs.raw('%s?mode=bin' % self.path, usecache=False) # dont cache this, they may be quite large
+        'Get the file contents as string'
+        return self.jfs.raw('%s?mode=bin' % self.path, usecache=self.size < JFS_CACHELIMIT) # dont cache large files
         """
             * name = 'jottacloud.sync.pdfname'
             * uuid = '37530f11-d55b-4f31-acf4-27854813cd34'
@@ -164,8 +166,14 @@ class JFSFile(object):
                 md5 = 'a0dc8233169b238681c43f9981efe8e1' [StringElement]
                 updated = '2010-11-19-T12:34:28Z' [StringElement]
         """
+    def delete(self):
+        'Delete this file and return the new, deleted JFSFile'
+        url = '%s?dl=true' % self.path
+        r = self.jfs.post(url)
+        return r
+
     def thumb(self, size=BIGTHUMB):
-        'Get a thumbnail'
+        'Get a thumbnail as string or None if the file isnt an image'
         if not self.is_image():
             return None
 
@@ -175,8 +183,12 @@ class JFSFile(object):
         return self.jfs.raw('%s?mode=thumb&ts=%s' % (self.path, thumbmap[size]))
 
     def is_image(self):
-        'return bool'
+        'Return bool based on self.mime'
         return os.path.dirname(self.mime) == 'image'
+
+    def is_deleted(self):
+        'Return bool based on self.deleted'
+        return self.deleted is not None
 
     @property
     def name(self):
@@ -187,27 +199,39 @@ class JFSFile(object):
         return unicode(self.f.attrib['uuid'])
 
     @property
+    def deleted(self):
+        'Return datetime.datetime or None if the file isnt deleted'
+        _d = self.f.attrib.get('deleted', None)
+        if _d is None: return None
+        return dateutil.parser.parse(str(_d))
+
+    @property
     def path(self):
         return '%s/%s' % (self.parentPath, self.name)
 
     @property
     def revisionNumber(self):
+        'return int of current revision'
         return int(self.f.currentRevision.number)
 
     @property
     def created(self):
+        'return datetime.datetime'
         return dateutil.parser.parse(str(self.f.currentRevision.created))
 
     @property
     def modified(self):
+        'return datetime.datetime'
         return dateutil.parser.parse(str(self.f.currentRevision.modified))
 
     @property
     def updated(self):
+        'return datetime.datetime'
         return dateutil.parser.parse(str(self.f.currentRevision.updated))
 
     @property
     def size(self):
+        'return int of size in bytes'
         return int(self.f.currentRevision.size)
 
     @property
@@ -239,10 +263,12 @@ class JFSMountPoint(JFSFolder):
 
     @property
     def size(self):
+        'Return int of size in bytes'
         return int(self.mp.size)
 
     @property
     def modified(self):
+        'Return datetime.datetime'
         return dateutil.parser.parse(str(self.dev.modified))
 
 class JFSDevice(object):
@@ -334,6 +360,7 @@ class JFSDevice(object):
 
     @property
     def modified(self):
+        'Return datetime.datetime'
         return dateutil.parser.parse(str(self.dev.modified))
 
     @property
@@ -351,6 +378,7 @@ class JFSDevice(object):
 
     @property
     def size(self):
+        'Return int of size in bytes'
         return int(self.dev.size)
 
     @property
@@ -399,9 +427,14 @@ class JFS(object):
             JFSError.raiseError(o, url)
         return o
 
-    def getObject(self, url):
-        o = self.get(url)
-        parent = os.path.dirname(url)
+    def getObject(self, url_or_requests_response):
+        'Take a url or some xml response from JottaCloud and match it up to one of our classes'
+        if isinstance(url_or_requests_response, requests.models.Response):
+            o = lxml.objectify.fromstring(url_or_requests_response.content)
+            parent = os.path.dirname(url_or_requests_response.url).replace('up.jottacloud.com', 'www.jotta.no')
+        else:
+            o = self.get(url)
+            parent = os.path.dirname(url).replace('up.jottacloud.com', 'www.jotta.no')
         if o.tag == 'device': return JFSDevice(o, jfs=self, parentpath=parent)
         elif o.tag == 'folder': return JFSFolder(o, jfs=self, parentpath=parent)
         elif o.tag == 'mountPoint': return JFSMountPoint(o, jfs=self, parentpath=parent)
@@ -409,23 +442,24 @@ class JFS(object):
         elif o.tag == 'user':
             self.fs = o
             return self.fs
-        print "invalid object: %s <- %s" % (repr(o), url)
+        raise JFSError("invalid object: %s <- %s" % (repr(o), url))
 
     def stream(self, url, chunkSize=1024):
+        'Iterator to get remote content by chunkSize (bytes)'
         r = self.request(url)
         for chunk in r.iter_content(chunkSize):
             yield chunk
 
     def post(self, url, content='', files=None, params=None, extra_headers={}):
-        'HTTP Post to url'
+        'HTTP Post files[] or content (unicode string) to url'
         logging.debug('posting content (len %s) to url %s', content is not None and len(content) or '?', url)
         headers = self.headers.copy()
         #headers.update({'Content-Type':'application/octet-stream'})
         headers.update(**extra_headers)
         r = requests.post(url, data=content, params=params, files=files, headers=headers, auth=self.auth, verify=self.ca_bundle)
-        #if r.status_code in ( 500, 404, 401, 403 ):
-        #    raise JFSError(r.reason)
-        return r
+        if r.status_code in ( 500, 404, 401, 403 ):
+            raise JFSError(r.reason)
+        return self.getObject(r) # return a JFS* class
 
     def up(self, path, fileobject):
         "Upload a fileobject to path, HTTP POST-ing to up.jottacloud.com"
@@ -523,5 +557,3 @@ if __name__=='__main__':
             jottadev = j
     jottasync = jottadev.mountPoints['Sync']
     r = jottasync.up('/tmp/test.pdf')    
-
-
