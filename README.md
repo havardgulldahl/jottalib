@@ -10,27 +10,27 @@ All code is GPLv3 licensed, and the [documentation lives at the official git rep
 
 There is also a FUSE implementation in here, mostly to test the library, but it is fully working and ready for use as a file system.
 
-## Caveats ##
+## Caveats
 
 Write support is reverse engineered and not based on official docs. Bugs patrol these waters! (Add them to the [bug tracker!](https://github.com/havardgulldahl/jottalib/issues/) )
 
-## Requirements ##
+## Requirements
 
 The mandatory modules are listed in requirements.txt (`pip -r requirements.txt` will get you everything you need).
 
-### Optional requirements ###
+### Optional requirements
 
-fusepy for Fuse client
-python-qt4 for the Qt models
+    fusepy for Fuse client
+	python-qt4 for the Qt models
 
-## How to get started ##
+## How to get started
 
 Export your Jottacloud username and password to the running environment. Running macosx or linux, it would normally go like this:
 
     `export JOTTACLOUD_USERNAME="yourusername"`
     `export JOTTACLOUD_PASSWORD="yourpassword"`
 
-## Fuse client ##
+## Fuse client
 
 This will "mount" jottacloud as a folder on your system, allowing you to use your normal file system utilities to browse your account.
 
@@ -45,7 +45,7 @@ This will "mount" jottacloud as a folder on your system, allowing you to use you
 Note. Being a remote mounted folder, it won't be as snappy as a locally synchronised folder like the official JottaCloud client. 
 
 
-## QT models ## 
+## QT models
 
 Take a look at qt.py, where you'll find a JFSModel(QtGui.QStandardItemModel) and various JFSNode(QtGui.QStandardItem) to match the jottacloud api.
 
@@ -53,5 +53,12 @@ Take a look at qt.py, where you'll find a JFSModel(QtGui.QStandardItemModel) and
 ## QT Gui
 
 A simple try at a usable gui lives [in its own repository](https://gitorious.org/jottafs/jottagui).
+
+
+## Other tools
+
+	`jottashare.py` - A simple command line script to easily upload and share a file at a public, secret URI
+
+	`duplicity-backend.py` - WORK IN PROGRESS A module for duplicity. Store your backups in the JottaCloud
 
 
