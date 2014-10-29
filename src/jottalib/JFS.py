@@ -74,11 +74,22 @@ class JFSFolder(object):
     def path(self):
         return '%s/%s' % (self.parentPath, self.name)
 
+    @property
+    def deleted(self):
+        'Return datetime.datetime or None if the file isnt deleted'
+        _d = self.folder.attrib.get('deleted', None)
+        if _d is None: return None
+        return dateutil.parser.parse(str(_d))
+
     def sync(self):
         'Update state of folder from Jottacloud server'
         logging.info("syncing %s" % self.path)
         self.folder = self.jfs.get(self.path)
         self.synced = True
+
+    def is_deleted(self):
+        'Return bool based on self.deleted'
+        return self.deleted is not None
 
     def files(self):
         if not self.synced:
@@ -110,9 +121,11 @@ class JFSFolder(object):
         self.sync()
         return r
 
-    def up(self, filepath):
+    def up(self, fileobj_or_path):
         'Upload a file to current folder and return the new JFSFile'
-        r = self.jfs.up('%s/%s' % (self.path, os.path.basename(filepath)), open(filepath, 'rb'))
+        if not isinstance(fileobj_or_path, file):
+            fileobj_or_path = open(fileobj_or_path, 'rb')
+        r = self.jfs.up('%s/%s' % (self.path, os.path.basename(fileobj_or_path.name)), fileobj_or_path)
         self.sync()
         return r
 
@@ -167,6 +180,16 @@ class JFSFile(object):
                 md5 = 'a0dc8233169b238681c43f9981efe8e1' [StringElement]
                 updated = '2010-11-19-T12:34:28Z' [StringElement]
         """
+    def share(self):
+        'Enable public access at secret, share only uri, and return that uri'
+        url = 'https://www.jottacloud.com/rest/webrest/%s/action/enableSharing' % self.jfs.username
+        data = {'paths[]':self.path.replace(u'https://www.jotta.no/jfs', ''),
+                'web':'true',
+                'ts':int(time.time()),
+                'authToken':0}
+        r = self.jfs.post(url, content=data)
+        return r
+
     def delete(self):
         'Delete this file and return the new, deleted JFSFile'
         url = '%s?dl=true' % self.path
@@ -386,11 +409,42 @@ class JFSDevice(object):
     def sid(self):
         return str(self.dev.sid)
 
+class JFSenableSharing(object):
+    'wrap enableSharing element in a python class'
+    """<enableSharing>
+  <files>
+    <file name="V1B.docx" uuid="d4490ff3-505c-4ecd-9994-583a6668d3b9">
+      <publicURI>33cb006a8ec6493a9dabab48503d022b</publicURI>
+      <currentRevision>
+        <number>1</number>
+        <state>COMPLETED</state>
+        <created>2014-10-08-T17:26:12Z</created>
+        <modified>2014-10-08-T17:26:12Z</modified>
+        <mime>application/msword</mime>
+        <mstyle>APPLICATION_MSWORD</mstyle>
+        <size>12882</size>
+        <md5>5074ad00d3d97f9b938c46c78a97e817</md5>
+        <updated>2014-10-08-T15:27:10Z</updated>
+      </currentRevision>
+    </file>
+  </files>
+</enableSharing>"""
+    def __init__(self, sharing, jfs): # deviceobject from lxml.objectify
+        self.sharing = sharing
+        self.jfs = jfs
+
+    def sharedFiles(self):
+        'iterate over shared files and get their public URI'
+        for f in self.sharing.files.iterchildren():
+            yield (f.attrib['name'], f.attrib['uuid'], 
+                'http://www.jottacloud.com/p/%s/%s' % (self.jfs.username, f.publicURI.text))
+
 
 class JFS(object):
     def __init__(self, username, password, ca_bundle=True):
         from requests.auth import HTTPBasicAuth
         self.ca_bundle = ca_bundle
+        self.username = username
         self.auth = HTTPBasicAuth(username, password)
         self.path = JFS_ROOT + username
         self.apiversion = '2.2' # hard coded per october 2014
@@ -422,28 +476,29 @@ class JFS(object):
         # f.close()
         return r.content
 
-    def get(self, url):
-        o = lxml.objectify.fromstring(self.raw(url))
+    def get(self, url, usecache=True):
+        o = lxml.objectify.fromstring(self.raw(url, usecache=usecache))
         if o.tag == 'error':
             JFSError.raiseError(o, url)
         return o
 
-    def getObject(self, url_or_requests_response):
+    def getObject(self, url_or_requests_response, usecache=True):
         'Take a url or some xml response from JottaCloud and match it up to one of our classes'
         if isinstance(url_or_requests_response, requests.models.Response):
             o = lxml.objectify.fromstring(url_or_requests_response.content)
             parent = os.path.dirname(url_or_requests_response.url).replace('up.jottacloud.com', 'www.jotta.no')
         else:
-            o = self.get(url_or_requests_response)
+            o = self.get(url_or_requests_response, usecache=usecache)
             parent = os.path.dirname(url_or_requests_response).replace('up.jottacloud.com', 'www.jotta.no')
         if o.tag == 'device': return JFSDevice(o, jfs=self, parentpath=parent)
         elif o.tag == 'folder': return JFSFolder(o, jfs=self, parentpath=parent)
         elif o.tag == 'mountPoint': return JFSMountPoint(o, jfs=self, parentpath=parent)
         elif o.tag == 'file': return JFSFile(o, jfs=self, parentpath=parent)
+        elif o.tag == 'enableSharing': return JFSenableSharing(o, jfs=self)
         elif o.tag == 'user':
             self.fs = o
             return self.fs
-        raise JFSError("invalid object: %s <- %s" % (repr(o), url))
+        raise JFSError("invalid object: %s <- %s" % (repr(o), url_or_requests_response))
 
     def stream(self, url, chunkSize=1024):
         'Iterator to get remote content by chunkSize (bytes)'
@@ -453,9 +508,11 @@ class JFS(object):
 
     def post(self, url, content='', files=None, params=None, extra_headers={}):
         'HTTP Post files[] or content (unicode string) to url'
+        if not url.startswith('http'):  
+            # relative url
+            url = self.path + url
         logging.debug('posting content (len %s) to url %s', content is not None and len(content) or '?', url)
         headers = self.headers.copy()
-        #headers.update({'Content-Type':'application/octet-stream'})
         headers.update(**extra_headers)
         r = requests.post(url, data=content, params=params, files=files, headers=headers, auth=self.auth, verify=self.ca_bundle)
         if r.status_code in ( 500, 404, 401, 403 ):
