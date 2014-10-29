@@ -29,16 +29,28 @@ import sys, os, os.path
 import urllib, logging, datetime
 import argparse # 2.7
 
-# import jotta
-import jottalib
+# import jottacloud client
+from jottalib import JFS
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
-    parser = argparse.ArgumentParser(description='Share a file on JottaCloud and get the URI.')
-    parser.add_argument('<local file>', help='The local file that you want to share')
+    logging.basicConfig(level=logging.WARNING)
+    parser = argparse.ArgumentParser(description='Share a file on JottaCloud and get the public URI.',
+                                     epilog='Note: This utility needs to find JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.')
+    parser.add_argument('localfile', help='The local file that you want to share',
+                                     type=argparse.FileType('r'))
     args = parser.parse_args()
-    logging.debug(args)
+    #logging.debug(args)
+    jfs = JFS.JFS(os.environ['JOTTACLOUD_USERNAME'], password=os.environ['JOTTACLOUD_PASSWORD'])
+    jottadev = None
+    for j in jfs.devices: # find Jotta/Shared folder
+        if j.name == 'Jotta':
+            jottadev = j
+    jottashare = jottadev.mountPoints['Shared']
+    upload = jottashare.up(args.localfile)  # upload file
+    public = upload.share() # share file
+    for (filename, uuid, publicURI) in public.sharedFiles(): 
+        print '%s is now available to the world at %s' % (filename, publicURI)
 
 
 
