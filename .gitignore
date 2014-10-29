@@ -1,2 +1,4 @@
 *.pyc
-
+dist/
+*.sqlite
+MANIFEST
