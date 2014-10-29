@@ -52,6 +52,8 @@ class JottaFuse(LoggingMixIn, Operations):
     def __init__(self, username, password, path='.'):
         self.client = JFS.JFS(username, password)
         self.root = path
+        self.dirty = False # True if some method has changed/added something and we need to get fresh data from JottaCloud
+        # TODO: make self.dirty more smart, to know what path, to get from cache and not
 
     def _getpath(self, path):
         "A wrapper of JFS.getObject(), with some tweaks that make sense in a file system."
@@ -62,9 +64,7 @@ class JottaFuse(LoggingMixIn, Operations):
             if _basename.startswith(bf):
                 raise JottaFuseError('Blacklisted file, refusing to retrieve it')
 
-        return self.client.getObject(path)
-
-
+        return self.client.getObject(path, usecache=self.dirty is not True)
 
     def xx_create(self, path, mode):
         f = self.sftp.open(path, 'w')
@@ -91,8 +91,15 @@ class JottaFuse(LoggingMixIn, Operations):
                 'st_uid': pw.pw_uid,
                 }
 
-    def xx_mkdir(self, path, mode):
-        return self.sftp.mkdir(path, mode)
+    def mkdir(self, path, mode):
+        parentfolder = os.path.dirname(path)
+        newfolder = os.path.basename(path)
+        try:
+            f = self._getpath(parentfolder)
+        except JFS.JFSError:
+            raise OSError(errno.ENOENT, '')
+        r = f.mkdir(newfolder)
+        self.dirty = True
 
     def read(self, path, size, offset, fh):
         try:
@@ -117,7 +124,8 @@ class JottaFuse(LoggingMixIn, Operations):
                     yield name
             else:    
                 for el in itertools.chain(p.folders(), p.files()):
-                    yield el.name
+                    if not el.is_deleted():
+                        yield el.name
 
     def statfs(self, path):
         "Return a statvfs(3) structure, for stat and df and friends"
