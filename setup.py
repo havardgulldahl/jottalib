@@ -41,7 +41,7 @@ setup(name='jottalib',
       package_dir={'':'src'},
       packages=['jottalib', ],
       scripts=['src/jottafuse.py', 'src/jottashare.py'],
-
+      data_files=[ ('share', ['COPYING', 'README.api']), ]
      )
 
 os.remove('README.txt')
