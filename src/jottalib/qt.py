@@ -54,6 +54,8 @@ class JFSFileNode(JFSNode):
     def flags(self):
         if self.isUploading:
             return QtCore.Qt.NoItemFlags
+        elif self.obj.is_deleted():
+            return QtCore.Qt.NoItemFlags
         return QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled
 
 class JFSFolderNode(JFSNode):
@@ -64,11 +66,13 @@ class JFSFolderNode(JFSNode):
     def flags(self):
         return QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDropEnabled
 
-    def pullChildren(self):
+    def pullChildren(self, hideDeleted=True):
         if self.childrenAlreadyPulled: return
         for obj in self.obj.folders():
+            if hideDeleted and obj.is_deleted(): continue
             self.appendRow(JFSFolderNode(obj, self.jfs, self))
         for obj in self.obj.files():
+            if hideDeleted and obj.is_deleted(): continue
             self.appendRow(JFSFileNode(obj, self.jfs, self))
         self.childrenAlreadyPulled = True
 
@@ -79,6 +83,7 @@ class JFSDeviceNode(JFSNode):
 
 class JFSModel(QtGui.QStandardItemModel):
     tempfileCreated = QtCore.pyqtSignal(unicode)
+    uploadFile = QtCore.pyqtSignal(unicode, unicode) # (local file path, remote folder path)
 
     def __init__(self, jfs, rootPath, parent=None):
         super(JFSModel, self).__init__(parent)
@@ -93,6 +98,11 @@ class JFSModel(QtGui.QStandardItemModel):
         elif isinstance(rawObj, JFS.JFSFile):
             self.rootObject = JFSFileNode(rawObj, jfs)
         self.rootItem.appendRows(self.rootObject.childNodes)
+        self.uploadFile.connect(self.upload)
+
+    def upload(self, localpath, remotefolder):
+        logging.debug('upload %s -> %s', localpath, remotefolder)
+        self.jfs.up(remotefolder, open(localpath, 'rb'))
 
     def populateChildNodes(self, idx):
         logging.debug('populateChildNodes %s', idx)
@@ -129,13 +139,26 @@ class JFSModel(QtGui.QStandardItemModel):
         return md
 
     def createData(self, mimeType, data):
-      if not mimeType.split('/')[0] in ('image', ):
-          return
+      #if not mimeType.split('/')[0] in ('image', ):
+      #    return
       print "createData", mimeType
       with tempfile.NamedTemporaryFile(delete=False) as f:
           f.write(data)
           print f.name
           self.tempfileCreated.emit(f.name)
+
+    def supportedDropActions(self):
+        return QtCore.Qt.CopyAction
+
+    def dropMimeData(self, mimedata, action, row, column, parent):
+        logging.debug("dropMimeData %s (parent %s)", action, parent)
+        logging.debug("dropped: %s", mimedata.formats())
+        if action == QtCore.Qt.CopyAction:
+            # put this data on jottacloud
+            logging.debug("upload data")
+
+            return True
+        return False
 
 class jottaMimeData(QtCore.QMimeData):
     dataRequested = QtCore.pyqtSignal(unicode)
