@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright 2013 Håvard Gulldahl <havard@gulldahl.no>
+# Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
 #
 # This file is part of duplicity.
 # This is a backup backend to store files with the Norwegian backup 

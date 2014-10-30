@@ -22,7 +22,6 @@
 # metadata
 
 __author__ = 'havard@gulldahl.no'
-__version__ = '0.1'
 
 # importing stdlib
 import sys, os, os.path
