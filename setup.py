@@ -18,20 +18,18 @@
 #
 # Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
 
-from distutils.core import setup
+from setuptools import setup
 
 import os, sys
 sys.path.insert(0, './src')
 
-from jottalib import JFS
-
-os.system('''pandoc --from=markdown --to=rst --output=README.txt README.md''')
+from jottalib import __version__
 
 with open('README.txt') as f:
     long_desc = f.read()
 
 setup(name='jottalib',
-      version=JFS.__version__,
+      version=__version__,
       license='GPLv3',
       description='A library to access the JottaCloud API',
       long_description=long_desc,
@@ -41,8 +39,10 @@ setup(name='jottalib',
       package_dir={'':'src'},
       packages=['jottalib', ],
       scripts=['src/jottafuse.py', 'src/jottashare.py'],
-      data_files=[ ('share', ['COPYING', 'README.api']), ]
+      install_requires=['requests==2.1.0', 
+                        'requests_cache==0.4.4',
+                        'python-dateutil',
+                        'lxml'],
      )
 
-os.remove('README.txt')
 
