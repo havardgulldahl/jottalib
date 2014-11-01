@@ -25,11 +25,16 @@ sys.path.insert(0, './src')
 
 from jottalib import __version__
 
-with open('README.txt') as f:
-    long_desc = f.read()
+try:
+    with open('README.txt') as f:
+        long_desc = f.read()
+except IOError:
+    long_desc = ''
+
+package_version = '1'
 
 setup(name='jottalib',
-      version=__version__,
+      version='%s-%s' % (__version__, package_version),
       license='GPLv3',
       description='A library to access the JottaCloud API',
       long_description=long_desc,
