@@ -180,6 +180,12 @@ class JFSFile(object):
                 md5 = 'a0dc8233169b238681c43f9981efe8e1' [StringElement]
                 updated = '2010-11-19-T12:34:28Z' [StringElement]
         """
+
+    def write(self, data):
+        'Put, possibly replace, file contents with (new) data'
+        return self.jfs.post(self.path, contents=data, 
+                             extra_headers={'Content-Type':'application/octet-stream'})
+
     def share(self):
         'Enable public access at secret, share only uri, and return that uri'
         url = 'https://www.jottacloud.com/rest/webrest/%s/action/enableSharing' % self.jfs.username
@@ -516,6 +522,7 @@ class JFS(object):
         headers.update(**extra_headers)
         r = requests.post(url, data=content, params=params, files=files, headers=headers, auth=self.auth, verify=self.ca_bundle)
         if r.status_code in ( 500, 404, 401, 403 ):
+            logging.warning('HTTP POST failed: %s', r.text)
             raise JFSError(r.reason)
         return self.getObject(r) # return a JFS* class
 
