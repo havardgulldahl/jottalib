@@ -37,7 +37,11 @@ except ImportError:
 from jottalib import JFS
 
 # import dependenceis (get them with pip!)
-from fuse import FUSE, Operations, LoggingMixIn # this is 'pip install fusepy'
+try:
+    from fuse import FUSE, Operations, LoggingMixIn # this is 'pip install fusepy'
+except ImportError:
+    print "JottaFuse won't work without fusepy! Please run `pip install fusepy`."
+    raise
 
 class JottaFuseError(JFS.JFSError):
     pass
@@ -53,11 +57,13 @@ class JottaFuse(LoggingMixIn, Operations):
         self.root = path
         self.dirty = False # True if some method has changed/added something and we need to get fresh data from JottaCloud
         # TODO: make self.dirty more smart, to know what path, to get from cache and not
+        self.__newfiles = []
+        self.__newfolders = []
 
     def _getpath(self, path):
         "A wrapper of JFS.getObject(), with some tweaks that make sense in a file system."
         BLACKLISTED_FILENAMES = ('.hidden', '._', '.DS_Store', '.Trash', '.Spotlight-', '.hotfiles-btree',
-                                 'lost+found', 'Backups.backupdb')
+                                 'lost+found', 'Backups.backupdb', 'mach_kernel')
         _basename = os.path.basename(path)
         for bf in BLACKLISTED_FILENAMES:
             if _basename.startswith(bf):
@@ -65,22 +71,40 @@ class JottaFuse(LoggingMixIn, Operations):
 
         return self.client.getObject(path, usecache=self.dirty is not True)
 
-    def xx_create(self, path, mode):
-        f = self.sftp.open(path, 'w')
-        f.chmod(mode)
-        f.close()
-        return 0
+    def create(self, path, mode):
+        if not path in self.__newfiles:
+            self.__newfiles.append(path)
+        return self.__newfiles.index(path)
+        #return 0
 
     def destroy(self, path):
         #self.client.close()
         pass
 
     def getattr(self, path, fh=None):
+        pw = pwd.getpwuid( os.getuid() )
+        if path in self.__newfolders: # folder was just created, not synced yet
+            return {
+                'st_atime': time.time(),
+                'st_gid': pw.pw_gid,
+                'st_mode': stat.S_IFDIR | 0755, 
+                'st_mtime': time.time(),
+                'st_size': 0,
+                'st_uid': pw.pw_uid,
+                }
+        elif path in self.__newfiles: # file was just created, not synced yet
+            return {
+                'st_atime': time.time(),
+                'st_gid': pw.pw_gid,
+                'st_mode': stat.S_IFREG | 0444,  
+                'st_mtime': time.time(),
+                'st_size': 0,
+                'st_uid': pw.pw_uid,
+                }
         try:
             f = self._getpath(path)
         except JFS.JFSError:
-            raise OSError(errno.ENOENT, '')
-        pw = pwd.getpwuid( os.getuid() )
+            raise OSError(errno.ENOENT, '') # can't help you
         return {
                 'st_atime': isinstance(f, JFS.JFSFile) and time.mktime(f.updated.timetuple()) or time.time(),
                 'st_gid': pw.pw_gid,
@@ -99,8 +123,11 @@ class JottaFuse(LoggingMixIn, Operations):
             raise OSError(errno.ENOENT, '')
         r = f.mkdir(newfolder)
         self.dirty = True
+        self.__newfolders.append(path)
 
     def read(self, path, size, offset, fh):
+        if path in self.__newfiles: # file was just created, not synced yet
+            return ''
         try:
             f = StringIO(self._getpath(path).read())
         except JFS.JFSError:
@@ -168,18 +195,36 @@ class JottaFuse(LoggingMixIn, Operations):
     def xx_rename(self, old, new):
         return self.sftp.rename(old, self.root + new)
 
-    def xx_rmdir(self, path):
-        return self.sftp.rmdir(path)
+    def unlink(self, path):
+        if path in self.__newfolders: # folder was just created, not synced yet
+            self.__newfolders.remove(path)
+            return
+        elif path in self.__newfiles: # file was just created, not synced yet
+            self.__newfiles.remove(path)
+            return
+        try:
+            f = self._getpath(path)
+        except JFS.JFSError:
+            raise OSError(errno.ENOENT, '')
+        r = f.delete()
+        self.dirty = True
 
-    def xx_unlink(self, path):
-        return self.sftp.unlink(path)
+    rmdir = unlink # alias
 
-    def xx_write(self, path, data, offset, fh):
-        f = self.sftp.open(path, 'r+')
-        f.seek(offset, 0)
-        f.write(data)
-        f.close()
-        return len(data)
+    def write(self, path, data, offset, fh):
+        if path in self.__newfiles: # file was just created, not synced yet
+            print "path: %s" % path
+            f = self.client.up(path, StringIO(data))
+            self.__newfiles.remove(path)
+            return len(data)
+        try:
+            f = self._getpath(path)
+        except JFS.JFSError:
+            raise OSError(errno.ENOENT, '')
+        olddata = f.read()
+        newdata = olddata[:offset] + data
+        f.write(newdata)
+        return len(newdata)
 
 
 if __name__ == '__main__':
