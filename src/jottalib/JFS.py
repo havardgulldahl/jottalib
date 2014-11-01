@@ -20,7 +20,7 @@
 # metadata
 
 __author__ = 'havard@gulldahl.no'
-__version__ = '0.2'
+from jottalib import __version__
 
 # importing stdlib
 import sys, os, os.path, time
@@ -29,7 +29,7 @@ import urllib, logging, datetime, hashlib
 # importing external dependencies (pip these, please!)
 import requests
 import requests_cache
-requests_cache.install_cache('jfs', backend='sqlite', expire_after=300)
+requests_cache.install_cache('jfs', backend='sqlite', expire_after=100.0, fast_save=True)
 import lxml, lxml.objectify
 import dateutil, dateutil.parser
 
