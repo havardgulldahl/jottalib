@@ -36,20 +36,23 @@ Export your Jottacloud username and password to the running environment. Running
 
 This will "mount" jottacloud as a folder on your system, allowing you to use your normal file system utilities to browse your account.
 
+0. Install `fusepy`
+
+       pip install fusepy
+
 1. Create a folder where you want your Jottacloud file system: 
 
-       `mkdir $HOME/jottafs`
+       mkdir $HOME/jottafs
 
 2. Run Fuse: 
 
-       `jottafuse.py $HOME/jottafs`
+       jottafuse.py $HOME/jottafs
 
-Note. Being a remote mounted folder, it won't be as snappy as a locally synchronised folder like the official JottaCloud client. 
-
+Note. Being a remote mounted folder, it won't be anywhere as snappy as a locally synchronised folder. Since everything has to go over the network, performance will suffer. 
 
 ## QT models
 
-Take a look at qt.py, where you'll find a JFSModel(QtGui.QStandardItemModel) and various JFSNode(QtGui.QStandardItem) to match the jottacloud api.
+Take a look at qt.py, where you'll find a JFSModel(QtGui.QStandardItemModel) and various JFSNode(QtGui.QStandardItem) to match the jottacloud api. Remember to `pip install python-qt4`
 
 
 ## QT Gui
