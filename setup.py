@@ -26,9 +26,10 @@ sys.path.insert(0, './src')
 from jottalib import __version__
 
 try:
+    os.system('pandoc --from=markdown --to=rst --output=README.txt README.md')
     with open('README.txt') as f:
         long_desc = f.read()
-except IOError:
+except:
     long_desc = ''
 
 package_version = '1'
