@@ -18,7 +18,13 @@ Write support is reverse engineered and not based on official docs. Bugs patrol 
 
 ## Requirements
 
-The mandatory modules are listed in requirements.txt (`pip -r requirements.txt` will get you everything you need).
+### Via pip
+
+The easiest way: `pip install jottalib`
+
+### From a local git clone
+
+`pip install -r requirements.txt`
 
 ### Optional requirements
 
