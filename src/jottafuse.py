@@ -37,7 +37,7 @@ except ImportError:
 from jottalib import JFS
 
 # import dependenceis (get them with pip!)
-from fuse import FUSE, Operations, LoggingMixIn # this is 'fusepy'
+from fuse import FUSE, Operations, LoggingMixIn # this is 'pip install fusepy'
 
 class JottaFuseError(JFS.JFSError):
     pass
