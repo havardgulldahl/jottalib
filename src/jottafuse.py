@@ -43,8 +43,18 @@ except ImportError:
     print "JottaFuse won't work without fusepy! Please run `pip install fusepy`."
     raise
 
-class JottaFuseError(JFS.JFSError):
+class JottaFuseError(OSError):
     pass
+
+BLACKLISTED_FILENAMES = ('.hidden', '._', '.DS_Store', '.Trash', '.Spotlight-', '.hotfiles-btree',
+                         'lost+found', 'Backups.backupdb', 'mach_kernel')
+
+def is_blacklisted(path):
+    _basename = os.path.basename(path)
+    for bf in BLACKLISTED_FILENAMES:
+        if _basename.startswith(bf):
+            return True
+    return False
 
 class JottaFuse(LoggingMixIn, Operations):
     '''
@@ -62,16 +72,14 @@ class JottaFuse(LoggingMixIn, Operations):
 
     def _getpath(self, path):
         "A wrapper of JFS.getObject(), with some tweaks that make sense in a file system."
-        BLACKLISTED_FILENAMES = ('.hidden', '._', '.DS_Store', '.Trash', '.Spotlight-', '.hotfiles-btree',
-                                 'lost+found', 'Backups.backupdb', 'mach_kernel')
-        _basename = os.path.basename(path)
-        for bf in BLACKLISTED_FILENAMES:
-            if _basename.startswith(bf):
-                raise JottaFuseError('Blacklisted file, refusing to retrieve it')
+        if is_blacklisted(path):
+            raise JottaFuseError('Blacklisted file, refusing to retrieve it')
 
         return self.client.getObject(path, usecache=self.dirty is not True)
 
     def create(self, path, mode):
+        if is_blacklisted(path):
+            raise JottaFuseError('Blacklisted file')
         if not path in self.__newfiles:
             self.__newfiles.append(path)
         return self.__newfiles.index(path)
@@ -105,10 +113,20 @@ class JottaFuse(LoggingMixIn, Operations):
             f = self._getpath(path)
         except JFS.JFSError:
             raise OSError(errno.ENOENT, '') # can't help you
+
+        if isinstance(f, JFS.JFSFile): 
+            _mode = stat.S_IFREG | 0444
+        elif isinstance(f, JFS.JFSFolder):
+            _mode = stat.S_IFDIR | 0755
+        elif isinstance(f, (JFS.JFSMountPoint, JFS.JFSDevice) ):
+            _mode = stat.S_IFDIR | 0555 # read only dir
+        else:
+            logging.warning('Unknown jfs object: %s' % type(f) )
+            _mode = stat.S_IFDIR | 0555
         return {
                 'st_atime': isinstance(f, JFS.JFSFile) and time.mktime(f.updated.timetuple()) or time.time(),
                 'st_gid': pw.pw_gid,
-                'st_mode': isinstance(f, JFS.JFSFile) and (stat.S_IFREG | 0444)  or (stat.S_IFDIR | 0755), 
+                'st_mode': _mode, 
                 'st_mtime': isinstance(f, JFS.JFSFile) and time.mktime(f.modified.timetuple()) or time.time(),
                 'st_size': isinstance(f, JFS.JFSFile) and f.size  or 0,
                 'st_uid': pw.pw_uid,
@@ -121,6 +139,8 @@ class JottaFuse(LoggingMixIn, Operations):
             f = self._getpath(parentfolder)
         except JFS.JFSError:
             raise OSError(errno.ENOENT, '')
+        if not isinstance(f, JFS.JFSFolder):
+            raise OSError(errno.EACCES) # can only create stuff in folders
         r = f.mkdir(newfolder)
         self.dirty = True
         self.__newfolders.append(path)
@@ -212,6 +232,9 @@ class JottaFuse(LoggingMixIn, Operations):
     rmdir = unlink # alias
 
     def write(self, path, data, offset, fh):
+        if is_blacklisted(path):
+            raise JottaFuseError('Blacklisted file')
+
         if path in self.__newfiles: # file was just created, not synced yet
             print "path: %s" % path
             f = self.client.up(path, StringIO(data))
