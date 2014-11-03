@@ -46,6 +46,8 @@ except ImportError:
 class JottaFuseError(OSError):
     pass
 
+ESUCCESS=0
+
 BLACKLISTED_FILENAMES = ('.hidden', '._', '.DS_Store', '.Trash', '.Spotlight-', '.hotfiles-btree',
                          'lost+found', 'Backups.backupdb', 'mach_kernel')
 
@@ -77,16 +79,29 @@ class JottaFuse(LoggingMixIn, Operations):
 
         return self.client.getObject(path, usecache=self.dirty is not True)
 
+    # def access(self, path, mode):
+    #     '''Use the real uid/gid to test for access to path. 
+
+    #     mode should be F_OK to test the existence of path, or it can be the inclusive OR of 
+    #     one or more of R_OK, W_OK, and X_OK to test permissions. Return True if access is allowed, 
+    #     False if not. See the Unix man page access(2) for more information.
+    #     '''
+    #     if mode & os.X_OK: 
+
     def create(self, path, mode):
         if is_blacklisted(path):
             raise JottaFuseError('Blacklisted file')
         if not path in self.__newfiles:
             self.__newfiles.append(path)
         return self.__newfiles.index(path)
-        #return 0
+        return ESUCCESS
+
+    def chmod(self, path, mode):
+        '''.chmod makes no sense here, always return success (0)'''
+        return ESUCCESS
 
     def destroy(self, path):
-        #self.client.close()
+        #do proper teardown
         pass
 
     def getattr(self, path, fh=None):
@@ -144,6 +159,7 @@ class JottaFuse(LoggingMixIn, Operations):
         r = f.mkdir(newfolder)
         self.dirty = True
         self.__newfolders.append(path)
+        return ESUCCESS
 
     def read(self, path, size, offset, fh):
         if path in self.__newfiles: # file was just created, not synced yet
@@ -228,6 +244,7 @@ class JottaFuse(LoggingMixIn, Operations):
             raise OSError(errno.ENOENT, '')
         r = f.delete()
         self.dirty = True
+        return ESUCCESS
 
     rmdir = unlink # alias
 
