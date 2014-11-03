@@ -18,7 +18,7 @@ git tag -a "$VERSION" -m "Version $VERSION release" || err "couldnt tag git tree
 git push --tags || err "problems pushing tags to central repository";
 echo "=======================";
 echo "Creating docs with pdoc";
-pdoc --overwrite --html-dir dist/docs/"$VERSION" --html src/jottalib || err "pdoc generating docs failed";
+(cd src; pdoc --overwrite --html-dir ../dist/docs/"$VERSION"/ --html jottalib;) || err "pdoc generating docs failed";
 echo "=======================";
 echo "Uploading docs to pypi";
 python setup.py upload_docs --upload-dir dist/docs/"$VERSION"/jottalib  || err "couldnt upload docs to pypi";
