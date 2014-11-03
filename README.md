@@ -71,6 +71,7 @@ Have a nice idea for a swooshingly fresh JottaCloud app? Feel free to include th
 A simple command line script to easily upload and share a file at a public, secret URI
 
 Usage: 
+
 	jottashare.py <some great file you need to share>
 
 ## Duplicity backend
