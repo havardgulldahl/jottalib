@@ -128,6 +128,8 @@ class JottaFuse(LoggingMixIn, Operations):
             f = self._getpath(path)
         except JFS.JFSError:
             raise OSError(errno.ENOENT, '') # can't help you
+        if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
+            raise OSError(errno.ENOENT)
 
         if isinstance(f, JFS.JFSFile): 
             _mode = stat.S_IFREG | 0444
@@ -156,6 +158,8 @@ class JottaFuse(LoggingMixIn, Operations):
             raise OSError(errno.ENOENT, '')
         if not isinstance(f, JFS.JFSFolder):
             raise OSError(errno.EACCES) # can only create stuff in folders
+        if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
+            raise OSError(errno.ENOENT)
         r = f.mkdir(newfolder)
         self.dirty = True
         self.__newfolders.append(path)
@@ -168,6 +172,8 @@ class JottaFuse(LoggingMixIn, Operations):
             f = StringIO(self._getpath(path).read())
         except JFS.JFSError:
             raise OSError(errno.ENOENT, '')
+        if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
+            raise OSError(errno.ENOENT)
         f.seek(offset, 0)
         buf = f.read(size)
         f.close()
