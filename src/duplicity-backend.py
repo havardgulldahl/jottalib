@@ -1,4 +1,4 @@
-# -*- Mode:Python; indent-tabs-mode:nil; tab-width:4 -*-
+# -*- Mode:Python; indent-tabs-mode:nil; tab-width:4; encoding:utf-8 -*-
 #
 # Copyright 2014 Håvard Gulldahl
 #
@@ -21,13 +21,16 @@
 # along with duplicity; if not, write to the Free Software Foundation,
 # Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-import os.path
+# stdlib
+import os, os.path
 import string
-import urllib
+import urllib, locale
 
+# import duplicity stuff # version 0.6
 import duplicity.backend
-from duplicity.errors import BackendException
-
+from duplicity.backend import retry
+from duplicity import log
+from duplicity.errors import *
 
 class JottaCloudBackend(duplicity.backend.Backend):
     """Connect to remote store using JottaCloud API"""
@@ -37,74 +40,74 @@ class JottaCloudBackend(duplicity.backend.Backend):
 
         # Import JottaCloud libraries.
         try:
-            import jottalib
+            from jottalib import JFS
         except ImportError:
+            raise
             raise BackendException('JottaCloud backend requires jottalib' 
                                    ' (see https://pypi.python.org/pypi/jottalib).')
 
         # Setup client instance.
-        self.client = jottalib.JFS.JFS(parsed_url.username, self.get_password())
+        _pass = os.environ.get('JOTTACLOUD_PASSWORD', None)
+        if _pass is None:
+            _pass = self.get_password()
+        self.client = JFS.JFS(parsed_url.username, _pass)
         #self.client.http_client.debug = False
 
         # Fetch destination folder entry (and create hierarchy if required).
-        jottadev = None
-        for j in jfs.devices: # find Jotta/Backup folder
-            if j.name == 'Jotta':
-                jottadev = j      
         try:
-            self.folder = jottadev.mountPoints['Backup']
-        except IndexError:
+            self.folder = self.client.getObject('%s/backup' % parsed_url.path)
+        except JFS.JFSNotFoundError:
+            parentfolder = self.client.getObject(parsed_url.path)
             try:
-                self.folder = jottadev.mkdir('Backup')  
+                self.folder = parentfolder.mkdir('backup')
             except:
+                raise
                 raise BackendException("Error while creating destination folder 'Backup')")
         except:
-            raise BackendException("Error while fetching destination folder 'Backup')")
+            raise
 
-    @command()
-    def _put(self, source_path, remote_filename):
-        remote_dir  = urllib.unquote(self.parsed_url.path.lstrip('/'))
-        remote_path = os.path.join(self.folder.path, remote_dir, remote_filename).rstrip()
-        from_file = open(source_path.name, "rb")
-        resp = self.client.put(remote_path, from_file)
-        log.Debug( 'jottacloud.put(%s,%s): %s'%(source_path.name, remote_path, resp))
+    @retry
+    def put(self, source_path, remote_filename=None, raise_errors=False):
+        """Transfer source_path to remote_filename"""
+        # Default remote file name.
+        if not remote_filename:
+            remote_filename = os.path.basename(source_path.get_filename())
 
-    @command()
-    def _get(self, remote_filename, local_path):
-        remote_path = os.path.join(self.folder.path, 
-                                   urllib.unquote(self.parsed_url.path), 
-                                   remote_filename).rstrip()
+        resp = self.folder.up(source_path.open(), remote_filename)
+        log.Debug( 'jottacloud.put(%s,%s): %s'%(source_path.name, remote_filename, resp))
 
+    @retry
+    def get(self, remote_filename, local_path, raise_errors=False):
+        print "YYYYYYYYY %s" % remote_filename
         to_file = open( local_path.name, 'wb' )
-        f = self.client.get(remote_path)
+        f = self.client.getObject(remote_path)
         log.Debug('jottacloud.get(%s,%s): %s'%(remote_path,local_path.name, f))
         to_file.write(f.read())
         f.close()
         to_file.close()
 
-        local_path.setdata()
+    @retry
+    def list(self, raise_errors=False):
+        log.Debug('jottacloud.list raise e %s'%(raise_errors))
+        log.Debug('jottacloud.list: %s'%(self.folder.files()))
+        encoding = locale.getdefaultlocale()[1]
+        if encoding is None:
+            encoding = 'LATIN1'
+        return list([f.name.encode(encoding) for f in self.folder.files() if not f.is_deleted()])
 
-    @command()
-    def _list(self):
-        # Do a long listing to avoid connection reset
-        remote_dir = os.path.join(self.folder.path,
-                                  urllib.unquote(self.parsed_url.path.lstrip('/')).rstrip()
-                                  )
-        folder = self.client.get(remote_dir)
-        log.Debug('jottacloud.list(%s): %s'%(remote_dir,folder))
-        return list(folder.files())
+    @retry
+    def delete(self, filenames, raise_errors=False):
+        log.Debug('jottacloud.delete: %s'%filenames)
+        for filename in filenames:
+            remote_name = os.path.join(self.folder.path, filename )
+            #first, get file object
+            f = self.client.getObject(remote_name)
+            log.Debug('jottacloud.delete deleting: %s (%s)'%(f, type(f)))
+            # now, delete it
+            resp = f.delete()
+            log.Debug('jottacloud.delete(%s): %s'%(remote_name,resp))
 
-    @command()
-    def _delete(self, filename):
-        remote_dir = urllib.unquote(self.parsed_url.path.lstrip('/')).rstrip()
-        remote_name = os.path.join(self.folder.path, remote_dir, filename )
-        #first, get file object
-        f = self.client.get(remote_name)
-        # now, delete it
-        resp = f.delete()
-        log.Debug('jottacloud.delete(%s): %s'%(remote_name,resp))
-
-    # @command()
+    # @retry
     # def _close(self):
     #     """close backend session? no! just "flush" the data"""
     #     info = self.api_client.account_info()
@@ -134,4 +137,5 @@ class JottaCloudBackend(duplicity.backend.Backend):
         resp = self.client.file_create_folder(path)
         log.Debug('jottacloud._mkdir(%s): %s'%(path,resp))
 
-duplicity.backend.register_backend("jottacloud", JottaCloudBackend)
+duplicity.backend.register_backend("jotta", JottaCloudBackend)
+

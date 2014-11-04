@@ -29,7 +29,7 @@ import urllib, logging, datetime, hashlib
 # importing external dependencies (pip these, please!)
 import requests
 import requests_cache
-requests_cache.install_cache('jfs', backend='sqlite', expire_after=100.0, fast_save=True)
+requests_cache.install_cache(backend='memory', expire_after=100.0, fast_save=True)
 import lxml, lxml.objectify
 import dateutil, dateutil.parser
 
