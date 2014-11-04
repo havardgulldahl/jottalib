@@ -78,12 +78,11 @@ class JottaCloudBackend(duplicity.backend.Backend):
 
     @retry
     def get(self, remote_filename, local_path, raise_errors=False):
-        print "YYYYYYYYY %s" % remote_filename
+        print "YYYYYYYYY %s" % os.path.join(self.folder.path, remote_filename)
         to_file = open( local_path.name, 'wb' )
-        f = self.client.getObject(remote_path)
-        log.Debug('jottacloud.get(%s,%s): %s'%(remote_path,local_path.name, f))
+        f = self.client.getObject(os.path.join(self.folder.path, remote_filename))
+        log.Debug('jottacloud.get(%s,%s): %s'%(remote_filename,local_path.name, f))
         to_file.write(f.read())
-        f.close()
         to_file.close()
 
     @retry
