@@ -37,10 +37,26 @@ except ImportError:
 from jottalib import JFS
 
 # import dependenceis (get them with pip!)
-from fuse import FUSE, Operations, LoggingMixIn # this is 'pip install fusepy'
+try:
+    from fuse import FUSE, Operations, LoggingMixIn # this is 'pip install fusepy'
+except ImportError:
+    print "JottaFuse won't work without fusepy! Please run `pip install fusepy`."
+    raise
 
-class JottaFuseError(JFS.JFSError):
+class JottaFuseError(OSError):
     pass
+
+ESUCCESS=0
+
+BLACKLISTED_FILENAMES = ('.hidden', '._', '.DS_Store', '.Trash', '.Spotlight-', '.hotfiles-btree',
+                         'lost+found', 'Backups.backupdb', 'mach_kernel')
+
+def is_blacklisted(path):
+    _basename = os.path.basename(path)
+    for bf in BLACKLISTED_FILENAMES:
+        if _basename.startswith(bf):
+            return True
+    return False
 
 class JottaFuse(LoggingMixIn, Operations):
     '''
@@ -53,38 +69,81 @@ class JottaFuse(LoggingMixIn, Operations):
         self.root = path
         self.dirty = False # True if some method has changed/added something and we need to get fresh data from JottaCloud
         # TODO: make self.dirty more smart, to know what path, to get from cache and not
+        self.__newfiles = []
+        self.__newfolders = []
 
     def _getpath(self, path):
         "A wrapper of JFS.getObject(), with some tweaks that make sense in a file system."
-        BLACKLISTED_FILENAMES = ('.hidden', '._', '.DS_Store', '.Trash', '.Spotlight-', '.hotfiles-btree',
-                                 'lost+found', 'Backups.backupdb')
-        _basename = os.path.basename(path)
-        for bf in BLACKLISTED_FILENAMES:
-            if _basename.startswith(bf):
-                raise JottaFuseError('Blacklisted file, refusing to retrieve it')
+        if is_blacklisted(path):
+            raise JottaFuseError('Blacklisted file, refusing to retrieve it')
 
         return self.client.getObject(path, usecache=self.dirty is not True)
 
-    def xx_create(self, path, mode):
-        f = self.sftp.open(path, 'w')
-        f.chmod(mode)
-        f.close()
-        return 0
+    # def access(self, path, mode):
+    #     '''Use the real uid/gid to test for access to path. 
+
+    #     mode should be F_OK to test the existence of path, or it can be the inclusive OR of 
+    #     one or more of R_OK, W_OK, and X_OK to test permissions. Return True if access is allowed, 
+    #     False if not. See the Unix man page access(2) for more information.
+    #     '''
+    #     if mode & os.X_OK: 
+
+    def create(self, path, mode):
+        if is_blacklisted(path):
+            raise JottaFuseError('Blacklisted file')
+        if not path in self.__newfiles:
+            self.__newfiles.append(path)
+        return self.__newfiles.index(path)
+        return ESUCCESS
+
+    def chmod(self, path, mode):
+        '''.chmod makes no sense here, always return success (0)'''
+        return ESUCCESS
 
     def destroy(self, path):
-        #self.client.close()
+        #do proper teardown
         pass
 
     def getattr(self, path, fh=None):
+        pw = pwd.getpwuid( os.getuid() )
+        if path in self.__newfolders: # folder was just created, not synced yet
+            return {
+                'st_atime': time.time(),
+                'st_gid': pw.pw_gid,
+                'st_mode': stat.S_IFDIR | 0755, 
+                'st_mtime': time.time(),
+                'st_size': 0,
+                'st_uid': pw.pw_uid,
+                }
+        elif path in self.__newfiles: # file was just created, not synced yet
+            return {
+                'st_atime': time.time(),
+                'st_gid': pw.pw_gid,
+                'st_mode': stat.S_IFREG | 0444,  
+                'st_mtime': time.time(),
+                'st_size': 0,
+                'st_uid': pw.pw_uid,
+                }
         try:
             f = self._getpath(path)
         except JFS.JFSError:
-            raise OSError(errno.ENOENT, '')
-        pw = pwd.getpwuid( os.getuid() )
+            raise OSError(errno.ENOENT, '') # can't help you
+        if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
+            raise OSError(errno.ENOENT)
+
+        if isinstance(f, JFS.JFSFile): 
+            _mode = stat.S_IFREG | 0444
+        elif isinstance(f, JFS.JFSFolder):
+            _mode = stat.S_IFDIR | 0755
+        elif isinstance(f, (JFS.JFSMountPoint, JFS.JFSDevice) ):
+            _mode = stat.S_IFDIR | 0555 # read only dir
+        else:
+            logging.warning('Unknown jfs object: %s' % type(f) )
+            _mode = stat.S_IFDIR | 0555
         return {
                 'st_atime': isinstance(f, JFS.JFSFile) and time.mktime(f.updated.timetuple()) or time.time(),
                 'st_gid': pw.pw_gid,
-                'st_mode': isinstance(f, JFS.JFSFile) and (stat.S_IFREG | 0444)  or (stat.S_IFDIR | 0755), 
+                'st_mode': _mode, 
                 'st_mtime': isinstance(f, JFS.JFSFile) and time.mktime(f.modified.timetuple()) or time.time(),
                 'st_size': isinstance(f, JFS.JFSFile) and f.size  or 0,
                 'st_uid': pw.pw_uid,
@@ -97,14 +156,24 @@ class JottaFuse(LoggingMixIn, Operations):
             f = self._getpath(parentfolder)
         except JFS.JFSError:
             raise OSError(errno.ENOENT, '')
+        if not isinstance(f, JFS.JFSFolder):
+            raise OSError(errno.EACCES) # can only create stuff in folders
+        if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
+            raise OSError(errno.ENOENT)
         r = f.mkdir(newfolder)
         self.dirty = True
+        self.__newfolders.append(path)
+        return ESUCCESS
 
     def read(self, path, size, offset, fh):
+        if path in self.__newfiles: # file was just created, not synced yet
+            return ''
         try:
             f = StringIO(self._getpath(path).read())
         except JFS.JFSError:
             raise OSError(errno.ENOENT, '')
+        if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
+            raise OSError(errno.ENOENT)
         f.seek(offset, 0)
         buf = f.read(size)
         f.close()
@@ -168,18 +237,40 @@ class JottaFuse(LoggingMixIn, Operations):
     def xx_rename(self, old, new):
         return self.sftp.rename(old, self.root + new)
 
-    def xx_rmdir(self, path):
-        return self.sftp.rmdir(path)
+    def unlink(self, path):
+        if path in self.__newfolders: # folder was just created, not synced yet
+            self.__newfolders.remove(path)
+            return
+        elif path in self.__newfiles: # file was just created, not synced yet
+            self.__newfiles.remove(path)
+            return
+        try:
+            f = self._getpath(path)
+        except JFS.JFSError:
+            raise OSError(errno.ENOENT, '')
+        r = f.delete()
+        self.dirty = True
+        return ESUCCESS
 
-    def xx_unlink(self, path):
-        return self.sftp.unlink(path)
+    rmdir = unlink # alias
 
-    def xx_write(self, path, data, offset, fh):
-        f = self.sftp.open(path, 'r+')
-        f.seek(offset, 0)
-        f.write(data)
-        f.close()
-        return len(data)
+    def write(self, path, data, offset, fh):
+        if is_blacklisted(path):
+            raise JottaFuseError('Blacklisted file')
+
+        if path in self.__newfiles: # file was just created, not synced yet
+            print "path: %s" % path
+            f = self.client.up(path, StringIO(data))
+            self.__newfiles.remove(path)
+            return len(data)
+        try:
+            f = self._getpath(path)
+        except JFS.JFSError:
+            raise OSError(errno.ENOENT, '')
+        olddata = f.read()
+        newdata = olddata[:offset] + data
+        f.write(newdata)
+        return len(newdata)
 
 
 if __name__ == '__main__':

@@ -40,13 +40,20 @@ logging.basicConfig(level=logging.DEBUG)
 
 class JFSError(Exception):
     @staticmethod
-    def raiseError(e, path):
-        if(e.code) == 404:
+    def raiseError(e, path): # parse object from lxml.objectify and 
+        if(e.code) == 400:
+            raise JFSBadRequestError('Bad request: %s (%s)' % (path, e.message))
+        elif(e.code) == 404:
             raise JFSNotFoundError('%s does not exist (%s)' % (path, e.message))
         elif(e.code) == 403:
             raise JFSAuthenticationError("You don't have access to %s (%s)" % (path, e.message))
+        elif(e.code) == 500:
+            raise JFSServerError("Internal server error: %s (%s)" % (path, e.message))
         else:
             raise JFSError('Error accessing %s (%s)' % (path, e.message))
+
+class JFSBadRequestError(JFSError):
+    pass
 
 class JFSNotFoundError(JFSError):
     pass
@@ -55,6 +62,9 @@ class JFSAccessError(JFSError):
     pass
 
 class JFSAuthenticationError(JFSError):
+    pass
+
+class JFSServerError(JFSError):
     pass
 
 class JFSFolder(object):
@@ -182,6 +192,12 @@ class JFSFile(object):
                 md5 = 'a0dc8233169b238681c43f9981efe8e1' [StringElement]
                 updated = '2010-11-19-T12:34:28Z' [StringElement]
         """
+
+    def write(self, data):
+        'Put, possibly replace, file contents with (new) data'
+        return self.jfs.post(self.path, contents=data, 
+                             extra_headers={'Content-Type':'application/octet-stream'})
+
     def share(self):
         'Enable public access at secret, share only uri, and return that uri'
         url = 'https://www.jottacloud.com/rest/webrest/%s/action/enableSharing' % self.jfs.username
@@ -487,12 +503,16 @@ class JFS(object):
     def getObject(self, url_or_requests_response, usecache=True):
         'Take a url or some xml response from JottaCloud and match it up to one of our classes'
         if isinstance(url_or_requests_response, requests.models.Response):
+            url = url_or_requests_response.url
             o = lxml.objectify.fromstring(url_or_requests_response.content)
-            parent = os.path.dirname(url_or_requests_response.url).replace('up.jottacloud.com', 'www.jotta.no')
         else:
-            o = self.get(url_or_requests_response, usecache=usecache)
-            parent = os.path.dirname(url_or_requests_response).replace('up.jottacloud.com', 'www.jotta.no')
-        if o.tag == 'device': return JFSDevice(o, jfs=self, parentpath=parent)
+            url = url_or_requests_response
+            o = self.get(url, usecache=usecache)
+
+        parent = os.path.dirname(url).replace('up.jottacloud.com', 'www.jotta.no')
+        if o.tag == 'error':
+            JFSError.raiseError(o, url)
+        elif o.tag == 'device': return JFSDevice(o, jfs=self, parentpath=parent)
         elif o.tag == 'folder': return JFSFolder(o, jfs=self, parentpath=parent)
         elif o.tag == 'mountPoint': return JFSMountPoint(o, jfs=self, parentpath=parent)
         elif o.tag == 'file': return JFSFile(o, jfs=self, parentpath=parent)
@@ -518,6 +538,7 @@ class JFS(object):
         headers.update(**extra_headers)
         r = requests.post(url, data=content, params=params, files=files, headers=headers, auth=self.auth, verify=self.ca_bundle)
         if r.status_code in ( 500, 404, 401, 403 ):
+            logging.warning('HTTP POST failed: %s', r.text)
             raise JFSError(r.reason)
         return self.getObject(r) # return a JFS* class
 
