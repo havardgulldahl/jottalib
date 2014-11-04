@@ -41,30 +41,35 @@ logging.basicConfig(level=logging.DEBUG)
 class JFSError(Exception):
     @staticmethod
     def raiseError(e, path): # parse object from lxml.objectify and 
-        if(e.code) == 400:
-            raise JFSBadRequestError('Bad request: %s (%s)' % (path, e.message))
-        elif(e.code) == 404:
+        if(e.code) == 404:
             raise JFSNotFoundError('%s does not exist (%s)' % (path, e.message))
+        elif(e.code) == 401:
+            raise JFSCredentialsError("Your credentials don't match for %s (%s) (probably incorrect password!)" % (path, e.message))
         elif(e.code) == 403:
             raise JFSAuthenticationError("You don't have access to %s (%s)" % (path, e.message))
         elif(e.code) == 500:
             raise JFSServerError("Internal server error: %s (%s)" % (path, e.message))
+        elif(e.code) == 400:
+            raise JFSBadRequestError('Bad request: %s (%s)' % (path, e.message))
         else:
             raise JFSError('Error accessing %s (%s)' % (path, e.message))
 
-class JFSBadRequestError(JFSError):
+class JFSBadRequestError(JFSError): # HTTP 400
     pass
 
-class JFSNotFoundError(JFSError):
+class JFSCredentialsError(JFSError): # HTTP 401
     pass
 
-class JFSAccessError(JFSError):
+class JFSNotFoundError(JFSError): # HTTP 404
     pass
 
-class JFSAuthenticationError(JFSError):
+class JFSAccessError(JFSError): # 
     pass
 
-class JFSServerError(JFSError):
+class JFSAuthenticationError(JFSError): # HTTP 403
+    pass
+
+class JFSServerError(JFSError): # HTTP 500
     pass
 
 class JFSFolder(object):
@@ -131,11 +136,13 @@ class JFSFolder(object):
         self.sync()
         return r
 
-    def up(self, fileobj_or_path):
+    def up(self, fileobj_or_path, filename=None):
         'Upload a file to current folder and return the new JFSFile'
         if not isinstance(fileobj_or_path, file):
             fileobj_or_path = open(fileobj_or_path, 'rb')
-        r = self.jfs.up('%s/%s' % (self.path, os.path.basename(fileobj_or_path.name)), fileobj_or_path)
+        if filename is None:
+            filename = os.path.basename(fileobj_or_path.name)
+        r = self.jfs.up('%s/%s' % (self.path, filename), fileobj_or_path)
         self.sync()
         return r
 
