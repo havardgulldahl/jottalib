@@ -29,7 +29,7 @@ import urllib, logging, datetime, hashlib
 # importing external dependencies (pip these, please!)
 import requests
 import requests_cache
-requests_cache.install_cache('jfs', backend='sqlite', expire_after=100.0, fast_save=True)
+requests_cache.install_cache(backend='memory', expire_after=100.0, fast_save=True)
 import lxml, lxml.objectify
 import dateutil, dateutil.parser
 
@@ -121,11 +121,13 @@ class JFSFolder(object):
         self.sync()
         return r
 
-    def up(self, fileobj_or_path):
+    def up(self, fileobj_or_path, filename=None):
         'Upload a file to current folder and return the new JFSFile'
         if not isinstance(fileobj_or_path, file):
             fileobj_or_path = open(fileobj_or_path, 'rb')
-        r = self.jfs.up('%s/%s' % (self.path, os.path.basename(fileobj_or_path.name)), fileobj_or_path)
+        if filename is None:
+            filename = os.path.basename(fileobj_or_path.name)
+        r = self.jfs.up('%s/%s' % (self.path, filename), fileobj_or_path)
         self.sync()
         return r
 
