@@ -40,7 +40,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 class JFSError(Exception):
     @staticmethod
-    def raiseError(e, path): # parse object from lxml.objectify and 
+    def raiseError(e, path): # parse object from lxml.objectify and
         if(e.code) == 404:
             raise JFSNotFoundError('%s does not exist (%s)' % (path, e.message))
         elif(e.code) == 401:
@@ -63,7 +63,7 @@ class JFSCredentialsError(JFSError): # HTTP 401
 class JFSNotFoundError(JFSError): # HTTP 404
     pass
 
-class JFSAccessError(JFSError): # 
+class JFSAccessError(JFSError): #
     pass
 
 class JFSAuthenticationError(JFSError): # HTTP 403
@@ -148,7 +148,7 @@ class JFSFolder(object):
 
 class JFSFile(object):
     'OO interface to a file, for convenient access. Type less, do more.'
-    ## TODO: add <revisions> iterator for all 
+    ## TODO: add <revisions> iterator for all
     """
 <file name="jottacloud.sync.pdfname" uuid="37530f11-d55b-4f31-acf4-27854813cd34" time="2013-12-15-T01:11:52Z" host="dn-029.site-000.jotta.no">
   <path xml:space="preserve">/havardgulldahl/Jotta/Sync</path>
@@ -200,7 +200,7 @@ class JFSFile(object):
 
     def write(self, data):
         'Put, possibly replace, file contents with (new) data'
-        return self.jfs.post(self.path, contents=data, 
+        return self.jfs.post(self.path, contents=data,
                              extra_headers={'Content-Type':'application/octet-stream'})
 
     def share(self):
@@ -459,22 +459,22 @@ class JFSenableSharing(object):
     def sharedFiles(self):
         'iterate over shared files and get their public URI'
         for f in self.sharing.files.iterchildren():
-            yield (f.attrib['name'], f.attrib['uuid'], 
+            yield (f.attrib['name'], f.attrib['uuid'],
                 'http://www.jottacloud.com/p/%s/%s' % (self.jfs.username, f.publicURI.text))
 
 
 class JFS(object):
     def __init__(self, username, password, ca_bundle=True):
         from requests.auth import HTTPBasicAuth
-        self.ca_bundle = ca_bundle
-        self.username = username
-        self.auth = HTTPBasicAuth(username, password)
-        self.path = JFS_ROOT + username
         self.apiversion = '2.2' # hard coded per october 2014
-        self.headers =  {'User-Agent':'JottaFS %s (https://gitorious.org/jottafs/)' % (__version__, ),
-                         'X-JottaAPIVersion': self.apiversion,
-                         #'From': __author__
-                         } 
+        self.session = requests.Session()
+        self.username = username
+        self.session.auth = HTTPBasicAuth(username, password)
+        self.session.verify = ca_bundle
+        self.session.headers =  {'User-Agent':'JottaFS %s (https://gitorious.org/jottafs/)' % (__version__, ),
+                                 'X-JottaAPIVersion': self.apiversion,
+                                }
+        self.path = JFS_ROOT + username
         self.fs = self.get(self.path)
 
     def request(self, url, usecache=True):
@@ -483,10 +483,13 @@ class JFS(object):
             url = self.path + url
         logging.debug("getting url: %s" % url)
         if usecache:
-            r = requests.get(url, headers=self.headers, auth=self.auth, verify=self.ca_bundle)
+            #r = requests.get(url, headers=self.headers, auth=self.auth, verify=self.ca_bundle)
+            r = self.session.get(url)
         else:
             with requests_cache.disabled():
-                r = requests.get(url, headers=self.headers, auth=self.auth, verify=self.ca_bundle)
+                #r = requests.get(url, headers=self.headers, auth=self.auth, verify=self.ca_bundle)
+                r = self.session.get(url)
+
         if r.status_code in ( 500, ):
             raise JFSError(r.reason)
         return r
@@ -535,7 +538,7 @@ class JFS(object):
 
     def post(self, url, content='', files=None, params=None, extra_headers={}):
         'HTTP Post files[] or content (unicode string) to url'
-        if not url.startswith('http'):  
+        if not url.startswith('http'):
             # relative url
             url = self.path + url
         logging.debug('posting content (len %s) to url %s', content is not None and len(content) or '?', url)
@@ -553,7 +556,7 @@ class JFS(object):
 
         *** WHAT DID I DO?: created file
         ***
-         
+
         POST https://up.jottacloud.com/jfs/**USERNAME**/Jotta/Sync/testFolder/testFile.txt?cphash=d41d8cd98f00b204e9800998ecf8427e HTTP/1.1
         User-Agent: Desktop_Jottacloud 3.0.22.203 Windows_8 6.2.9200 x86_64
         Authorization: Basic ******************
@@ -581,7 +584,7 @@ class JFS(object):
         headers = {'JMd5':md5hash,
                    'JCreated': now,
                    'JModified': now,
-                   'X-Jfs-DeviceName': 'Jotta', 
+                   'X-Jfs-DeviceName': 'Jotta',
                    'JSize': len(content),
                    'jx_csid': '',
                    'jx_lisence': ''
@@ -632,7 +635,7 @@ if __name__=='__main__':
     http_client.HTTPConnection.debuglevel = 1
     requests_log = logging.getLogger("requests.packages.urllib3")
     requests_log.setLevel(logging.DEBUG)
-    requests_log.propagate = True    
+    requests_log.propagate = True
     from lxml.objectify import dump as xdump
     from pprint import pprint
     jfs = JFS(os.environ['JOTTACLOUD_USERNAME'], password=os.environ['JOTTACLOUD_PASSWORD'])
@@ -642,4 +645,4 @@ if __name__=='__main__':
         if j.name == 'Jotta':
             jottadev = j
     jottasync = jottadev.mountPoints['Sync']
-    r = jottasync.up('/tmp/test.pdf')    
+    r = jottasync.up('/tmp/test.pdf')
