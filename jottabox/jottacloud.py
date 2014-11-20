@@ -1,4 +1,5 @@
 # encoding: utf-8
+"""Stuff to communicate with JottaCloud servers"""
 #
 # This file is part of jottabox.
 #
@@ -16,6 +17,8 @@
 # along with jottabox.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
+
+import jottalib
 
 def compare(localtopdir, jottamountpoint):
     """Get a tree of local files and folders and compare it with what's currently on JottaCloud.
