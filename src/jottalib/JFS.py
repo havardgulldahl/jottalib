@@ -467,7 +467,7 @@ class JFS(object):
     def __init__(self, username, password, ca_bundle=True):
         from requests.auth import HTTPBasicAuth
         self.apiversion = '2.2' # hard coded per october 2014
-        self.session = requests.Session()
+        self.session = requests.Session() # create a session for connection pooling, ssl keepalives and cookie jar
         self.username = username
         self.session.auth = HTTPBasicAuth(username, password)
         self.session.verify = ca_bundle
@@ -542,7 +542,7 @@ class JFS(object):
             # relative url
             url = self.path + url
         logging.debug('posting content (len %s) to url %s', content is not None and len(content) or '?', url)
-        headers = self.headers.copy()
+        headers = self.session.headers.copy()
         headers.update(**extra_headers)
         r = requests.post(url, data=content, params=params, files=files, headers=headers, auth=self.auth, verify=self.ca_bundle)
         if r.status_code in ( 500, 404, 401, 403 ):
