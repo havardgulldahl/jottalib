@@ -22,3 +22,14 @@ Run by crontab at some interval.
 #
 # Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
 
+import optparse, os, sys, logging
+logging.basicConfig(level=logging.DEBUG)
+
+from jottalib.JFS import JFS
+from jottabox import jottacloud
+
+if __name__=='__main__':
+    jfs = JFS(os.environ['JOTTACLOUD_USERNAME'], password=os.environ['JOTTACLOUD_PASSWORD'])
+
+    for onlylocal, onlyremote, bothplaces in jottacloud.compare(sys.argv[1], sys.argv[2], jfs):
+        print onlylocal, onlyremote, bothplaces

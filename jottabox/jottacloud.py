@@ -18,30 +18,78 @@
 #
 # Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
 
-import jottalib
+import os, os.path, hashlib, logging
 
-def compare(localtopdir, jottamountpoint):
-    """Get a tree of local files and folders and compare it with what's currently on JottaCloud.
+import jottalib
+from jottalib.JFS import JFSNotFoundError, JFSFolder, JFSFile
+
+def get_jottapath(localtopdir, dirpath, jottamountpoint):
+    """Translate localtopdir to jottapath"""
+    logging.debug("get_jottapath %s %s %s", localtopdir, dirpath, jottamountpoint)
+    return os.path.join(jottamountpoint, os.path.basename(localtopdir), os.path.relpath(dirpath, localtopdir))
+
+def is_file(jottapath, JFS):
+    """Check if a file exists on jottacloud"""
+    logging.debug("is_file %s", jottapath)
+    try:
+        jf = JFS.getObject(jottapath)
+    except JFSNotFoundError:
+        return False
+    return isinstance(jf, JFSFile)
+
+def filelist(jottapath, JFS):
+    """Get a set() of files from a jottapath (a folder)"""
+    #logging.debug("filelist %s", jottapath)
+    try:
+        jf = JFS.getObject(jottapath)
+    except JFSNotFoundError:
+        return set() # folder does not exist, so pretend it is an empty folder
+    if not isinstance(jf, JFSFolder):
+        return False
+    return set([f.name for f in jf.files()])
+
+def compare(localtopdir, jottamountpoint, JFS, followlinks=False):
+    """Make a tree of local files and folders and compare it with what's currently on JottaCloud.
 
     For each folder, yields three set()s:
-        onlylocal[] # files that only exist locally, i.e. newly added files that don't exist online,
-        onlyremote[] # files that only exist in the JottaCloud, i.e. deleted locally
-        bothplaces[] # files that exist both locally and remotely
+        onlylocal, # files that only exist locally, i.e. newly added files that don't exist online,
+        onlyremote, # files that only exist in the JottaCloud, i.e. deleted locally
+        bothplaces # files that exist both locally and remotely
     """
+    for dirpath, dirnames, filenames in os.walk(localtopdir, followlinks=followlinks):
+        logging.debug("compare walk: %s -> %s files ", dirpath, len(filenames))
+        localfiles = set(filenames) # these are on local disk
+        jottapath = get_jottapath(localtopdir, dirpath, jottamountpoint) # translate to jottapath
+        logging.debug("compare jottapath: %s", jottapath)
+        cloudfiles = filelist(jottapath, JFS) # set(). these are on jottacloud
+        onlylocal = [os.path.join(jottapath, f) for f in localfiles.difference(cloudfiles)]
+        onlyremote = [os.path.join(jottapath, f) for f in cloudfiles.difference(localfiles)]
+        bothplaces = [os.path.join(jottapath, f) for f in localfiles.intersection(cloudfiles)]
+        yield onlylocal, onlyremote, bothplaces
 
-def new(localfile, jottapath):
+def new(localfile, jottapath, JFS):
     """Upload a new file from local disk (doesn't exist on JottaCloud).
 
     Returns JottaFile object"""
+    return JFS.up(jottapath, localfile)
 
 
-def replace_if_changed(localfile, jottapath):
+def replace_if_changed(localfile, jottapath, JFS):
     """Compare md5 hash to determine if contents have changed.
     Upload a file from local disk and replace file on JottaCloud if the md5s differ.
 
     Returns the JottaFile object"""
+    jf = JFS.getObject(jottapath)
+    with open(localfile) as lf:
+        lf_hash = hashlib.md5(lf.read()).hexdigest()
+    if jf.md5 == lf_hash: # hashes are the same
+        return jf         # return the version from jottacloud
+    else:
+        return new(localfile, jottapath, JFS)
 
 
-def delete(jottapath):
+def delete(jottapath, JFS):
     """Remove file from JottaCloud because it is no longer present on local disk.
     Returns boolean"""
+    jf = JFS.post('%s?dl=true' % jottapath)
+    return jf.is_deleted()
