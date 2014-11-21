@@ -33,3 +33,7 @@ if __name__=='__main__':
 
     for onlylocal, onlyremote, bothplaces in jottacloud.compare(sys.argv[1], sys.argv[2], jfs):
         print onlylocal, onlyremote, bothplaces
+        print "uploading %s onlylocal files" % len(onlylocal)
+        for f in onlylocal:
+            logging.debug("uploading new file: %s", f)
+            jfs.up(f.jottapath, open(f.localpath))

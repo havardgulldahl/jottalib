@@ -18,10 +18,14 @@
 #
 # Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
 
-import os, os.path, hashlib, logging
+import os, os.path, hashlib, logging, collections
 
 import jottalib
 from jottalib.JFS import JFSNotFoundError, JFSFolder, JFSFile
+
+
+SyncFile = collections.namedtuple('SyncFile', 'localpath, jottapath')
+
 
 def get_jottapath(localtopdir, dirpath, jottamountpoint):
     """Translate localtopdir to jottapath"""
@@ -62,9 +66,13 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False):
         jottapath = get_jottapath(localtopdir, dirpath, jottamountpoint) # translate to jottapath
         logging.debug("compare jottapath: %s", jottapath)
         cloudfiles = filelist(jottapath, JFS) # set(). these are on jottacloud
-        onlylocal = [os.path.join(jottapath, f) for f in localfiles.difference(cloudfiles)]
-        onlyremote = [os.path.join(jottapath, f) for f in cloudfiles.difference(localfiles)]
-        bothplaces = [os.path.join(jottapath, f) for f in localfiles.intersection(cloudfiles)]
+        def sf(f):
+            """Create SyncFile tuple from filename"""
+            return SyncFile(localpath=os.path.join(dirpath, f),
+                            jottapath=os.path.join(jottapath, f))
+        onlylocal = [ sf(f) for f in localfiles.difference(cloudfiles)]
+        onlyremote = [ sf(f) for f in cloudfiles.difference(localfiles)]
+        bothplaces = [ sf(f) for f in localfiles.intersection(cloudfiles)]
         yield onlylocal, onlyremote, bothplaces
 
 def new(localfile, jottapath, JFS):
