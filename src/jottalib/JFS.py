@@ -483,11 +483,9 @@ class JFS(object):
             url = self.path + url
         logging.debug("getting url: %s" % url)
         if usecache:
-            #r = requests.get(url, headers=self.headers, auth=self.auth, verify=self.ca_bundle)
             r = self.session.get(url)
         else:
             with requests_cache.disabled():
-                #r = requests.get(url, headers=self.headers, auth=self.auth, verify=self.ca_bundle)
                 r = self.session.get(url)
 
         if r.status_code in ( 500, ):
@@ -544,7 +542,7 @@ class JFS(object):
         logging.debug('posting content (len %s) to url %s', content is not None and len(content) or '?', url)
         headers = self.session.headers.copy()
         headers.update(**extra_headers)
-        r = requests.post(url, data=content, params=params, files=files, headers=headers, auth=self.auth, verify=self.ca_bundle)
+        r = self.session.post(url, data=content, params=params, files=files, headers=headers)
         if r.status_code in ( 500, 404, 401, 403 ):
             logging.warning('HTTP POST failed: %s', r.text)
             raise JFSError(r.reason)
@@ -580,7 +578,7 @@ class JFS(object):
         fileobject.seek(0) # rewind read index for requests.post
         md5hash = hashlib.md5(content).hexdigest()
         logging.debug('posting content (len %s, hash %s) to url %s', len(content), md5hash, url)
-        now = '2014-10-05T10:23:18Z+00:00' #datetime.datetime.now().isoformat()
+        now = '2014-10-05T10:23:18Z+00:00' #datetime.datetime.now().isoformat() # TODO: don't hardcode
         headers = {'JMd5':md5hash,
                    'JCreated': now,
                    'JModified': now,
