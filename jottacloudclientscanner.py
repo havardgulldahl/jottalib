@@ -22,7 +22,7 @@ Run by crontab at some interval.
 #
 # Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
 
-import os, os.path, sys, logging, argparse
+import os, os.path, sys, logging, argparse, netrc
 
 from jottalib.JFS import JFS
 from jottacloudclient import jottacloud, __version__
@@ -33,7 +33,7 @@ if __name__=='__main__':
             raise argparse.ArgumentTypeError('%s is not a valid directory' % path)
         return path
     parser = argparse.ArgumentParser(description=__doc__,
-                                    epilog='The program expects to find JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.')
+                                    epilog='The program expects to find an entry for "jottacloud" in your .netrc, or JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.')
     parser.add_argument('--loglevel', type=int, help='Loglevel', default=logging.WARNING)
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('--dry-run', action='store_true',
@@ -43,7 +43,15 @@ if __name__=='__main__':
     args = parser.parse_args()
     logging.basicConfig(level=args.loglevel)
 
-    jfs = JFS(os.environ['JOTTACLOUD_USERNAME'], password=os.environ['JOTTACLOUD_PASSWORD'])
+    try:
+        n = netrc.netrc()
+        username, account, password = n.authenticators('jottacloud') # read .netrc entry for 'machine jottacloud'
+    except:
+        raise
+        username = os.environ['JOTTACLOUD_USERNAME']
+        password = os.environ['JOTTACLOUD_PASSWORD']
+
+    jfs = JFS(username, password)
 
     for onlylocal, onlyremote, bothplaces in jottacloud.compare(args.topdir, args.jottapath, jfs):
         print onlylocal, onlyremote, bothplaces
