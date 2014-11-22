@@ -26,7 +26,7 @@ import optparse, os, sys, logging
 logging.basicConfig(level=logging.WARNING)
 
 from jottalib.JFS import JFS
-from jottabox import jottacloud
+from jottacloudclient import jottacloud
 
 if __name__=='__main__':
     jfs = JFS(os.environ['JOTTACLOUD_USERNAME'], password=os.environ['JOTTACLOUD_PASSWORD'])
