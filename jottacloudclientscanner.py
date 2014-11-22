@@ -32,7 +32,8 @@ if __name__=='__main__':
         if not os.path.isdir(path):
             raise argparse.ArgumentTypeError('%s is not a valid directory' % path)
         return path
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__,
+                                    epilog='The program expects to find JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.')
     parser.add_argument('--loglevel', type=int, help='Loglevel', default=logging.WARNING)
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('--dry-run', action='store_true',
