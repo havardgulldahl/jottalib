@@ -50,7 +50,7 @@ def filelist(jottapath, JFS):
         return set() # folder does not exist, so pretend it is an empty folder
     if not isinstance(jf, JFSFolder):
         return False
-    return set([f.name for f in jf.files()])
+    return set([f.name for f in jf.files() if not f.is_deleted()]) # Only return files that aren't deleted
 
 def compare(localtopdir, jottamountpoint, JFS, followlinks=False):
     """Make a tree of local files and folders and compare it with what's currently on JottaCloud.
@@ -79,7 +79,9 @@ def new(localfile, jottapath, JFS):
     """Upload a new file from local disk (doesn't exist on JottaCloud).
 
     Returns JottaFile object"""
-    return JFS.up(jottapath, localfile)
+    with open(localfile) as lf:
+        _new = JFS.up(jottapath, lf)
+    return _new
 
 
 def replace_if_changed(localfile, jottapath, JFS):
@@ -91,7 +93,8 @@ def replace_if_changed(localfile, jottapath, JFS):
     with open(localfile) as lf:
         lf_hash = hashlib.md5(lf.read()).hexdigest()
     if jf.md5 == lf_hash: # hashes are the same
-        return jf         # return the version from jottacloud
+        logging.debug("hash match (%s), file contents haven't changed", lf_hash)
+        return jf         # return the version from jottaclouds
     else:
         return new(localfile, jottapath, JFS)
 
