@@ -23,7 +23,7 @@ Run by crontab at some interval.
 # Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
 
 import optparse, os, sys, logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
 
 from jottalib.JFS import JFS
 from jottabox import jottacloud
@@ -36,4 +36,13 @@ if __name__=='__main__':
         print "uploading %s onlylocal files" % len(onlylocal)
         for f in onlylocal:
             logging.debug("uploading new file: %s", f)
-            jfs.up(f.jottapath, open(f.localpath))
+            jottacloud.new(f.localpath, f.jottapath, jfs)
+        print "deleting %s onlyremote files" % len(onlyremote)
+        for f in onlyremote:
+            logging.debug("deleting cloud file that has disappeared locally: %s", f)
+            jottacloud.delete(f.jottapath, jfs)
+        print "comparing %s bothplaces files" % len(bothplaces)
+        for f in bothplaces:
+            logging.debug("checking whether file contents has changed: %s", f)
+            jottacloud.replace_if_changed(f.localpath, f.jottapath, jfs)
+
