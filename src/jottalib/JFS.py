@@ -25,11 +25,15 @@ from jottalib import __version__
 # importing stdlib
 import sys, os, os.path, time
 import urllib, logging, datetime, hashlib
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 # importing external dependencies (pip these, please!)
 import requests
 import requests_cache
-requests_cache.install_cache(backend='memory', expire_after=100.0, fast_save=True)
+requests_cache.core.install_cache(backend='memory', expire_after=30.0, fast_save=True)
 import lxml, lxml.objectify
 import dateutil, dateutil.parser
 
@@ -136,6 +140,13 @@ class JFSFolder(object):
         self.sync()
         return r
 
+    def rename(self, newpath):
+        "Move folder to a new name, possibly a whole new path"
+        # POST https://www.jottacloud.com/jfs/**USERNAME**/Jotta/Sync/Ny%20mappe?mvDir=/**USERNAME**/Jotta/Sync/testFolder
+        url = '%s?mvDir=/%s%s' % (self.path, self.jfs.username, newpath)
+        r = self.jfs.post(url, extra_headers={'Content-Type':'application/octet-stream'})
+        return r
+
     def up(self, fileobj_or_path, filename=None):
         'Upload a file to current folder and return the new JFSFile'
         if not isinstance(fileobj_or_path, file):
@@ -200,8 +211,11 @@ class JFSFile(object):
 
     def write(self, data):
         'Put, possibly replace, file contents with (new) data'
-        return self.jfs.post(self.path, contents=data,
-                             extra_headers={'Content-Type':'application/octet-stream'})
+#         return self.jfs.post(self.path, content=data,
+#                              extra_headers={'Content-Type':'application/octet-stream'})
+        if not hasattr(data, 'read'):
+            data = StringIO(data)
+        self.jfs.up(self.path, data)
 
     def share(self):
         'Enable public access at secret, share only uri, and return that uri'
@@ -217,6 +231,13 @@ class JFSFile(object):
         'Delete this file and return the new, deleted JFSFile'
         url = '%s?dl=true' % self.path
         r = self.jfs.post(url)
+        return r
+
+    def rename(self, newpath):
+        "Move file to a new name, possibly a whole new path"
+        # POST https://www.jottacloud.com/jfs/**USERNAME**/Jotta/Sync/testFolder/testFile.txt?mv=/**USERNAME**/Jotta/Sync/testFolder/renamedTestFile.txt
+        url = '%s?mv=/%s%s' % (self.path, self.jfs.username, newpath)
+        r = self.jfs.post(url, extra_headers={'Content-Type':'application/octet-stream'})
         return r
 
     def thumb(self, size=BIGTHUMB):
@@ -474,13 +495,13 @@ class JFS(object):
         self.session.headers =  {'User-Agent':'JottaFS %s (https://gitorious.org/jottafs/)' % (__version__, ),
                                  'X-JottaAPIVersion': self.apiversion,
                                 }
-        self.path = JFS_ROOT + username
-        self.fs = self.get(self.path)
+        self.rootpath = JFS_ROOT + username
+        self.fs = self.get(self.rootpath)
 
     def request(self, url, usecache=True):
         if not url.startswith('http'):
             # relative url
-            url = self.path + url
+            url = self.rootpath + url
         logging.debug("getting url: %s" % url)
         if usecache:
             r = self.session.get(url)
@@ -538,12 +559,15 @@ class JFS(object):
         'HTTP Post files[] or content (unicode string) to url'
         if not url.startswith('http'):
             # relative url
-            url = self.path + url
+            url = self.rootpath + url
+        logging.debug('yanking url from cache: %s', url)
+        cache = requests_cache.core.get_cache()
+        cache.delete_url(url)
         logging.debug('posting content (len %s) to url %s', content is not None and len(content) or '?', url)
         headers = self.session.headers.copy()
         headers.update(**extra_headers)
         r = self.session.post(url, data=content, params=params, files=files, headers=headers)
-        if r.status_code in ( 500, 404, 401, 403 ):
+        if r.status_code in ( 500, 404, 401, 403, 400 ):
             logging.warning('HTTP POST failed: %s', r.text)
             raise JFSError(r.reason)
         return self.getObject(r) # return a JFS* class
@@ -593,7 +617,6 @@ class JFS(object):
                  'created': ('', now),
                  'file': (os.path.basename(url), fileobject, 'application/octet-stream', {'Content-Transfer-Encoding':'binary'})}
         return self.post(url, None, files=files, params=params, extra_headers=headers)
-
 
     # property overloading
     @property
