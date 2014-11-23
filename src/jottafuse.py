@@ -23,7 +23,7 @@
 __author__ = 'havard@gulldahl.no'
 
 # importing stdlib
-import sys, os, pwd, stat, errno
+import sys, os, pwd, stat, errno, netrc
 import urllib, logging, datetime
 import time
 import itertools
@@ -309,7 +309,13 @@ if __name__ == '__main__':
         print('usage: %s <mountpoint>' % sys.argv[0])
         sys.exit(1)
 
-    fuse = FUSE(JottaFuse(username=os.environ['JOTTACLOUD_USERNAME'], password=os.environ['JOTTACLOUD_PASSWORD']),
-                sys.argv[1], foreground=True, nothreads=True)
+    try:
+        n = netrc.netrc()
+        username, account, password = n.authenticators('jottacloud') # read .netrc entry for 'machine jottacloud'
+    except:
+        username = os.environ['JOTTACLOUD_USERNAME']
+        password = os.environ['JOTTACLOUD_PASSWORD']
+
+    fuse = FUSE(JottaFuse(username, password), sys.argv[1], foreground=True, nothreads=True)
 
 
