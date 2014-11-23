@@ -290,7 +290,7 @@ class JottaFuse(LoggingMixIn, Operations):
             raise JottaFuseError('Blacklisted file')
 
         if path in self.__newfiles: # file was just created, not synced yet
-            print "path: %s" % path
+            print "__newfiles path: %s" % path
             f = self.client.up(path, StringIO(data))
             self.__newfiles.remove(path)
             return len(data)
@@ -301,7 +301,7 @@ class JottaFuse(LoggingMixIn, Operations):
         olddata = f.read()
         newdata = olddata[:offset] + data
         f.write(newdata)
-        return len(newdata)
+        return len(data)
 
 
 if __name__ == '__main__':
