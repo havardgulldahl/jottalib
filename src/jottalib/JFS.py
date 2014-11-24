@@ -622,7 +622,7 @@ class JFS(object):
     @property
     def devices(self):
         'return generator of configured devices'
-        return self.fs is not None and [JFSDevice(d, self, parentpath=self.path) for d in self.fs.devices.iterchildren()] or [x for x in []]
+        return self.fs is not None and [JFSDevice(d, self, parentpath=self.rootpath) for d in self.fs.devices.iterchildren()] or [x for x in []]
 
     @property
     def locked(self):
