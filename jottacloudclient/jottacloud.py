@@ -18,7 +18,7 @@
 #
 # Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
 
-import os, os.path, hashlib, logging, collections
+import sys, os, os.path, hashlib, logging, collections
 
 import jottalib
 from jottalib.JFS import JFSNotFoundError, JFSFolder, JFSFile
@@ -30,7 +30,8 @@ SyncFile = collections.namedtuple('SyncFile', 'localpath, jottapath')
 def get_jottapath(localtopdir, dirpath, jottamountpoint):
     """Translate localtopdir to jottapath"""
     logging.debug("get_jottapath %s %s %s", localtopdir, dirpath, jottamountpoint)
-    return os.path.join(jottamountpoint, os.path.basename(localtopdir), os.path.relpath(dirpath, localtopdir))
+    return os.path.normpath(os.path.join(jottamountpoint, os.path.basename(localtopdir),
+                                         os.path.relpath(dirpath, localtopdir)))
 
 def is_file(jottapath, JFS):
     """Check if a file exists on jottacloud"""
@@ -62,7 +63,7 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False):
     """
     for dirpath, dirnames, filenames in os.walk(localtopdir, followlinks=followlinks):
         logging.debug("compare walk: %s -> %s files ", dirpath, len(filenames))
-        localfiles = set(filenames) # these are on local disk
+        localfiles = set([f for f in filenames]) # these are on local disk
         jottapath = get_jottapath(localtopdir, dirpath, jottamountpoint) # translate to jottapath
         logging.debug("compare jottapath: %s", jottapath)
         cloudfiles = filelist(jottapath, JFS) # set(). these are on jottacloud
