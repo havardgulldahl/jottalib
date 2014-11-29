@@ -14,7 +14,7 @@ echo "Uploading egg to pypi";
 python setup.py sdist upload || err "setup.py upload failed";
 echo "=======================";
 echo "Creating git tag $VERSION and pushing it to git server";
-git tag -a "$VERSION" -m "Version $VERSION release" || err "couldnt tag git tree";
+git tag -a "v$VERSION" -m "Version $VERSION release" || err "couldnt tag git tree";
 git push --tags || err "problems pushing tags to central repository";
 echo "=======================";
 echo "Creating docs with pdoc";

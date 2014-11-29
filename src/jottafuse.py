@@ -2,20 +2,20 @@
 # -*- encoding: utf-8 -*-
 #
 # This file is part of jottafs.
-# 
+#
 # jottafs is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # jottafs is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with jottafs.  If not, see <http://www.gnu.org/licenses/>.
-# 
+#
 # Copyright 2011,2013,2014 Håvard Gulldahl <havard@gulldahl.no>
 
 # metadata
@@ -23,7 +23,7 @@
 __author__ = 'havard@gulldahl.no'
 
 # importing stdlib
-import sys, os, pwd, stat, errno
+import sys, os, pwd, stat, errno, netrc
 import urllib, logging, datetime
 import time
 import itertools
@@ -80,13 +80,13 @@ class JottaFuse(LoggingMixIn, Operations):
         return self.client.getObject(path, usecache=self.dirty is not True)
 
     # def access(self, path, mode):
-    #     '''Use the real uid/gid to test for access to path. 
+    #     '''Use the real uid/gid to test for access to path.
 
-    #     mode should be F_OK to test the existence of path, or it can be the inclusive OR of 
-    #     one or more of R_OK, W_OK, and X_OK to test permissions. Return True if access is allowed, 
+    #     mode should be F_OK to test the existence of path, or it can be the inclusive OR of
+    #     one or more of R_OK, W_OK, and X_OK to test permissions. Return True if access is allowed,
     #     False if not. See the Unix man page access(2) for more information.
     #     '''
-    #     if mode & os.X_OK: 
+    #     if mode & os.X_OK:
 
     def create(self, path, mode):
         if is_blacklisted(path):
@@ -100,6 +100,10 @@ class JottaFuse(LoggingMixIn, Operations):
         '''.chmod makes no sense here, always return success (0)'''
         return ESUCCESS
 
+    def chown(self, path, uid, gid):
+        '''.chown makes no sense here, always return success (0)'''
+        return ESUCCESS
+
     def destroy(self, path):
         #do proper teardown
         pass
@@ -110,7 +114,7 @@ class JottaFuse(LoggingMixIn, Operations):
             return {
                 'st_atime': time.time(),
                 'st_gid': pw.pw_gid,
-                'st_mode': stat.S_IFDIR | 0755, 
+                'st_mode': stat.S_IFDIR | 0755,
                 'st_mtime': time.time(),
                 'st_size': 0,
                 'st_uid': pw.pw_uid,
@@ -119,7 +123,7 @@ class JottaFuse(LoggingMixIn, Operations):
             return {
                 'st_atime': time.time(),
                 'st_gid': pw.pw_gid,
-                'st_mode': stat.S_IFREG | 0444,  
+                'st_mode': stat.S_IFREG | 0644,
                 'st_mtime': time.time(),
                 'st_size': 0,
                 'st_uid': pw.pw_uid,
@@ -131,19 +135,19 @@ class JottaFuse(LoggingMixIn, Operations):
         if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
             raise OSError(errno.ENOENT)
 
-        if isinstance(f, JFS.JFSFile): 
-            _mode = stat.S_IFREG | 0444
+        if isinstance(f, JFS.JFSFile):
+            _mode = stat.S_IFREG | 0644
         elif isinstance(f, JFS.JFSFolder):
             _mode = stat.S_IFDIR | 0755
         elif isinstance(f, (JFS.JFSMountPoint, JFS.JFSDevice) ):
-            _mode = stat.S_IFDIR | 0555 # read only dir
+            _mode = stat.S_IFDIR | 0555 # these are special jottacloud dirs, make them read only
         else:
-            logging.warning('Unknown jfs object: %s' % type(f) )
+            logging.warning('Unknown jfs object: %s <-> "%s"' % (type(f), f.tag) )
             _mode = stat.S_IFDIR | 0555
         return {
                 'st_atime': isinstance(f, JFS.JFSFile) and time.mktime(f.updated.timetuple()) or time.time(),
                 'st_gid': pw.pw_gid,
-                'st_mode': _mode, 
+                'st_mode': _mode,
                 'st_mtime': isinstance(f, JFS.JFSFile) and time.mktime(f.modified.timetuple()) or time.time(),
                 'st_size': isinstance(f, JFS.JFSFile) and f.size  or 0,
                 'st_uid': pw.pw_uid,
@@ -169,14 +173,15 @@ class JottaFuse(LoggingMixIn, Operations):
         if path in self.__newfiles: # file was just created, not synced yet
             return ''
         try:
-            f = StringIO(self._getpath(path).read())
+            f = self._getpath(path)
         except JFS.JFSError:
             raise OSError(errno.ENOENT, '')
         if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
             raise OSError(errno.ENOENT)
-        f.seek(offset, 0)
-        buf = f.read(size)
-        f.close()
+        data = StringIO(f.read())
+        data.seek(offset, 0)
+        buf = data.read(size)
+        data.close()
         return buf
 
     def readdir(self, path, fh):
@@ -190,15 +195,25 @@ class JottaFuse(LoggingMixIn, Operations):
             if isinstance(p, JFS.JFSDevice):
                 for name in p.mountPoints.keys():
                     yield name
-            else:    
+            else:
                 for el in itertools.chain(p.folders(), p.files()):
                     if not el.is_deleted():
                         yield el.name
 
+
+    def rename(self, old, new):
+        if old == new: return
+        try:
+            f = self._getpath(old)
+        except JFS.JFSError:
+            raise OSError(errno.ENOENT, '')
+        f.rename(new)
+        return ESUCCESS
+
     def statfs(self, path):
         "Return a statvfs(3) structure, for stat and df and friends"
         # from fuse.py source code:
-        # 
+        #
         # class c_statvfs(Structure):
         # _fields_ = [
         # ('f_bsize', c_ulong), # preferred size of file blocks, in bytes
@@ -208,21 +223,21 @@ class JottaFuse(LoggingMixIn, Operations):
         # ('f_bavail', c_fsblkcnt_t), # free blocks avail to non-superuser
         # ('f_files', c_fsfilcnt_t), # total file nodes in file system
         # ('f_ffree', c_fsfilcnt_t), # free file nodes in fs
-        # ('f_favail', c_fsfilcnt_t)] # 
+        # ('f_favail', c_fsfilcnt_t)] #
         #
         # On Mac OS X f_bsize and f_frsize must be a power of 2
         # (minimum 512).
 
         _blocksize = 512
         _usage = self.client.usage
-        _fs_size = self.client.capacity 
+        _fs_size = self.client.capacity
         if _fs_size == -1: # unlimited
-            # Since backend is supposed to be unlimited, 
+            # Since backend is supposed to be unlimited,
             # always return a half-full filesystem, but at least 1 TB)
             _fs_size = max(2 * _usage, 1024 ** 4)
         _bfree = ( _fs_size - _usage ) // _blocksize
         return {
-            'f_bsize': _blocksize, 
+            'f_bsize': _blocksize,
             'f_frsize': _blocksize,
             'f_blocks': _fs_size // _blocksize,
             'f_bfree': _bfree,
@@ -233,9 +248,25 @@ class JottaFuse(LoggingMixIn, Operations):
 
         }
 
+    def truncate(self, path, length, fh=None):
+        "Download existing path, truncate and reupload"
+        if path in self.__newfiles: # file was just created, not synced yet
+            return ''
+        try:
+            f = self._getpath(path)
+        except JFS.JFSError:
+            raise OSError(errno.ENOENT, '')
+        if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
+            raise OSError(errno.ENOENT)
+        data = StringIO(f.read())
+        data.truncate(length)
+        try:
+            self.client.up(path, data) # replace file contents
+            return ESUCCESS
+        except:
+            raise
+            raise OSError(errno.ENOENT, '')
 
-    def xx_rename(self, old, new):
-        return self.sftp.rename(old, self.root + new)
 
     def unlink(self, path):
         if path in self.__newfolders: # folder was just created, not synced yet
@@ -259,7 +290,7 @@ class JottaFuse(LoggingMixIn, Operations):
             raise JottaFuseError('Blacklisted file')
 
         if path in self.__newfiles: # file was just created, not synced yet
-            print "path: %s" % path
+            print "__newfiles path: %s" % path
             f = self.client.up(path, StringIO(data))
             self.__newfiles.remove(path)
             return len(data)
@@ -270,7 +301,7 @@ class JottaFuse(LoggingMixIn, Operations):
         olddata = f.read()
         newdata = olddata[:offset] + data
         f.write(newdata)
-        return len(newdata)
+        return len(data)
 
 
 if __name__ == '__main__':
@@ -278,7 +309,13 @@ if __name__ == '__main__':
         print('usage: %s <mountpoint>' % sys.argv[0])
         sys.exit(1)
 
-    fuse = FUSE(JottaFuse(username=os.environ['JOTTACLOUD_USERNAME'], password=os.environ['JOTTACLOUD_PASSWORD']), 
-                sys.argv[1], foreground=True, nothreads=True)
+    try:
+        n = netrc.netrc()
+        username, account, password = n.authenticators('jottacloud') # read .netrc entry for 'machine jottacloud'
+    except:
+        username = os.environ['JOTTACLOUD_USERNAME']
+        password = os.environ['JOTTACLOUD_PASSWORD']
+
+    fuse = FUSE(JottaFuse(username, password), sys.argv[1], foreground=True, nothreads=True)
 
 

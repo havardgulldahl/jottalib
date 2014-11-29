@@ -1,0 +1,5 @@
+## TODO ##
+
+figure out a way to use ?mode=list on dirs to get a full file list, recursively from a path, to save bandwidth
+
+pull https://www.jottacloud.com/jfs/**USERNAME**/Jotta?mode=ic  to get a list of incomplete uploads, to continue
