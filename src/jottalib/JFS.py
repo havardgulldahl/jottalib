@@ -37,10 +37,18 @@ requests_cache.core.install_cache(backend='memory', expire_after=30.0, fast_save
 import lxml, lxml.objectify
 import dateutil, dateutil.parser
 
+#monkeypatch urllib3 param function to bypass bug in jottacloud servers
+from requests.packages import urllib3
+urllib3.fields.format_header_param_orig = urllib3.fields.format_header_param
+def mp(name, value):
+    return urllib3.fields.format_header_param_orig(name, value).replace('filename*=', 'filename=')
+urllib3.fields.format_header_param = mp
+
+
+
 # some setup
 JFS_ROOT='https://www.jotta.no/jfs/'
 JFS_CACHELIMIT=1024*1024 # stuff below this threshold (in bytes) will be cached
-logging.basicConfig(level=logging.DEBUG)
 
 class JFSError(Exception):
     @staticmethod
@@ -150,10 +158,10 @@ class JFSFolder(object):
     def up(self, fileobj_or_path, filename=None):
         'Upload a file to current folder and return the new JFSFile'
         if not isinstance(fileobj_or_path, file):
+            filename = os.path.basename(fileobj_or_path).decode(sys.getfilesystemencoding())
             fileobj_or_path = open(fileobj_or_path, 'rb')
-        if filename is None:
-            filename = os.path.basename(fileobj_or_path.name)
-        r = self.jfs.up('%s/%s' % (self.path, filename), fileobj_or_path)
+        logging.debug('.up %s ->  %s %s', repr(fileobj_or_path), repr(self.path), repr(filename))
+        r = self.jfs.up(os.path.join(self.path, filename), fileobj_or_path)
         self.sync()
         return r
 
@@ -653,6 +661,7 @@ class JFS(object):
 if __name__=='__main__':
     # debug setup
     import httplib as http_client
+    logging.basicConfig(level=logging.DEBUG)
     http_client.HTTPConnection.debuglevel = 1
     requests_log = logging.getLogger("requests.packages.urllib3")
     requests_log.setLevel(logging.DEBUG)
@@ -666,4 +675,8 @@ if __name__=='__main__':
         if j.name == 'Jotta':
             jottadev = j
     jottasync = jottadev.mountPoints['Sync']
-    r = jottasync.up('/tmp/test.pdf')
+    try:
+        _filename = sys.argv[1]
+    except IndexError:
+        _filename = '/tmp/test.pdf'
+    r = jottasync.up(_filename)
