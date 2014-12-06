@@ -620,7 +620,7 @@ class JFS(object):
         fileobject.seek(0) # rewind read index for requests.post
         md5hash = hashlib.md5(content).hexdigest() # TODO: read (big) files in chunks to avoid memory errors
         logging.debug('posting content (len %s, hash %s) to url %s', len(content), md5hash, url)
-        now = '2014-10-05T10:23:18Z+00:00' #datetime.datetime.now().isoformat() # TODO: don't hardcode
+        now = datetime.datetime.now().isoformat()
         headers = {'JMd5':md5hash,
                    'JCreated': now,
                    'JModified': now,
