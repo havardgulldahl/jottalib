@@ -217,6 +217,12 @@ class JFSFile(object):
                 updated = '2010-11-19-T12:34:28Z' [StringElement]
         """
 
+    def readpartial(self, start, end):
+        'Get a part of the file, from start byte to end byte (integers)'
+        return self.jfs.raw('%s?mode=bin' % self.path,
+                            usecache=False,
+                            extra_headers={'Range':'bytes=%s-%s' % (start, end)})
+
     def write(self, data):
         'Put, possibly replace, file contents with (new) data'
 #         return self.jfs.post(self.path, content=data,
@@ -500,29 +506,32 @@ class JFS(object):
         self.username = username
         self.session.auth = HTTPBasicAuth(username, password)
         self.session.verify = ca_bundle
-        self.session.headers =  {'User-Agent':'JottaFS %s (https://gitorious.org/jottafs/)' % (__version__, ),
+        self.session.headers =  {'User-Agent':'jottalib %s (https://gitorious.org/jottafs/jottalib)' % (__version__, ),
                                  'X-JottaAPIVersion': self.apiversion,
                                 }
         self.rootpath = JFS_ROOT + username
         self.fs = self.get(self.rootpath)
 
-    def request(self, url, usecache=True):
+    def request(self, url, usecache=True, extra_headers=None):
+        'Make a GET request for url, with or without caching'
         if not url.startswith('http'):
             # relative url
             url = self.rootpath + url
-        logging.debug("getting url: %s" % url)
+        logging.debug("getting url: %s, usecache=%s, extra_headers=%s", url, usecache, extra_headers)
+        if extra_headers is None: extra_headers={}
         if usecache:
-            r = self.session.get(url)
+            r = self.session.get(url, headers=extra_headers)
         else:
             with requests_cache.disabled():
-                r = self.session.get(url)
+                r = self.session.get(url, headers=extra_headers)
 
         if r.status_code in ( 500, ):
             raise JFSError(r.reason)
         return r
 
-    def raw(self, url, usecache=True):
-        r = self.request(url, usecache)
+    def raw(self, url, usecache=True, extra_headers=None):
+        'Make a GET request for url and return whatever content we get'
+        r = self.request(url, usecache=usecache, extra_headers=extra_headers)
         # uncomment to dump raw xml
         # f = open('/tmp/%s.xml' % time.time(), 'wb')
         # f.write(r.content)
@@ -530,13 +539,14 @@ class JFS(object):
         return r.content
 
     def get(self, url, usecache=True):
+        'Make a GET request for url and return the response content as a generic lxml object'
         o = lxml.objectify.fromstring(self.raw(url, usecache=usecache))
         if o.tag == 'error':
             JFSError.raiseError(o, url)
         return o
 
     def getObject(self, url_or_requests_response, usecache=True):
-        'Take a url or some xml response from JottaCloud and match it up to one of our classes'
+        'Take a url or some xml response from JottaCloud and wrap it up with the corresponding JFS* class'
         if isinstance(url_or_requests_response, requests.models.Response):
             url = url_or_requests_response.url
             o = lxml.objectify.fromstring(url_or_requests_response.content)
@@ -581,7 +591,7 @@ class JFS(object):
         return self.getObject(r) # return a JFS* class
 
     def up(self, path, fileobject):
-        "Upload a fileobject to path, HTTP POST-ing to up.jottacloud.com"
+        "Upload a fileobject to path, HTTP POST-ing to up.jottacloud.com, using the JottaCloud API"
         """
 
         *** WHAT DID I DO?: created file
@@ -608,7 +618,7 @@ class JFS(object):
         url = path.replace('www.jotta.no', 'up.jottacloud.com')
         content = fileobject.read()
         fileobject.seek(0) # rewind read index for requests.post
-        md5hash = hashlib.md5(content).hexdigest()
+        md5hash = hashlib.md5(content).hexdigest() # TODO: read (big) files in chunks to avoid memory errors
         logging.debug('posting content (len %s, hash %s) to url %s', len(content), md5hash, url)
         now = '2014-10-05T10:23:18Z+00:00' #datetime.datetime.now().isoformat() # TODO: don't hardcode
         headers = {'JMd5':md5hash,
@@ -619,6 +629,7 @@ class JFS(object):
                    'jx_csid': '',
                    'jx_lisence': ''
                    }
+        #TODO: enable partial uploading using HTTP Range bytes=start
         params = {'cphash':md5hash,}
         files = {'md5': ('', md5hash),
                  'modified': ('', now),
@@ -668,7 +679,16 @@ if __name__=='__main__':
     requests_log.propagate = True
     from lxml.objectify import dump as xdump
     from pprint import pprint
-    jfs = JFS(os.environ['JOTTACLOUD_USERNAME'], password=os.environ['JOTTACLOUD_PASSWORD'])
+    import netrc
+    try:
+        n = netrc.netrc()
+        username, account, password = n.authenticators('jottacloud') # read .netrc entry for 'machine jottacloud'
+    except Exception as e:
+        logging.exception(e)
+        username = os.environ['JOTTACLOUD_USERNAME']
+        password = os.environ['JOTTACLOUD_PASSWORD']
+
+    jfs = JFS(username, password)
     #logging.info(xdump(jfs.fs))
     jottadev = None
     for j in jfs.devices:
