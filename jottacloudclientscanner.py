@@ -24,6 +24,8 @@ Run by crontab at some interval.
 
 import os, os.path, sys, logging, argparse, netrc
 
+from clint.textui import progress
+
 from jottalib.JFS import JFS
 from jottacloudclient import jottacloud, __version__
 
@@ -53,20 +55,22 @@ if __name__=='__main__':
 
     jfs = JFS(username, password)
 
-    for onlylocal, onlyremote, bothplaces in jottacloud.compare(args.topdir, args.jottapath, jfs):
-        print onlylocal, onlyremote, bothplaces
+    for dirpath, onlylocal, onlyremote, bothplaces in jottacloud.compare(args.topdir, args.jottapath, jfs):
+        #print onlylocal, onlyremote, bothplaces
+        print "Entering dir: %s" % dirpath
         print "uploading %s onlylocal files" % len(onlylocal)
-        for f in onlylocal:
+        #for f in onlylocal:
+        for f in progress.bar(onlylocal):
             logging.debug("uploading new file: %s", f)
             if not args.dry_run:
                 jottacloud.new(f.localpath, f.jottapath, jfs)
         print "deleting %s onlyremote files" % len(onlyremote)
-        for f in onlyremote:
+        for f in progress.bar(onlyremote):
             logging.debug("deleting cloud file that has disappeared locally: %s", f)
             if not args.dry_run:
                 jottacloud.delete(f.jottapath, jfs)
         print "comparing %s bothplaces files" % len(bothplaces)
-        for f in bothplaces:
+        for f in progress.bar(bothplaces):
             logging.debug("checking whether file contents has changed: %s", f)
             if not args.dry_run:
                 jottacloud.replace_if_changed(f.localpath, f.jottapath, jfs)

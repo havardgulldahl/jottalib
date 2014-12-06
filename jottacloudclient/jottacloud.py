@@ -77,7 +77,7 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False):
         onlylocal = [ sf(f.decode(sys.getfilesystemencoding())) for f in localfiles.difference(cloudfiles)]
         onlyremote = [ sf(f) for f in cloudfiles.difference(localfiles)]
         bothplaces = [ sf(f.decode(sys.getfilesystemencoding())) for f in localfiles.intersection(cloudfiles)]
-        yield onlylocal, onlyremote, bothplaces
+        yield dirpath, onlylocal, onlyremote, bothplaces
 
 def new(localfile, jottapath, JFS):
     """Upload a new file from local disk (doesn't exist on JottaCloud).
