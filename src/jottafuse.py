@@ -316,6 +316,6 @@ if __name__ == '__main__':
         username = os.environ['JOTTACLOUD_USERNAME']
         password = os.environ['JOTTACLOUD_PASSWORD']
 
-    fuse = FUSE(JottaFuse(username, password), sys.argv[1], foreground=True, nothreads=True)
+    fuse = FUSE(JottaFuse(username, password), sys.argv[1], foreground=True, nothreads=False)
 
 
