@@ -673,10 +673,10 @@ if __name__=='__main__':
     # debug setup
     import httplib as http_client
     logging.basicConfig(level=logging.DEBUG)
-    http_client.HTTPConnection.debuglevel = 1
-    requests_log = logging.getLogger("requests.packages.urllib3")
-    requests_log.setLevel(logging.DEBUG)
-    requests_log.propagate = True
+    #http_client.HTTPConnection.debuglevel = 1
+    #requests_log = logging.getLogger("requests.packages.urllib3")
+    #requests_log.setLevel(logging.DEBUG)
+    #requests_log.propagate = True
     from lxml.objectify import dump as xdump
     from pprint import pprint
     import netrc
