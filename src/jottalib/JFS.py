@@ -590,7 +590,7 @@ class JFS(object):
             raise JFSError(r.reason)
         return self.getObject(r) # return a JFS* class
 
-    def up(self, path, fileobject):
+    def up(self, path, fileobject, resume=False):
         "Upload a fileobject to path, HTTP POST-ing to up.jottacloud.com, using the JottaCloud API"
         """
 
@@ -615,27 +615,39 @@ class JFS(object):
         Accept-Language: nb-NO,en,*
         Host: up.jottacloud.com
         """
+        md5 = hashlib.md5()
+        contentsize = 0
+        for chunk in iter(lambda: fileobject.read(8192), b''): # read fileobject piece by piece to avoid memoryerror on large files
+            md5.update(chunk)
+            contentsize += len(chunk)
+        md5hash = md5.hexdigest()
+        fileobject.seek(0) # rewind read head
         url = path.replace('www.jotta.no', 'up.jottacloud.com')
-        content = fileobject.read()
-        fileobject.seek(0) # rewind read index for requests.post
-        md5hash = hashlib.md5(content).hexdigest() # TODO: read (big) files in chunks to avoid memory errors
-        logging.debug('posting content (len %s, hash %s) to url %s', len(content), md5hash, url)
         now = datetime.datetime.now().isoformat()
         headers = {'JMd5':md5hash,
                    'JCreated': now,
                    'JModified': now,
                    'X-Jfs-DeviceName': 'Jotta',
-                   'JSize': len(content),
+                   'JSize': contentsize,
                    'jx_csid': '',
                    'jx_lisence': ''
                    }
-        #TODO: enable partial uploading using HTTP Range bytes=start
         params = {'cphash':md5hash,}
-        files = {'md5': ('', md5hash),
-                 'modified': ('', now),
-                 'created': ('', now),
-                 'file': (os.path.basename(url), fileobject, 'application/octet-stream', {'Content-Transfer-Encoding':'binary'})}
-        return self.post(url, None, files=files, params=params, extra_headers=headers)
+        partialchunksize = 1024*1024*5#*512
+        #TODO: check if file is incomplete, and continue, if resume=True
+        offset=0
+        for i, chunk in enumerate(iter(lambda: fileobject.read(partialchunksize), b'')): #
+            chunksize = len(chunk)
+            logging.debug('posting chunk %s (len %s, offset %s, hash %s)', i, chunksize, offset, md5hash)
+            files = {'md5': ('', md5hash),
+                     'modified': ('', now),
+                     'created': ('', now),
+                     'file': (os.path.basename(url), chunk, 'application/octet-stream', {'Content-Transfer-Encoding':'binary'})}
+            #partial uploading using HTTP Range
+            headers.update( {'Content-range':'bytes %s-%s/%s' % (offset, offset+chunksize, contentsize)} )
+            r = self.post(url, None, files=files, params=params, extra_headers=headers)
+            offset = offset + chunksize
+        return r
 
     # property overloading
     @property
@@ -674,9 +686,9 @@ if __name__=='__main__':
     import httplib as http_client
     logging.basicConfig(level=logging.DEBUG)
     #http_client.HTTPConnection.debuglevel = 1
-    #requests_log = logging.getLogger("requests.packages.urllib3")
-    #requests_log.setLevel(logging.DEBUG)
-    #requests_log.propagate = True
+    requests_log = logging.getLogger("requests.packages.urllib3")
+    requests_log.setLevel(logging.DEBUG)
+    requests_log.propagate = True
     from lxml.objectify import dump as xdump
     from pprint import pprint
     import netrc
