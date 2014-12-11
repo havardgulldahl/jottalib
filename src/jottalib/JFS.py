@@ -186,6 +186,9 @@ class JFSIncompleteFile(object):
         self.jfs = jfs
         self.parentPath = parentpath
 
+    def resume(self, fileobj_or_path):
+        raise NotImplementedError
+
     def is_image(self):
         'Return bool based on self.mime'
         return os.path.dirname(self.mime) == 'image'
