@@ -231,6 +231,28 @@ class JFSFile(object):
             data = StringIO(data)
         self.jfs.up(self.path, data)
 
+    def writepartial(self, data, offset):
+        md5hash = hashlib.md5(data).hexdigest()
+        url = self.path.replace('www.jotta.no', 'up.jottacloud.com')
+        now = datetime.datetime.now().isoformat()
+        headers = {'JMd5':md5hash,
+                   'JCreated': now,
+                   'JModified': now,
+                   'X-Jfs-DeviceName': 'Jotta',
+                   'JSize': self.size+len(data),
+                   'jx_csid': '',
+                   'jx_lisence': '',
+                   'Content-range':'bytes %s-%s/%s' % (offset, offset+len(data), self.size+len(data)),
+                   }
+        params = {'cphash':md5hash,}
+        files = {'md5': ('', md5hash),
+                 'modified': ('', now),
+                 'created': ('', now),
+                 'file': (self.name, data, 'application/octet-stream', {'Content-Transfer-Encoding':'binary'})}
+        return self.jfs.post(url, None, params=params, files=files,
+                             extra_headers=headers)
+
+
     def share(self):
         'Enable public access at secret, share only uri, and return that uri'
         url = 'https://www.jottacloud.com/rest/webrest/%s/action/enableSharing' % self.jfs.username
@@ -636,7 +658,7 @@ class JFS(object):
         partialchunksize = 1024*1024*5#*512
         #TODO: check if file is incomplete, and continue, if resume=True
         offset=0
-        for i, chunk in enumerate(iter(lambda: fileobject.read(partialchunksize), b'')): #
+        for i, chunk in enumerate(iter(lambda: fileobject.read(partialchunksize), b'')): #loop thru content
             chunksize = len(chunk)
             logging.debug('posting chunk %s (len %s, offset %s, hash %s)', i, chunksize, offset, md5hash)
             files = {'md5': ('', md5hash),
@@ -644,7 +666,8 @@ class JFS(object):
                      'created': ('', now),
                      'file': (os.path.basename(url), chunk, 'application/octet-stream', {'Content-Transfer-Encoding':'binary'})}
             #partial uploading using HTTP Range
-            headers.update( {'Content-range':'bytes %s-%s/%s' % (offset, offset+chunksize, contentsize)} )
+            if i>0:
+                headers.update( {'Content-range':'bytes %s-%s/%s' % (offset, offset+chunksize, contentsize)} )
             r = self.post(url, None, files=files, params=params, extra_headers=headers)
             offset = offset + chunksize
         return r
@@ -685,7 +708,7 @@ if __name__=='__main__':
     # debug setup
     import httplib as http_client
     logging.basicConfig(level=logging.DEBUG)
-    #http_client.HTTPConnection.debuglevel = 1
+    http_client.HTTPConnection.debuglevel = 1
     requests_log = logging.getLogger("requests.packages.urllib3")
     requests_log.setLevel(logging.DEBUG)
     requests_log.propagate = True
@@ -703,12 +726,17 @@ if __name__=='__main__':
     jfs = JFS(username, password)
     #logging.info(xdump(jfs.fs))
     jottadev = None
-    for j in jfs.devices:
-        if j.name == 'Jotta':
-            jottadev = j
-    jottasync = jottadev.mountPoints['Sync']
-    try:
-        _filename = sys.argv[1]
-    except IndexError:
-        _filename = '/tmp/test.pdf'
-    r = jottasync.up(_filename)
+#     for j in jfs.devices:
+#         if j.name == 'Jotta':
+#             jottadev = j
+#     jottasync = jottadev.mountPoints['Sync']
+#     try:
+#         _filename = sys.argv[1]
+#     except IndexError:
+#         _filename = '/tmp/test.pdf'
+#     r = jottasync.up(_filename)
+    f = jfs.up('/Jotta/Sync/runtest.txt', StringIO('12345'))
+    print f.readpartial(2,4)
+    f.writepartial('6789', 5)
+    print f.read()
+    print f.readpartial(1,6)
