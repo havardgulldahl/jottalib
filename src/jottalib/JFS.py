@@ -165,7 +165,87 @@ class JFSFolder(object):
         self.sync()
         return r
 
-class JFSFile(object):
+class JFSIncompleteFile(object):
+    'OO interface to an incomplete file.'
+    """<file name="h2.jpg" uuid="d492d1fb-6dd4-4ce3-9ab6-e5369ac8abf1" time="2014-12-11-T22:25:04Z" host="dn-092.site-000.jotta.no">
+<path xml:space="preserve">/havardgulldahl/gulldahlpc/B/teste/jottatest</path>
+<abspath xml:space="preserve">/havardgulldahl/gulldahlpc/B/teste/jottatest</abspath>
+<latestRevision>
+<number>1</number>
+<state>INCOMPLETE</state>
+<created>2014-12-11-T21:45:13Z</created>
+<modified>2014-12-11-T21:45:13Z</modified>
+<mime>image/jpeg</mime>
+<mstyle>IMAGE_JPEG</mstyle>
+<md5>25bf47bf6fa3b11b9b920887fb19f717</md5>
+<updated>2014-12-11-T21:45:13Z</updated>
+</latestRevision>
+</file>"""
+    def __init__(self, fileobject, jfs, parentpath): # fileobject from lxml.objectify
+        self.f = fileobject
+        self.jfs = jfs
+        self.parentPath = parentpath
+
+    def is_image(self):
+        'Return bool based on self.mime'
+        return os.path.dirname(self.mime) == 'image'
+
+    def is_deleted(self):
+        'Return bool based on self.deleted'
+        return self.deleted is not None
+
+    @property
+    def name(self):
+        return unicode(self.f.attrib['name'])
+
+    @property
+    def uuid(self):
+        return unicode(self.f.attrib['uuid'])
+
+    @property
+    def deleted(self):
+        'Return datetime.datetime or None if the file isnt deleted'
+        _d = self.f.attrib.get('deleted', None)
+        if _d is None: return None
+        return dateutil.parser.parse(str(_d))
+
+    @property
+    def path(self):
+        return '%s/%s' % (self.parentPath, self.name)
+
+    @property
+    def revisionNumber(self):
+        'return int of current revision'
+        return int(self.f.latestRevision.number)
+
+    @property
+    def created(self):
+        'return datetime.datetime'
+        return dateutil.parser.parse(str(self.f.latestRevision.created))
+
+    @property
+    def modified(self):
+        'return datetime.datetime'
+        return dateutil.parser.parse(str(self.f.latestRevision.modified))
+
+    @property
+    def updated(self):
+        'return datetime.datetime'
+        return dateutil.parser.parse(str(self.f.latestRevision.updated))
+
+    @property
+    def md5(self):
+        return str(self.f.latestRevision.md5)
+
+    @property
+    def mime(self):
+        return unicode(self.f.latestRevision.mime)
+
+    @property
+    def state(self):
+        return unicode(self.f.latestRevision.state)
+
+class JFSFile(JFSIncompleteFile):
     'OO interface to a file, for convenient access. Type less, do more.'
     ## TODO: add <revisions> iterator for all
     """
@@ -264,33 +344,6 @@ class JFSFile(object):
                     self.SMALLTHUMB:'WS'}
         return self.jfs.raw('%s?mode=thumb&ts=%s' % (self.path, thumbmap[size]))
 
-    def is_image(self):
-        'Return bool based on self.mime'
-        return os.path.dirname(self.mime) == 'image'
-
-    def is_deleted(self):
-        'Return bool based on self.deleted'
-        return self.deleted is not None
-
-    @property
-    def name(self):
-        return unicode(self.f.attrib['name'])
-
-    @property
-    def uuid(self):
-        return unicode(self.f.attrib['uuid'])
-
-    @property
-    def deleted(self):
-        'Return datetime.datetime or None if the file isnt deleted'
-        _d = self.f.attrib.get('deleted', None)
-        if _d is None: return None
-        return dateutil.parser.parse(str(_d))
-
-    @property
-    def path(self):
-        return '%s/%s' % (self.parentPath, self.name)
-
     @property
     def revisionNumber(self):
         'return int of current revision'
@@ -327,10 +380,6 @@ class JFSFile(object):
     @property
     def state(self):
         return unicode(self.f.currentRevision.state)
-
-    @property
-    def abspath(self):
-        return unicode(self.f.abspath)
 
 class JFSMountPoint(JFSFolder):
     'OO interface to a mountpoint, for convenient access. Type less, do more.'
@@ -560,7 +609,12 @@ class JFS(object):
         elif o.tag == 'device': return JFSDevice(o, jfs=self, parentpath=parent)
         elif o.tag == 'folder': return JFSFolder(o, jfs=self, parentpath=parent)
         elif o.tag == 'mountPoint': return JFSMountPoint(o, jfs=self, parentpath=parent)
-        elif o.tag == 'file': return JFSFile(o, jfs=self, parentpath=parent)
+        elif o.tag == 'file':
+            try:
+                if o.latestRevision.state == 'INCOMPLETE':
+                    return JFSIncompleteFile(o, jfs=self, parentpath=parent)
+            except AttributeError:
+                return JFSFile(o, jfs=self, parentpath=parent)
         elif o.tag == 'enableSharing': return JFSenableSharing(o, jfs=self)
         elif o.tag == 'user':
             self.fs = o
