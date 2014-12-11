@@ -178,11 +178,7 @@ class JottaFuse(LoggingMixIn, Operations):
             raise OSError(errno.ENOENT, '')
         if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
             raise OSError(errno.ENOENT)
-        data = StringIO(f.read())
-        data.seek(offset, 0)
-        buf = data.read(size)
-        data.close()
-        return buf
+        return f.readpartial(offset, offset+size)
 
     def readdir(self, path, fh):
         yield '.'
