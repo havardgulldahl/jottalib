@@ -21,7 +21,7 @@
 import sys, os, os.path, hashlib, logging, collections
 
 import jottalib
-from jottalib.JFS import JFSNotFoundError, JFSFolder, JFSFile
+from jottalib.JFS import JFSNotFoundError, JFSFolder, JFSFile, JFSIncompleteFile
 
 
 SyncFile = collections.namedtuple('SyncFile', 'localpath, jottapath')
@@ -88,21 +88,29 @@ def new(localfile, jottapath, JFS):
         _new = JFS.up(jottapath, lf)
     return _new
 
+def resume(localfile, jottafile, JFS):
+    """Continue uploading a new file from local file (already exists on JottaCloud"""
+    with open(localfile) as lf:
+        _complete = jottafile.resume(lf)
+    return _complete
 
 def replace_if_changed(localfile, jottapath, JFS):
     """Compare md5 hash to determine if contents have changed.
-    Upload a file from local disk and replace file on JottaCloud if the md5s differ.
+    Upload a file from local disk and replace file on JottaCloud if the md5s differ,
+    or continue uploading if the file is incompletely uploaded.
 
     Returns the JottaFile object"""
     jf = JFS.getObject(jottapath)
     with open(localfile) as lf:
         lf_hash = hashlib.md5(lf.read()).hexdigest()
-    if jf.md5 == lf_hash: # hashes are the same
+    if type(jf) == JFSIncompleteFile:
+        logging.debug("Local file %s is incompletely uploaded, continue", localfile)
+        return resume(localfile, jf, JFS)
+    elif jf.md5 == lf_hash: # hashes are the same
         logging.debug("hash match (%s), file contents haven't changed", lf_hash)
         return jf         # return the version from jottaclouds
     else:
         return new(localfile, jottapath, JFS)
-
 
 def delete(jottapath, JFS):
     """Remove file from JottaCloud because it is no longer present on local disk.
