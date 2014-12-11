@@ -93,7 +93,6 @@ if __name__=='__main__':
 
     try:
         for dirpath, onlylocal, onlyremote, bothplaces in jottacloud.compare(args.topdir, args.jottapath, jfs):
-            _files += len(onlylocal) + len(onlyremote) + len(bothplaces)
             puts(colored.green("Entering dir: %s" % dirpath))
             if len(onlylocal):
                 _start = time.time()
@@ -103,6 +102,7 @@ if __name__=='__main__':
                     if not args.dry_run:
                         if saferun(jottacloud.new, f.localpath, f.jottapath, jfs) is not False:
                             _uploadedbytes += os.path.getsize(f.localpath)
+                            _files += 1
                 _end = time.time()
                 puts(colored.magenta("Network upload speed %s/sec" % ( humanizeFileSize( (_uploadedbytes / (_end-_start)) ) )))
 
@@ -111,12 +111,14 @@ if __name__=='__main__':
                 for f in progress.bar(onlyremote, label="deleting JottaCloud file: "):
                     logging.debug("deleting cloud file that has disappeared locally: %s", f)
                     if not args.dry_run:
-                        saferun(jottacloud.delete, f.jottapath, jfs)
+                        if saferun(jottacloud.delete, f.jottapath, jfs) is not False:
+                            _files += 1
             if len(bothplaces):
                 for f in progress.bar(bothplaces, label="comparing %s existing files: " % len(bothplaces)):
                     logging.debug("checking whether file contents has changed: %s", f)
                     if not args.dry_run:
-                        saferun(jottacloud.replace_if_changed, f.localpath, f.jottapath, jfs)
+                        if saferun(jottacloud.replace_if_changed, f.localpath, f.jottapath, jfs) is not False:
+                            _files += 1
     except KeyboardInterrupt:
         # Ctrl-c pressed, cleaning up
         pass
