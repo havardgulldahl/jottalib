@@ -64,19 +64,20 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False):
     for dirpath, dirnames, filenames in os.walk(localtopdir, followlinks=followlinks):
         dirpath = dirpath.decode(sys.getfilesystemencoding())
         logging.debug("compare walk: %s -> %s files ", dirpath, len(filenames))
-        localfiles = set([f for f in filenames]) # these are on local disk
+        localfiles = set([f.decode(sys.getfilesystemencoding()) for f in filenames]) # these are on local disk
         jottapath = get_jottapath(localtopdir, dirpath, jottamountpoint) # translate to jottapath
         logging.debug("compare jottapath: %s", jottapath)
         cloudfiles = filelist(jottapath, JFS) # set(). these are on jottacloud
+
         def sf(f):
             """Create SyncFile tuple from filename"""
             return SyncFile(localpath=os.path.join(dirpath, f),
                             jottapath=os.path.join(jottapath, f))
         logging.debug("--cloudfiles: %s", cloudfiles)
         logging.debug("--localfiles: %s", localfiles)
-        onlylocal = [ sf(f.decode(sys.getfilesystemencoding())) for f in localfiles.difference(cloudfiles)]
+        onlylocal = [ sf(f) for f in localfiles.difference(cloudfiles)]
         onlyremote = [ sf(f) for f in cloudfiles.difference(localfiles)]
-        bothplaces = [ sf(f.decode(sys.getfilesystemencoding())) for f in localfiles.intersection(cloudfiles)]
+        bothplaces = [ sf(f) for f in localfiles.intersection(cloudfiles)]
         yield dirpath, onlylocal, onlyremote, bothplaces
 
 def new(localfile, jottapath, JFS):
