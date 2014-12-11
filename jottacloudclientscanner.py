@@ -126,4 +126,4 @@ if __name__=='__main__':
         puts('Finished syncing %s files to JottaCloud, no errors. yay!' % _files)
     else:
         puts(('Finished syncing %s files, ' % _files )+
-             colored.red('with %s errors (read %s for details)' % (args.errorfile, len(errors))))
+             colored.red('with %s errors (read %s for details)' % (len(errors), args.errorfile, )))
