@@ -193,10 +193,6 @@ class JFSIncompleteFile(object):
         'Return bool based on self.mime'
         return os.path.dirname(self.mime) == 'image'
 
-    def is_deleted(self):
-        'Return bool based on self.deleted'
-        return self.deleted is not None
-
     @property
     def name(self):
         return unicode(self.f.attrib['name'])
@@ -346,6 +342,10 @@ class JFSFile(JFSIncompleteFile):
                     self.MEDIUMTHUMB:'WM',
                     self.SMALLTHUMB:'WS'}
         return self.jfs.raw('%s?mode=thumb&ts=%s' % (self.path, thumbmap[size]))
+
+    def is_deleted(self):
+        'Return bool based on self.deleted'
+        return self.deleted is not None
 
     @property
     def revisionNumber(self):
