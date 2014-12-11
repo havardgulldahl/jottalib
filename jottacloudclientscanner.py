@@ -2,7 +2,8 @@
 # encoding: utf-8
 """A service to sync a local file tree to jottacloud.
 
-Run by crontab at some interval.
+Copies and updates files in the cloud by comparing md5 hashes, like the official client.
+Run it from crontab at an appropriate interval.
 
 """
 # This file is part of jottacloudclient.
@@ -23,10 +24,21 @@ Run by crontab at some interval.
 # Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
 
 import os, os.path, sys, logging, argparse, netrc
+import math, time
+
 
 from clint.textui import progress, puts, colored
 from jottalib.JFS import JFS
 from jottacloudclient import jottacloud, __version__
+
+
+def humanizeFileSize(size):
+    size = abs(size)
+    if (size==0):
+        return "0B"
+    units = ['B','KiB','MiB','GiB','TiB','PiB','EiB','ZiB','YiB']
+    p = math.floor(math.log(size, 2)/10)
+    return "%.3f%s" % (size/math.pow(1024,p),units[int(p)])
 
 if __name__=='__main__':
     def is_dir(path):
@@ -34,8 +46,11 @@ if __name__=='__main__':
             raise argparse.ArgumentTypeError('%s is not a valid directory' % path)
         return path
     parser = argparse.ArgumentParser(description=__doc__,
-                                    epilog='The program expects to find an entry for "jottacloud" in your .netrc, or JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.')
-    parser.add_argument('--loglevel', type=int, help='Loglevel', default=logging.WARNING)
+                                    epilog="""The program expects to find an entry for "jottacloud" in your .netrc,
+                                    or JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.
+                                    This is not an official JottaCloud project.""")
+    parser.add_argument('--loglevel', type=int, help='Loglevel from 1 (only errors) to 9 (extremely chatty)', default=logging.WARNING)
+    parser.add_argument('--errorfile', help='A file to write errors to', default='./jottacloudclient.log')
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('--dry-run', action='store_true',
                         help="don't actually do any uploads or deletes, just show what would be done")
@@ -45,6 +60,9 @@ if __name__=='__main__':
     parser.add_argument('jottapath', help='The path at JottaCloud where the tree shall be synced (must exist)')
     args = parser.parse_args()
     logging.basicConfig(level=args.loglevel)
+    fh = logging.FileHandler(args.errorfile)
+    fh.setLevel(logging.ERROR)
+    logging.getLogger('').addHandler(fh)
 
     try:
         n = netrc.netrc()
@@ -67,21 +85,30 @@ if __name__=='__main__':
             return apply(cmd, args)
         except Exception as e:
             puts(colored.red('Ouch. Something\'s wrong with "%s":' % args[0]))
-            logging.exception(e)
+            logging.exception('SAFERUN: Got exception when processing %s', args)
             errors.update( {args[0]:e} )
             return False
 
+    _files = 0
+
     try:
         for dirpath, onlylocal, onlyremote, bothplaces in jottacloud.compare(args.topdir, args.jottapath, jfs):
+            _files += len(onlylocal) + len(onlyremote) + len(bothplaces)
             puts(colored.green("Entering dir: %s" % dirpath))
             if len(onlylocal):
+                _start = time.time()
+                _uploadedbytes = 0
                 for f in progress.bar(onlylocal, label="uploading %s new files: " % len(onlylocal)):
                     logging.debug("uploading new file: %s", f)
                     if not args.dry_run:
-                        saferun(jottacloud.new, f.localpath, f.jottapath, jfs)
+                        if saferun(jottacloud.new, f.localpath, f.jottapath, jfs) is not False:
+                            _uploadedbytes += os.path.getsize(f.localpath)
+                _end = time.time()
+                puts(colored.magenta("Network upload speed %s/sec" % ( humanizeFileSize( (_uploadedbytes / (_end-_start)) ) )))
+
             if len(onlyremote):
-                puts(colored.red("deleting %s removed files: " % len(onlyremote)))
-                for f in progress.bar(onlyremote):
+                puts(colored.red("Deleting %s files from JottaCloud because they no longer exist locally " % len(onlyremote)))
+                for f in progress.bar(onlyremote, label="deleting JottaCloud file: "):
                     logging.debug("deleting cloud file that has disappeared locally: %s", f)
                     if not args.dry_run:
                         saferun(jottacloud.delete, f.jottapath, jfs)
@@ -93,5 +120,8 @@ if __name__=='__main__':
     except KeyboardInterrupt:
         # Ctrl-c pressed, cleaning up
         pass
-    puts('Finished, with %s errors' % len(errors))
-
+    if len(errors) == 0:
+        puts('Finished syncing %s files to JottaCloud, no errors. yay!' % _files)
+    else:
+        puts(('Finished syncing %s files, ' % _files )+
+             colored.red('with %s errors (read %s for details)' % (args.errorfile, len(errors))))
