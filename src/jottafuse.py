@@ -94,6 +94,7 @@ class JottaFuse(LoggingMixIn, Operations):
             raise JottaFuseError('Blacklisted file')
         if not path in self.__newfiles:
             self.__newfiles.append(path)
+        self.dirty = True
         return self.__newfiles.index(path)
         return ESUCCESS
 
@@ -197,6 +198,7 @@ class JottaFuse(LoggingMixIn, Operations):
                 for name in p.mountPoints.keys():
                     yield name
             else:
+                self.dirty = False # TODO: make this a dirty flag per branch/twig, not whole tree
                 for el in itertools.chain(p.folders(), p.files()):
                     if not el.is_deleted():
                         yield el.name
@@ -209,6 +211,7 @@ class JottaFuse(LoggingMixIn, Operations):
         except JFS.JFSError:
             raise OSError(errno.ENOENT, '')
         f.rename(new)
+        self.dirty = True
         return ESUCCESS
 
     def statfs(self, path):
@@ -263,6 +266,7 @@ class JottaFuse(LoggingMixIn, Operations):
         data.truncate(length)
         try:
             self.client.up(path, data) # replace file contents
+            self.dirty = True
             return ESUCCESS
         except:
             raise
@@ -302,6 +306,7 @@ class JottaFuse(LoggingMixIn, Operations):
         olddata = f.read()
         newdata = olddata[:offset] + data
         f.write(newdata)
+        self.dirty = True
         return len(data)
 
 
