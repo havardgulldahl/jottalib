@@ -748,6 +748,7 @@ class JFS(object):
         from requests.auth import HTTPBasicAuth
         self.apiversion = '2.2' # hard coded per october 2014
         self.session = requests.Session() # create a session for connection pooling, ssl keepalives and cookie jar
+        self.session.stream = True
         if not auth:
             auth = get_auth_info()
         self.username, password = auth
