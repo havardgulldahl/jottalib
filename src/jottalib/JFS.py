@@ -639,7 +639,7 @@ class JFS(object):
         for chunk in r.iter_content(chunkSize):
             yield chunk
 
-    def post(self, url, content='', files=None, params=None, extra_headers={}):
+    def post(self, url, content='', files=None, params=None, extra_headers={}, upload_callback=None):
         'HTTP Post files[] or content (unicode string) to url'
         if not url.startswith('http'):
             # relative url
@@ -652,15 +652,25 @@ class JFS(object):
         logging.debug('posting content (len %s) to url %s', content is not None and len(content) or '?', url)
         headers = self.session.headers.copy()
         headers.update(**extra_headers)
-        m = requests_toolbelt.MultipartEncoder(fields=files)
-        headers['content-type'] = m.content_type
+        
+        if not files is None:
+            m = requests_toolbelt.MultipartEncoder(fields=files)
+            if upload_callback is not None:
+                m_len = len(m)
+                def callback(monitor):
+                    upload_callback(monitor, m_len)
+                
+                m = requests_toolbelt.MultipartEncoderMonitor(m, callback)
+            headers['content-type'] = m.content_type
+        else:
+            m = content
         r = self.session.post(url, data=m, params=params, headers=headers)
         if r.status_code in ( 500, 404, 401, 403, 400 ):
             logging.warning('HTTP POST failed: %s', r.text)
             raise JFSError(r.reason)
         return self.getObject(r) # return a JFS* class
 
-    def up(self, path, fileobject):
+    def up(self, path, fileobject, upload_callback=None):
         "Upload a fileobject to path, HTTP POST-ing to up.jottacloud.com, using the JottaCloud API"
         """
 
@@ -712,7 +722,7 @@ class JFS(object):
                  'modified': ('', now),
                  'created': ('', now),
                  'file': (os.path.basename(url), fileobject, 'application/octet-stream')}
-        return self.post(url, None, files=files, params=params, extra_headers=headers)
+        return self.post(url, None, files=files, params=params, extra_headers=headers, upload_callback=upload_callback)
 
     # property overloading
     @property
