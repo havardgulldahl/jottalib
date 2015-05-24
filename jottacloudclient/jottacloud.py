@@ -21,7 +21,7 @@
 import sys, os, os.path, hashlib, logging, collections
 
 import jottalib
-from jottalib.JFS import JFSNotFoundError, JFSFolder, JFSFile, JFSIncompleteFile
+from jottalib.JFS import JFSNotFoundError, JFSFolder, JFSFile, JFSIncompleteFile, JFSFileDirList
 
 
 SyncFile = collections.namedtuple('SyncFile', 'localpath, jottapath')
@@ -117,3 +117,13 @@ def delete(jottapath, JFS):
     Returns boolean"""
     jf = JFS.post('%s?dl=true' % jottapath)
     return jf.is_deleted()
+
+def iter_tree(jottapath, JFS):
+    """Get a tree of of files and folders. use as an iterator, you get something like os.walk"""
+    filedirlist = JFS.getObject('%s?mode=list' % jottapath)
+    logging.debug("got tree: %s", filedirlist)
+    if not isinstance(filedirlist, JFSFileDirList):
+        yield ( '', tuple(), tuple() )
+    for folder in filedirlist.tree():
+        logging.debug(folder)
+        yield folder, tuple(folder.folders()), tuple(folder.files())
