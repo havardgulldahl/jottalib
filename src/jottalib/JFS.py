@@ -33,7 +33,9 @@ except ImportError:
 # importing external dependencies (pip these, please!)
 import requests
 import requests_cache
-requests_cache.core.install_cache(backend='memory', expire_after=30.0, fast_save=True)
+import requests_toolbelt
+# TODO: Re-enable cache after making it work with MultipartEncoder
+#requests_cache.core.install_cache(backend='memory', expire_after=30.0, fast_save=True)
 import lxml, lxml.objectify
 import dateutil, dateutil.parser
 
@@ -43,8 +45,6 @@ urllib3.fields.format_header_param_orig = urllib3.fields.format_header_param
 def mp(name, value):
     return urllib3.fields.format_header_param_orig(name, value).replace('filename*=', 'filename=')
 urllib3.fields.format_header_param = mp
-
-
 
 # some setup
 JFS_ROOT='https://www.jotta.no/jfs/'
@@ -563,6 +563,14 @@ class JFS(object):
                                 }
         self.rootpath = JFS_ROOT + username
         self.fs = self.get(self.rootpath)
+        
+    def _calculate_hash(self, fileobject, size=2**16):
+        fileobject.seek(0)
+        md5 = hashlib.md5()
+        for data in iter(lambda: fileobject.read(size), b''):
+            md5.update(data)
+        fileobject.seek(0)
+        return md5.hexdigest()
 
     def request(self, url, usecache=True, extra_headers=None):
         'Make a GET request for url, with or without caching'
@@ -574,8 +582,9 @@ class JFS(object):
         if usecache:
             r = self.session.get(url, headers=extra_headers)
         else:
-            with requests_cache.disabled():
-                r = self.session.get(url, headers=extra_headers)
+# TODO: Re-enable cache after making it work with MultipartEncoder
+#            with requests_cache.disabled():
+            r = self.session.get(url, headers=extra_headers)
 
         if r.status_code in ( 500, ):
             raise JFSError(r.reason)
@@ -630,24 +639,38 @@ class JFS(object):
         for chunk in r.iter_content(chunkSize):
             yield chunk
 
-    def post(self, url, content='', files=None, params=None, extra_headers={}):
+    def post(self, url, content='', files=None, params=None, extra_headers={}, upload_callback=None):
         'HTTP Post files[] or content (unicode string) to url'
         if not url.startswith('http'):
             # relative url
             url = self.rootpath + url
-        logging.debug('yanking url from cache: %s', url)
-        cache = requests_cache.core.get_cache()
-        cache.delete_url(url)
+
+        # TODO: Re-enable cache after making it work with MultipartEncoder
+        #logging.debug('yanking url from cache: %s', url)
+        #cache = requests_cache.core.get_cache()
+        #cache.delete_url(url)
         logging.debug('posting content (len %s) to url %s', content is not None and len(content) or '?', url)
         headers = self.session.headers.copy()
         headers.update(**extra_headers)
-        r = self.session.post(url, data=content, params=params, files=files, headers=headers)
+        
+        if not files is None:
+            m = requests_toolbelt.MultipartEncoder(fields=files)
+            if upload_callback is not None:
+                m_len = len(m)
+                def callback(monitor):
+                    upload_callback(monitor, m_len)
+                
+                m = requests_toolbelt.MultipartEncoderMonitor(m, callback)
+            headers['content-type'] = m.content_type
+        else:
+            m = content
+        r = self.session.post(url, data=m, params=params, headers=headers)
         if r.status_code in ( 500, 404, 401, 403, 400 ):
             logging.warning('HTTP POST failed: %s', r.text)
             raise JFSError(r.reason)
         return self.getObject(r) # return a JFS* class
 
-    def up(self, path, fileobject):
+    def up(self, path, fileobject, upload_callback=None):
         "Upload a fileobject to path, HTTP POST-ing to up.jottacloud.com, using the JottaCloud API"
         """
 
@@ -673,26 +696,33 @@ class JFS(object):
         Host: up.jottacloud.com
         """
         url = path.replace('www.jotta.no', 'up.jottacloud.com')
-        content = fileobject.read()
-        fileobject.seek(0) # rewind read index for requests.post
-        md5hash = hashlib.md5(content).hexdigest() # TODO: read (big) files in chunks to avoid memory errors
-        logging.debug('posting content (len %s, hash %s) to url %s', len(content), md5hash, url)
+
+        # Calculate file length
+        fileobject.seek(0,2)
+        contentlen = fileobject.tell()
+        fileobject.seek(0)
+
+        # Calculate file md5 hash
+        md5hash = self._calculate_hash(fileobject)
+
+        logging.debug('posting content (len %s, hash %s) to url %s', contentlen, md5hash, url)
         now = datetime.datetime.now().isoformat()
         headers = {'JMd5':md5hash,
                    'JCreated': now,
                    'JModified': now,
                    'X-Jfs-DeviceName': 'Jotta',
-                   'JSize': len(content),
+                   'JSize': contentlen,
                    'jx_csid': '',
                    'jx_lisence': ''
                    }
         #TODO: enable partial uploading using HTTP Range bytes=start
         params = {'cphash':md5hash,}
+        fileobject.seek(0) # rewind read index for requests.post
         files = {'md5': ('', md5hash),
                  'modified': ('', now),
                  'created': ('', now),
-                 'file': (os.path.basename(url), fileobject, 'application/octet-stream', {'Content-Transfer-Encoding':'binary'})}
-        return self.post(url, None, files=files, params=params, extra_headers=headers)
+                 'file': (os.path.basename(url), fileobject, 'application/octet-stream')}
+        return self.post(url, None, files=files, params=params, extra_headers=headers, upload_callback=upload_callback)
 
     # property overloading
     @property
