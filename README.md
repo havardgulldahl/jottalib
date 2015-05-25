@@ -4,7 +4,7 @@ This is a bare-bones, pythonic interface to the Jottacloud backup/cloud storage 
 
 This is a community project, not an official Jottacloud product. It is developed [according to the company founder's instructions](http://forum.jotta.no/jotta/topics/api_http), with write support reverse engineered [with the company's blessing](http://forum.jotta.no/jotta/topics/jotta_api_for_remote_storage_fetch#reply_14928642).
 
-All code is GPLv3 licensed, and the [documentation is online](https://pythonhosted.org/jottalib/). 
+All code is GPLv3 licensed, and the [documentation is online](https://pythonhosted.org/jottalib/). The upstream repository is at https://github.com/havardgulldahl/jottalib.
 
 There are also some general tools and a FUSE implementation in here, mostly to test the library, but it is fully working and ready for use as a file system.
 
@@ -62,7 +62,7 @@ Remember to `pip install python-qt4`
 
 ### QT Gui
 
-A simple try at a usable gui, using the qt models provided here, lives [in its own repository](https://gitorious.org/jottafs/jottagui).
+A simple try at a usable gui, using the qt models provided here, lives [in its own repository](https://https://github.com/havardgulldahl/jottagui).
 
 Have a nice idea for a swooshingly fresh JottaCloud app? Feel free to include these models in your own, grand design! And submit pull requests or ask for a linkback.
 
