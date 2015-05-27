@@ -232,6 +232,9 @@ class JFSFile(object):
         self.jfs.up(self.path, data)
 
     def writepartial(self, data, offset):
+        return NotImplementedError
+        # TODO: figure out whether adding data to an existing file actually works
+        # It seems like the API only supports resuming previous uploads, not arbitrary additions
         md5hash = hashlib.md5(data).hexdigest()
         url = self.path.replace('www.jotta.no', 'up.jottacloud.com')
         now = datetime.datetime.now().isoformat()
@@ -243,6 +246,8 @@ class JFSFile(object):
                    'jx_csid': '',
                    'jx_lisence': '',
                    'Content-range':'bytes %s-%s/%s' % (offset, offset+len(data), self.size+len(data)),
+                   # TODO: fix the computation of the denominator above. It seems it should be
+                   # the total length of data + content-transfer envelope
                    }
         params = {'cphash':md5hash,}
         files = {'md5': ('', md5hash),
@@ -708,7 +713,7 @@ if __name__=='__main__':
     # debug setup
     import httplib as http_client
     logging.basicConfig(level=logging.DEBUG)
-    http_client.HTTPConnection.debuglevel = 1
+    #http_client.HTTPConnection.debuglevel = 1
     requests_log = logging.getLogger("requests.packages.urllib3")
     requests_log.setLevel(logging.DEBUG)
     requests_log.propagate = True
