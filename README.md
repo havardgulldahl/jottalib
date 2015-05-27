@@ -82,7 +82,7 @@ The goal is to integrate JottaCloud with [duplicity](http://duplicity.nongnu.org
 
 ## Authors
 
-The library is written by havard@gulldahl.no, with crucial help from jkaberg.com in revealing the details of the protocol.
+The library is written by havard@gulldahl.no, take a look at authors.md for the full picture.
 
 If you have a suggestion or have some new functionality in place, [let us know and we'll include it](https://github.com/havardgulldahl/jottalib/issues/)
 
