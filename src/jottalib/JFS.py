@@ -558,7 +558,7 @@ class JFS(object):
         self.username = username
         self.session.auth = HTTPBasicAuth(username, password)
         self.session.verify = ca_bundle
-        self.session.headers =  {'User-Agent':'jottalib %s (https://gitorious.org/jottafs/jottalib)' % (__version__, ),
+        self.session.headers =  {'User-Agent':'jottalib %s (https://github.com/havardgulldahl/jottalib)' % (__version__, ),
                                  'X-JottaAPIVersion': self.apiversion,
                                 }
         self.rootpath = JFS_ROOT + username
@@ -646,6 +646,7 @@ class JFS(object):
             url = self.rootpath + url
 
         # TODO: Re-enable cache after making it work with MultipartEncoder
+        # see: https://stackoverflow.com/questions/28198147/python-requests-memoryerror-despite-using-streaming-uploads
         #logging.debug('yanking url from cache: %s', url)
         #cache = requests_cache.core.get_cache()
         #cache.delete_url(url)
