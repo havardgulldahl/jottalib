@@ -8,3 +8,4 @@ lib/
 share/
 include/
 \.Python
+*.egg-info
