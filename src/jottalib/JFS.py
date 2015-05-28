@@ -84,6 +84,9 @@ class JFSAuthenticationError(JFSError): # HTTP 403
 class JFSServerError(JFSError): # HTTP 500
     pass
 
+class JFSFileDirList(object):
+    pass # TODO: Implement this
+
 class JFSFolder(object):
     'OO interface to a folder, for convenient access. Type less, do more.'
     def __init__(self, folderobject, jfs, parentpath): # folderobject from lxml.objectify
