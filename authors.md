@@ -1,14 +1,14 @@
 # jottalib authors and community #
 
-## Code ## 
+##Code 
 
-Håvard Gulldahl - current maintainer
-Alexander Krivács Schrøder  
+  - Håvard Gulldahl - *current maintainer*
+  - Alexander Krivács Schrøder - *patches*
 
 
-## Contributions ##
+##Community contributions
 
-Joel Kåberg
+  - Joel Kåberg - *debugging and reverse engineering protocol*
 
 
 
