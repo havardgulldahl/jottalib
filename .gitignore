@@ -9,5 +9,5 @@ share/
 include/
 \.Python
 *.egg-info
-jottalib.sublime-project
-
+^jottalib.sublime-*
+*.log

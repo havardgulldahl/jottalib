@@ -44,7 +44,7 @@ def is_file(jottapath, JFS):
 
 def filelist(jottapath, JFS):
     """Get a set() of files from a jottapath (a folder)"""
-    #logging.debug("filelist %s", jottapath)
+    logging.debug("filelist %s", jottapath)
     try:
         jf = JFS.getObject(jottapath)
     except JFSNotFoundError:
