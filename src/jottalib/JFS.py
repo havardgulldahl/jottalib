@@ -25,6 +25,7 @@ from jottalib import __version__
 # importing stdlib
 import sys, os, os.path, time
 import urllib, logging, datetime, hashlib
+from collections import defaultdict, namedtuple
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -85,7 +86,55 @@ class JFSServerError(JFSError): # HTTP 500
     pass
 
 class JFSFileDirList(object):
-    pass # TODO: Implement this
+    'Wrapping <filedirlist>, a simple tree of folders and their files'
+    """get a <filedirlist> for any jottafolder by appending ?mode=list to your query 
+
+    <filedirlist time="2015-05-28-T18:57:06Z" host="dn-093.site-000.jotta.no">
+        <folders>
+          <folder name="Sync">
+            <path xml:space="preserve">/havardgulldahl/Jotta</path>
+            <abspath xml:space="preserve">/havardgulldahl/Jotta</abspath>
+            <files>
+                <file>..."""
+    
+
+    def __init__(self, filedirlistobject, jfs, parentpath): # filedirlistobject from lxml.objectify
+        self.filedirlist = filedirlistobject
+        self.parentPath = parentpath
+        self.jfs = jfs
+        #self.synced = False
+
+        #https://stackoverflow.com/questions/8484943/construct-a-tree-from-list-os-file-paths-python-performance-dependent
+        # FILE_MARKER = '<files>'
+
+        # def attach(branch, trunk):
+        #     '''
+        #     Insert a branch of directories on its trunk.
+        #     '''
+        #     parts = branch.split('/', 1)
+        #     if len(parts) == 1:  # branch is a file
+        #         trunk[FILE_MARKER].append(parts[0])
+        #     else:
+        #         node, others = parts
+        #         if node not in trunk:
+        #             trunk[node] = defaultdict(dict, ((FILE_MARKER, []),))
+        #         attach(others, trunk[node])
+
+
+        treefile = namedtuple('TreeFile', 'name size md5 uuid')
+
+        self.tree = {}#defaultdict([])
+        for folder in self.filedirlist.folders.iterchildren():
+            foldername = unicode(folder.attrib.get('name'))
+            path = unicode(folder.path) 
+            t = [treefile(unicode(f.attrib['name']), 
+                          int(f.currentRevision.size), 
+                          unicode(f.currentRevision.md5), 
+                          unicode(f.attrib['uuid']) 
+                          ) for f in folder.files.iterchildren()]
+            self.tree[os.path.join(path, foldername)] = t
+
+
 
 class JFSFolder(object):
     'OO interface to a folder, for convenient access. Type less, do more.'
@@ -634,6 +683,7 @@ class JFS(object):
         elif o.tag == 'user':
             self.fs = o
             return self.fs
+        elif o.tag == 'filedirlist': return JFSFileDirList(o, jfs=self, parentpath=parent)
         raise JFSError("invalid object: %s <- %s" % (repr(o), url_or_requests_response))
 
     def stream(self, url, chunkSize=1024):
