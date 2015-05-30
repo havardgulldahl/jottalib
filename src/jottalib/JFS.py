@@ -104,26 +104,9 @@ class JFSFileDirList(object):
         self.jfs = jfs
         #self.synced = False
 
-        #https://stackoverflow.com/questions/8484943/construct-a-tree-from-list-os-file-paths-python-performance-dependent
-        # FILE_MARKER = '<files>'
-
-        # def attach(branch, trunk):
-        #     '''
-        #     Insert a branch of directories on its trunk.
-        #     '''
-        #     parts = branch.split('/', 1)
-        #     if len(parts) == 1:  # branch is a file
-        #         trunk[FILE_MARKER].append(parts[0])
-        #     else:
-        #         node, others = parts
-        #         if node not in trunk:
-        #             trunk[node] = defaultdict(dict, ((FILE_MARKER, []),))
-        #         attach(others, trunk[node])
-
-
         treefile = namedtuple('TreeFile', 'name size md5 uuid')
 
-        self.tree = {}#defaultdict([])
+        self.tree = {}
         for folder in self.filedirlist.folders.iterchildren():
             foldername = unicode(folder.attrib.get('name'))
             path = unicode(folder.path) 
