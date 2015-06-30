@@ -11,3 +11,4 @@ include/
 *.egg-info
 ^jottalib.sublime-*
 *.log
+*.session
