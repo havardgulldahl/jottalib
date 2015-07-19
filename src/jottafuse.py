@@ -46,7 +46,16 @@ except ImportError:
 
 class JottaFuseError(OSError):
     pass
-
+    
+    
+class JottaFuseFile(object):
+    pass
+    """def open(self, path):
+    def write(self, path, data, offset):
+    def read(self, path, offset):
+    def release(self, path):
+    """
+    
 ESUCCESS=0
 
 BLACKLISTED_FILENAMES = ('.hidden', '._', '.DS_Store', '.Trash', '.Spotlight-', '.hotfiles-btree',
@@ -65,12 +74,13 @@ class JottaFuse(LoggingMixIn, Operations):
 
     '''
 
+    
     def __init__(self, username, password, path='.'):
         self.client = JFS.JFS(username, password)
         self.root = path
         self.dirty = False # True if some method has changed/added something and we need to get fresh data from JottaCloud
         # TODO: make self.dirty more smart, to know what path, to get from cache and not
-        self.__newfiles = []
+        self.__newfiles = {} # a dict of stringio objects
         self.__newfolders = []
 
     def _getpath(self, path):
@@ -88,15 +98,16 @@ class JottaFuse(LoggingMixIn, Operations):
     #     False if not. See the Unix man page access(2) for more information.
     #     '''
     #     if mode & os.X_OK:
+    
+    def init(self):
+        #TODO: Set up threaded work queue
+        pass
 
-    def create(self, path, mode):
+    def create(self, path, mode, fi=None):
         if is_blacklisted(path):
             raise JottaFuseError('Blacklisted file')
-        if not path in self.__newfiles:
-            self.__newfiles.append(path)
-        self.dirty = True
-        return self.__newfiles.index(path)
-        return ESUCCESS
+        self.__newfiles[path] = StringIO()
+        return self.__newfiles[path]
 
     def chmod(self, path, mode):
         '''.chmod makes no sense here, always return success (0)'''
@@ -171,20 +182,26 @@ class JottaFuse(LoggingMixIn, Operations):
         self.__newfolders.append(path)
         return ESUCCESS
 
+    def open(self, path, flags):
+        if not self.__newfiles.has_key(path):
+            self.__newfiles[path] = StringIO()
+        return self.__newfiles[path]
+            
     def read(self, path, size, offset, fh):
-        if path in self.__newfiles: # file was just created, not synced yet
-            return ''
-        try:
-            f = self._getpath(path)
-        except JFS.JFSError:
-            raise OSError(errno.ENOENT, '')
-        if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
-            raise OSError(errno.ENOENT)
-        data = StringIO(f.read())
-        data.seek(offset, 0)
-        buf = data.read(size)
-        data.close()
-        return buf
+        if path in self.__newfiles.keys(): # file was just created, not synced yet
+            data = StringIO(self.__newfiles[path].getvalue())
+            data.seek(offset, 0)
+            buf = data.read(size)
+            data.close()
+            return buf
+        else:
+            try:
+                f = self._getpath(path)
+            except JFS.JFSError:
+                raise OSError(errno.ENOENT, '')
+            if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
+                raise OSError(errno.ENOENT)
+            return f.readpartial(offset, offset+size)
 
     def readdir(self, path, fh):
         yield '.'
@@ -203,7 +220,10 @@ class JottaFuse(LoggingMixIn, Operations):
                     if not el.is_deleted():
                         yield el.name
 
-
+    def release(self, path):
+        self.jfs.up(self.__newfiles[path])
+        return ESUCCESS
+                        
     def rename(self, old, new):
         if old == new: return
         try:
@@ -252,7 +272,8 @@ class JottaFuse(LoggingMixIn, Operations):
 
         }
 
-    def truncate(self, path, length, fh=None):
+    truncate = None    
+    """def truncate(self, path, length, fh=None):
         "Download existing path, truncate and reupload"
         if path in self.__newfiles: # file was just created, not synced yet
             return ''
@@ -271,14 +292,14 @@ class JottaFuse(LoggingMixIn, Operations):
         except:
             raise
             raise OSError(errno.ENOENT, '')
-
+    """
 
     def unlink(self, path):
         if path in self.__newfolders: # folder was just created, not synced yet
             self.__newfolders.remove(path)
             return
-        elif path in self.__newfiles: # file was just created, not synced yet
-            self.__newfiles.remove(path)
+        elif path in self.__newfiles.keys(): # file was just created, not synced yet
+            del self.__newfiles[path]
             return
         try:
             f = self._getpath(path)
@@ -290,25 +311,17 @@ class JottaFuse(LoggingMixIn, Operations):
 
     rmdir = unlink # alias
 
-    def write(self, path, data, offset, fh):
+    def write(self, path, data, offset, fh=None):
         if is_blacklisted(path):
             raise JottaFuseError('Blacklisted file')
 
-        if path in self.__newfiles: # file was just created, not synced yet
+        if not path in self.__newfiles: # file was just created, not synced yet
             print "__newfiles path: %s" % path
-            f = self.client.up(path, StringIO(data))
-            self.__newfiles.remove(path)
-            return len(data)
-        try:
-            f = self._getpath(path)
-        except JFS.JFSError:
-            raise OSError(errno.ENOENT, '')
-        olddata = f.read()
-        newdata = olddata[:offset] + data
-        f.write(newdata)
-        self.dirty = True
+            self.__newfiles[path] = StringIO()
+        buf = self.__newfiles[path]
+        buf.seek(offset)
+        buf.write(data)
         return len(data)
-
 
 if __name__ == '__main__':
     def is_dir(path):
