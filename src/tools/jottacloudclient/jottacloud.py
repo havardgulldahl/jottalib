@@ -118,6 +118,12 @@ def delete(jottapath, JFS):
     jf = JFS.post('%s?dl=true' % jottapath)
     return jf.is_deleted()
 
+def mkdir(jottapath, JFS):
+    """Make a new directory (a.k.a. folder) on JottaCloud.
+    Returns boolean"""
+    jf = JFS.post('%s?mkDir=true' % jottapath)
+    return instanceof(jf, JFSFolder)
+    
 def iter_tree(jottapath, JFS):
     """Get a tree of of files and folders. use as an iterator, you get something like os.walk"""
     filedirlist = JFS.getObject('%s?mode=list' % jottapath)
