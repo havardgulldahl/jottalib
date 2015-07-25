@@ -200,29 +200,20 @@ class JFSFolder(object):
         self.sync()
         return r
 
-class JFSIncompleteFile(object):
-    'OO interface to an incomplete file.'
-    """<file name="h2.jpg" uuid="d492d1fb-6dd4-4ce3-9ab6-e5369ac8abf1" time="2014-12-11-T22:25:04Z" host="dn-092.site-000.jotta.no">
-<path xml:space="preserve">/havardgulldahl/gulldahlpc/B/teste/jottatest</path>
-<abspath xml:space="preserve">/havardgulldahl/gulldahlpc/B/teste/jottatest</abspath>
-<latestRevision>
-<number>1</number>
-<state>INCOMPLETE</state>
-<created>2014-12-11-T21:45:13Z</created>
-<modified>2014-12-11-T21:45:13Z</modified>
-<mime>image/jpeg</mime>
-<mstyle>IMAGE_JPEG</mstyle>
-<md5>25bf47bf6fa3b11b9b920887fb19f717</md5>
-<updated>2014-12-11-T21:45:13Z</updated>
-</latestRevision>
-</file>"""
+class ProtoFile(object):
+    'Prototype for different incarnations fo file, e.g. JFSIncompleteFile and JFSFile'
+
+    # constants for known file states
+    STATE_COMPLETED = 'COMPLETED' # -> JFSFile
+    STATE_ADDED = 'ADDED'
+    STATE_INCOMPLETE = 'INCOMPLETE' # -> JFSIncompleteFile
+    STATE_PROCESSING = 'PROCESSING'
+    STATE_CORRUPT = 'CORRUPT'
+
     def __init__(self, fileobject, jfs, parentpath): # fileobject from lxml.objectify
         self.f = fileobject
         self.jfs = jfs
         self.parentPath = parentpath
-
-    def resume(self, fileobj_or_path):
-        raise NotImplementedError
 
     def is_image(self):
         'Return bool based on self.mime'
@@ -243,9 +234,44 @@ class JFSIncompleteFile(object):
         if _d is None: return None
         return dateutil.parser.parse(str(_d))
 
+    def is_deleted(self):
+        'Return bool based on self.deleted'
+        return self.deleted is not None
+
     @property
     def path(self):
         return '%s/%s' % (self.parentPath, self.name)
+
+
+class JFSIncompleteFile(ProtoFile):
+    'OO interface to an incomplete file.'
+    """<file name="iii.m4v" uuid="e8f268ac-d081-4d4f-bfb1-77149b2bd51d" time="2015-05-29-T18:11:56Z" host="dn-091.site-000.jotta.no">
+  <path xml:space="preserve">/havardgulldahl/Jotta/Sync</path>
+  <abspath xml:space="preserve">/havardgulldahl/Jotta/Sync</abspath>
+  <latestRevision>
+    <number>1</number>
+    <state>INCOMPLETE</state>
+    <created>2014-05-22-T22:13:52Z</created>
+    <modified>2014-05-19-T13:37:14Z</modified>
+    <mime>video/mp4</mime>
+    <mstyle>VIDEO_MP4</mstyle>
+    <size>100483008</size> <!-- THIS IS THE SIZE OF WHAT'S BEEN TRANSFERED THIS FAR. havardgulldahl -->
+    <md5>4d7cdab5256b72d17075ec388e467e99</md5>
+    <updated>2015-05-29-T18:07:56Z</updated>
+  </latestRevision>
+</file>
+</file>"""
+
+    def resume(self, data):
+        'Resume uploading an incomplete file, after a previous upload was interrupted. Returns new file object'
+        if not hasattr(data, 'read'):
+            data = StringIO(data)
+        #check if what we're asked to upload is actually the right file
+        md5 = self.jfs._calculate_hash(data)
+        if md5 != self.md5:
+            raise JFSError('''MD5 hashes don't match! Are you trying to resume with the wrong file?''')
+        logging.debug('Resuming %s from offset %s', self.path, self.size)
+        return self.jfs.up(self.path, data, resume_offset=self.size)
 
     @property
     def revisionNumber(self):
@@ -279,6 +305,11 @@ class JFSIncompleteFile(object):
     def state(self):
         return unicode(self.f.latestRevision.state)
 
+    @property
+    def size(self):
+        'return int'
+        return int(self.f.latestRevision.size)
+
 class JFSFile(JFSIncompleteFile):
     'OO interface to a file, for convenient access. Type less, do more.'
     ## TODO: add <revisions> iterator for all
@@ -300,6 +331,7 @@ class JFSFile(JFSIncompleteFile):
 </file>
 
     """
+    # Constants for thumb nail sizes
     BIGTHUMB=1
     MEDIUMTHUMB=2
     SMALLTHUMB=3
@@ -339,8 +371,6 @@ class JFSFile(JFSIncompleteFile):
 
     def write(self, data):
         'Put, possibly replace, file contents with (new) data'
-#         return self.jfs.post(self.path, content=data,
-#                              extra_headers={'Content-Type':'application/octet-stream'})
         if not hasattr(data, 'read'):
             data = StringIO(data)
         self.jfs.up(self.path, data)
@@ -377,10 +407,6 @@ class JFSFile(JFSIncompleteFile):
                     self.MEDIUMTHUMB:'WM',
                     self.SMALLTHUMB:'WS'}
         return self.jfs.raw('%s?mode=thumb&ts=%s' % (self.path, thumbmap[size]))
-
-    def is_deleted(self):
-        'Return bool based on self.deleted'
-        return self.deleted is not None
 
     @property
     def revisionNumber(self):
@@ -707,7 +733,7 @@ class JFS(object):
             raise JFSError(r.reason)
         return self.getObject(r) # return a JFS* class
 
-    def up(self, path, fileobject, upload_callback=None):
+    def up(self, path, fileobject, upload_callback=None, resume_offset=None):
         "Upload a fileobject to path, HTTP POST-ing to up.jottacloud.com, using the JottaCloud API"
         """
 
@@ -737,7 +763,10 @@ class JFS(object):
         # Calculate file length
         fileobject.seek(0,2)
         contentlen = fileobject.tell()
-        fileobject.seek(0)
+
+        # Rewind read head to correct offset
+        # If we're resuming a borked upload, continue from that offset
+        fileobject.seek(resume_offset is not None and resume_offset or 0)
 
         # Calculate file md5 hash
         md5hash = self._calculate_hash(fileobject)
@@ -797,7 +826,7 @@ if __name__=='__main__':
     # debug setup
     import httplib as http_client
     logging.basicConfig(level=logging.DEBUG)
-    #http_client.HTTPConnection.debuglevel = 1
+    http_client.HTTPConnection.debuglevel = 1
     #requests_log = logging.getLogger("requests.packages.urllib3")
     #requests_log.setLevel(logging.DEBUG)
     #requests_log.propagate = True
