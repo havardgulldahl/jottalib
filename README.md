@@ -2,6 +2,8 @@
 
 [![Join the chat at https://gitter.im/havardgulldahl/jottalib](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/havardgulldahl/jottalib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
+[![Requirements Status](https://requires.io/github/havardgulldahl/jottalib/requirements.svg?branch=master)](https://requires.io/github/havardgulldahl/jottalib/requirements/?branch=master)
+
 This is a rich, pythonic interface to the Jottacloud backup/cloud storage service. The service itself exposes a nice and simple HTTP REST api, and this library wraps that interface in a python module, in the hope that it may be useful.
 
 This is a community project, not an official Jottacloud product. It is developed [according to the company founder's instructions](http://forum.jotta.no/jotta/topics/api_http), with write support reverse engineered [with the company's blessing](http://forum.jotta.no/jotta/topics/jotta_api_for_remote_storage_fetch#reply_14928642).
@@ -40,7 +42,7 @@ Export your Jottacloud username and password to the running environment. Running
 
 ## Crontab client
 
-The **main use case** for Jottacloud customers is probably a (headless) client that works the same way as the official clients. That is, a program that automatically mirrors every file in some paths and keeps a file-by-file copy up to date in the cloud.  That way you'll get a tried and tested, cross-platform backup solution. 
+The **main use case** for Jottacloud customers is probably a (headless) client that works the same way as the official clients. That is, a program that automatically mirrors every file in some paths and keeps a file-by-file copy up to date in the cloud.  That way you'll get a tried and tested, cross-platform backup solution.
 
 Take a look at `jottacloudclientscanner.py`, which will scan through a local file tree and make sure the online tree is in sync. And when you get it up and running, add it to your `crontab` / `schtasks.exe` and enjoy some fresh air. Your files are safe! (But who knows about your cat photos)
 
@@ -87,7 +89,7 @@ Usage:
 
 **WORK IN PROGRESS**
 
-The goal is to integrate JottaCloud with [duplicity](http://duplicity.nongnu.org/). Then we can run automated backups and store them in the JottaCloud. 
+The goal is to integrate JottaCloud with [duplicity](http://duplicity.nongnu.org/). Then we can run automated backups and store them in the JottaCloud.
 
 ## Authors
 
