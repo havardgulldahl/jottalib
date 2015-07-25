@@ -87,7 +87,7 @@ class JFSServerError(JFSError): # HTTP 500
 
 class JFSFileDirList(object):
     'Wrapping <filedirlist>, a simple tree of folders and their files'
-    """get a <filedirlist> for any jottafolder by appending ?mode=list to your query 
+    """get a <filedirlist> for any jottafolder by appending ?mode=list to your query
 
     <filedirlist time="2015-05-28-T18:57:06Z" host="dn-093.site-000.jotta.no">
         <folders>
@@ -96,7 +96,7 @@ class JFSFileDirList(object):
             <abspath xml:space="preserve">/havardgulldahl/Jotta</abspath>
             <files>
                 <file>..."""
-    
+
 
     def __init__(self, filedirlistobject, jfs, parentpath): # filedirlistobject from lxml.objectify
         self.filedirlist = filedirlistobject
@@ -109,11 +109,11 @@ class JFSFileDirList(object):
         self.tree = {}
         for folder in self.filedirlist.folders.iterchildren():
             foldername = unicode(folder.attrib.get('name'))
-            path = unicode(folder.path) 
-            t = [treefile(unicode(f.attrib['name']), 
-                          int(f.currentRevision.size), 
-                          unicode(f.currentRevision.md5), 
-                          unicode(f.attrib['uuid']) 
+            path = unicode(folder.path)
+            t = [treefile(unicode(f.attrib['name']),
+                          int(f.currentRevision.size),
+                          unicode(f.currentRevision.md5),
+                          unicode(f.attrib['uuid'])
                           ) for f in folder.files.iterchildren()]
             self.tree[os.path.join(path, foldername)] = t
 
@@ -467,14 +467,21 @@ class JFSMountPoint(JFSFolder):
         return dateutil.parser.parse(str(self.dev.modified))
 
 class JFSDevice(object):
-    'OO interface to a device, for convenient access. Type less, do more.'
-    """
+    '''OO interface to a device, for convenient access. Type less, do more.
+
+
+    Note that sometimes we cheat a little and instantiate this object with only the elements
+    available from <user>, in which case some elements aren't there.'''
+    """ raw xml example:
     <device time="2014-02-20-T21:02:42Z" host="dn-036.site-000.jotta.no">
   <name xml:space="preserve">laptop</name>
   <type>LAPTOP</type>
   <sid>d831efc4-f885-4d97-bd8d-</sid>
   <size>371951820971</size>
   <modified>2014-02-20-T14:03:52Z</modified>
+  <!-- the following elements are only available if we get the metadata from
+       the http path explicitly.
+       you won't find it here under the <user/> element -->
   <user>hgl</user>
   <mountPoints>
     <mountPoint>
@@ -518,6 +525,8 @@ class JFSDevice(object):
         self.mountPoints = {unicode(mp.name):mp for mp in self.mountpointobjects()}
 
     def contents(self, path=None):
+        """Get _all_ metadata for this device.
+        Call this method if you have the lite/abbreviated device info from e.g. <user/>. """
         if isinstance(path, lxml.objectify.ObjectifiedElement) and hasattr(path, 'name'):
             # passed an object, use .'name' as path value
             path = '/%s' % path.name
@@ -525,7 +534,11 @@ class JFSDevice(object):
         return c
 
     def mountpointobjects(self):
-        return [ JFSMountPoint(obj, self._jfs, self.path) for obj in self.contents().mountPoints.iterchildren() ]
+        try:
+            return [ JFSMountPoint(obj, self._jfs, self.path) for obj in self.contents().mountPoints.iterchildren() ]
+        except AttributeError:
+            # there are no mountpoints. this may happen on newly created devices. see github bug#26
+            return []
 
     def files(self, mountPoint):
         """Get an iterator of JFSFile() from the given mountPoint.
@@ -624,7 +637,7 @@ class JFS(object):
                                 }
         self.rootpath = JFS_ROOT + username
         self.fs = self.get(self.rootpath)
-        
+
     def _calculate_hash(self, fileobject, size=2**16):
         fileobject.seek(0)
         md5 = hashlib.md5()
@@ -655,9 +668,8 @@ class JFS(object):
         'Make a GET request for url and return whatever content we get'
         r = self.request(url, usecache=usecache, extra_headers=extra_headers)
         # uncomment to dump raw xml
-        # f = open('/tmp/%s.xml' % time.time(), 'wb')
-        # f.write(r.content)
-        # f.close()
+#         with open('/tmp/%s.xml' % time.time(), 'wb') as f:
+#             f.write(r.content)
         return r.content
 
     def get(self, url, usecache=True):
@@ -715,14 +727,14 @@ class JFS(object):
         logging.debug('posting content (len %s) to url %s', content is not None and len(content) or '?', url)
         headers = self.session.headers.copy()
         headers.update(**extra_headers)
-        
+
         if not files is None:
             m = requests_toolbelt.MultipartEncoder(fields=files)
             if upload_callback is not None:
                 m_len = len(m)
                 def callback(monitor):
                     upload_callback(monitor, m_len)
-                
+
                 m = requests_toolbelt.MultipartEncoderMonitor(m, callback)
             headers['content-type'] = m.content_type
         else:
