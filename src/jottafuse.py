@@ -46,8 +46,8 @@ except ImportError:
 
 class JottaFuseError(OSError):
     pass
-    
-    
+
+
 class JottaFuseFile(object):
     pass
     """def open(self, path):
@@ -55,7 +55,7 @@ class JottaFuseFile(object):
     def read(self, path, offset):
     def release(self, path):
     """
-    
+
 ESUCCESS=0
 
 BLACKLISTED_FILENAMES = ('.hidden', '._', '.DS_Store', '.Trash', '.Spotlight-', '.hotfiles-btree',
@@ -74,7 +74,7 @@ class JottaFuse(LoggingMixIn, Operations):
 
     '''
 
-    
+
     def __init__(self, username, password, path='.'):
         self.client = JFS.JFS(username, password)
         self.root = path
@@ -98,8 +98,10 @@ class JottaFuse(LoggingMixIn, Operations):
     #     False if not. See the Unix man page access(2) for more information.
     #     '''
     #     if mode & os.X_OK:
-    
-    def init(self):
+
+    def init(self, rootpath):
+        # Called on filesystem initialization. (Path is always /)
+        # Use it instead of __init__ if you start threads on initialization.
         #TODO: Set up threaded work queue
         pass
 
@@ -118,7 +120,7 @@ class JottaFuse(LoggingMixIn, Operations):
         return ESUCCESS
 
     def destroy(self, path):
-        #do proper teardown
+        #TODO: do proper teardown
         pass
 
     def getattr(self, path, fh=None):
@@ -186,7 +188,7 @@ class JottaFuse(LoggingMixIn, Operations):
         if not self.__newfiles.has_key(path):
             self.__newfiles[path] = StringIO()
         return self.__newfiles[path]
-            
+
     def read(self, path, size, offset, fh):
         if path in self.__newfiles.keys(): # file was just created, not synced yet
             data = StringIO(self.__newfiles[path].getvalue())
@@ -223,7 +225,7 @@ class JottaFuse(LoggingMixIn, Operations):
     def release(self, path):
         self.jfs.up(self.__newfiles[path])
         return ESUCCESS
-                        
+
     def rename(self, old, new):
         if old == new: return
         try:
@@ -272,7 +274,7 @@ class JottaFuse(LoggingMixIn, Operations):
 
         }
 
-    truncate = None    
+    truncate = None
     """def truncate(self, path, length, fh=None):
         "Download existing path, truncate and reupload"
         if path in self.__newfiles: # file was just created, not synced yet
