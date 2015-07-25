@@ -31,6 +31,7 @@ from clint.textui import progress, puts, colored
 sys.path.insert(0, '..')
 from jottalib.JFS import JFS
 from jottacloudclient import jottacloud, __version__
+from readlnk import readlnk
 
 
 
@@ -72,7 +73,7 @@ class ArchiveEventHandler(FileSystemEventHandler):
         parts = [self.jottaroot, ] + list(os.path.split(rel)) # explode path to normalize OS path separators
         return '/'.join( parts ).replace('//', '/') # return url
     
-    def on_modified(self, event):
+    def on_modified(self, event, dry_run=False, remove_uploaded=True):
         'Called when a file is modified. '
         logging.info('Modified file detectd: %s', event.src_path)
         try:
@@ -83,9 +84,33 @@ class ArchiveEventHandler(FileSystemEventHandler):
         if event.is_directory:
             jottacloud.mkdir(event.src_path, self.jfs)
         else:
-            logging.info('Uploading file %s to %s', event.src_path, self.get_jottapath(event.src_path))
-            #jottacloud.new(event.src_path, self.get_jottapath(event.src_path), self.jfs)
-            #os.remove(event.src_path)
+            # are we getting a symbolic link?
+            if os.path.islink(event.src_path):
+                sourcefile = os.path.normpath(os.readlink(event.src_path))
+                if not os.path.exists(sourcefile): # broken symlink
+                    logging.error("broken symlink %s->%s", event.src_path, sourcefile)
+                    raise IOError("broken symliknk %s->%s", event.src_path, sourcefile)
+            elif os.path.splitext(event.src_path)[1].lower() == '.lnk':
+                # windows .lnk 
+                sourcefile = os.path.normpath(readlnk(event.src_path))
+                if not os.path.exists(sourcefile): # broken symlink
+                    logging.error("broken fat32lnk %s->%s", event.src_path, sourcefile)
+                    raise IOError("broken fat32lnk %s->%s", event.src_path, sourcefile)
+            else:
+                sourcefile = event.src_path
+                if not os.path.exists(sourcefile): # broken symlink
+                    logging.error("file does not exist: %s", sourcefile)
+                    raise IOError("file does not exist: %s", sourcefile)
+ 
+            logging.info('Uploading file %s to %s', sourcefile, self.get_jottapath(event.src_path))
+            if not dry_run:
+                if not jottacloud.new(sourcefile, self.get_jottapath(event.src_path), self.jfs):
+                    logging.error('Uploading file %s failed', sourcefile)
+                    raise 
+            if remove_uploaded:
+                logging.info('Removing file after upload: %s', event.src_path)
+                if not dry_run:
+                    os.remove(event.src_path)
     
 class ShareEventHandler(FileSystemEventHandler):
     '''Handles Share events:
