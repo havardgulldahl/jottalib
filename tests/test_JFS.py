@@ -73,8 +73,8 @@ class TestJFS:
         t = jfs.up(p, StringIO.StringIO(TESTFILEDATA))
         assert isinstance(t, JFS.JFSFile)
         d = t.delete()
-        assert isinstance(t, JFS.JFSFile)
-        assert t.is_deleted() == True
+        assert isinstance(d, JFS.JFSFile)
+        assert d.is_deleted()
 
     def test_up_and_read(self):
         p = "/Jotta/Archive/testfile_up_and_read.txt"
@@ -112,7 +112,7 @@ class TestJFS:
         assert isinstance(jfs.getObject('/Jotta'), JFS.JFSDevice)
         assert isinstance(jfs.getObject('/Jotta/Archive'), JFS.JFSMountPoint)
         assert isinstance(jfs.getObject('/Jotta/Archive/test'), JFS.JFSFolder)
-        assert isinstance(jfs.getObject('/Jotta/Archive/test?mode=list'), JFS.JFSFileDirList)
+        assert isinstance(jfs.getObject('/Jotta/Sync/?mode=list'), JFS.JFSFileDirList)
 
 
         #TODO: test with a python-requests object
