@@ -48,6 +48,7 @@ setup(name='jottalib',
       install_requires=['requests',
                         'requests_toolbelt',
                         'requests_cache',
+                        'certifi',
                         'python-dateutil',
                         'lxml'],
      )
