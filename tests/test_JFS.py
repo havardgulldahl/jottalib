@@ -22,7 +22,7 @@
 __author__ = 'havard@gulldahl.no'
 
 # import standardlib
-import os
+import os, StringIO
 
 
 # import jotta
@@ -42,6 +42,10 @@ except Exception as e:
 jfs = JFS.JFS(username, password)
 
 
+TESTFILEDATA="""
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla est dolor, convallis fermentum sapien in, fringilla congue ligula. Fusce at justo ac felis vulputate laoreet vel at metus. Aenean justo lacus, porttitor dignissim imperdiet a, elementum cursus ligula. Vivamus eu est viverra, pretium arcu eget, imperdiet eros. Curabitur in bibendum.
+
+"""
 
 
 class TestJFS:
@@ -49,14 +53,66 @@ class TestJFS:
         assert isinstance(jfs, JFS.JFS)
 
 
-    #def test_root(self):
-    #    assert isinstance(jfs.fs, JFS # TODO: FIX THIS
+    def test_root(self):
+        import lxml.objectify
+        assert isinstance(jfs.fs, lxml.objectify.ObjectifiedElement)
+        assert jfs.fs.tag == 'user'
 
     def test_properties(self):
+        assert isinstance(jfs.capacity, int)
+        assert isinstance(jfs.usage, int)
         assert isinstance(jfs.locked, bool)
         assert isinstance(jfs.read_locked, bool)
         assert isinstance(jfs.write_locked, bool)
-        assert isinstance(jfs.capacity, int)
-        assert isinstance(jfs.usage, int)
-        #assert jfs.devices #TODO: test for generator of JFSDEvices
 
+    def test_devices(self):
+        assert all(isinstance(item, JFS.JFSDevice) for item in jfs.devices)
+
+    def test_up_and_delete(self):
+        p = "/Jotta/Archive/testfile_up_and_delete.txt"
+        t = jfs.up(p, StringIO.StringIO(TESTFILEDATA))
+        assert isinstance(t, JFS.JFSFile)
+        d = t.delete()
+        assert isinstance(t, JFS.JFSFile)
+        assert t.is_deleted() == True
+
+    def test_up_and_read(self):
+        p = "/Jotta/Archive/testfile_up_and_read.txt"
+        t = jfs.up(p, StringIO.StringIO(TESTFILEDATA))
+        f = jfs.getObject(p)
+        assert isinstance(f, JFS.JFSFile)
+        assert f.read() == TESTFILEDATA
+        f.delete()
+
+    def test_up_and_readpartial(self):
+        import random
+        p = "/Jotta/Archive/testfile_up_and_readpartial.txt"
+        t = jfs.up(p, StringIO.StringIO(TESTFILEDATA))
+        f = jfs.getObject(p)
+        start = random.randint(0, len(TESTFILEDATA))
+        end = random.randint(0, len(TESTFILEDATA)-start)
+        assert f.readpartial(start, end) == TESTFILEDATA[start:end]
+        f.delete()
+
+    def test_stream(self):
+        pass
+
+    def test_resume(self):
+        pass
+
+
+    def test_post(self):
+        pass
+        #TODO: test unicode string upload
+        #TODO: test file list upload
+        #TODO: test upload_callback
+
+    def test_getObject(self):
+
+        assert isinstance(jfs.getObject('/Jotta'), JFS.JFSDevice)
+        assert isinstance(jfs.getObject('/Jotta/Archive'), JFS.JFSMountPoint)
+        assert isinstance(jfs.getObject('/Jotta/Archive/test'), JFS.JFSFolder)
+        assert isinstance(jfs.getObject('/Jotta/Archive/test?mode=list'), JFS.JFSFileDirList)
+
+
+        #TODO: test with a python-requests object
