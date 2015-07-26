@@ -367,7 +367,10 @@ class JFSFile(JFSIncompleteFile):
         'Get a part of the file, from start byte to end byte (integers)'
         return self.jfs.raw('%s?mode=bin' % self.path,
                             usecache=False,
-                            extra_headers={'Range':'bytes=%s-%s' % (start, end)})
+                            # note that we deduct 1 from end because
+                            # in http Range requests, the end value is included in the slice,
+                            # whereas in python, it is not
+                            extra_headers={'Range':'bytes=%s-%s' % (start, end-1)})
 
     def write(self, data):
         'Put, possibly replace, file contents with (new) data'
