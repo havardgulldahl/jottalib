@@ -811,17 +811,17 @@ class JFS(object):
     @property
     def locked(self):
         'return bool'
-        return self.fs is not None and bool(self.fs.locked) or None
+        return bool(self.fs.locked) if self.fs is not None else None
 
     @property
     def read_locked(self):
         'return bool'
-        return self.fs is not None and bool(self.fs['read-locked']) or None
+        return bool(self.fs['read-locked']) if self.fs is not None else None
 
     @property
     def write_locked(self):
         'return bool'
-        return self.fs is not None and bool(self.fs['write-locked']) or None
+        return bool(self.fs['write-locked']) if self.fs is not None else None
 
     @property
     def capacity(self):
