@@ -129,8 +129,7 @@ class JFSFolder(object):
 
     @property
     def name(self):
-        return self.folder.attrib.has_key('name') and unicode(self.folder.attrib['name']) or unicode(self.folder.name)
-        return unicode(self.folder.attrib.get('name', self.folder.name))
+        return unicode(self.folder.attrib['name']) if self.folder.attrib.has_key('name') else unicode(self.folder.name)
 
     @property
     def path(self):
@@ -727,7 +726,7 @@ class JFS(object):
         #logging.debug('yanking url from cache: %s', url)
         #cache = requests_cache.core.get_cache()
         #cache.delete_url(url)
-        logging.debug('posting content (len %s) to url %s', content is not None and len(content) or '?', url)
+        logging.debug('posting content (len %s) to url %s', len(content) if content is not None else '?', url)
         headers = self.session.headers.copy()
         headers.update(**extra_headers)
 
@@ -781,7 +780,7 @@ class JFS(object):
 
         # Rewind read head to correct offset
         # If we're resuming a borked upload, continue from that offset
-        fileobject.seek(resume_offset is not None and resume_offset or 0)
+        fileobject.seek(resume_offset if resume_offset is not None else 0)
 
         # Calculate file md5 hash
         md5hash = self._calculate_hash(fileobject)
@@ -829,12 +828,12 @@ class JFS(object):
     @property
     def capacity(self):
         'Return int of storage capacity in bytes. A value of -1 means "unlimited"'
-        return self.fs is not None and int(self.fs.capacity) or 0
+        return int(self.fs.capacity) if self.fs is not None else 0
 
     @property
     def usage(self):
         'Return int of storage usage in bytes'
-        return self.fs is not None and int(self.fs.usage) or 0
+        return int(self.fs.usage) if self.fs is not None else 0
 
 
 if __name__=='__main__':
