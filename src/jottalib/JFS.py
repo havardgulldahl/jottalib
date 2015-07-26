@@ -102,7 +102,6 @@ class JFSFileDirList(object):
         self.filedirlist = filedirlistobject
         self.parentPath = parentpath
         self.jfs = jfs
-        #self.synced = False
 
         treefile = namedtuple('TreeFile', 'name size md5 uuid')
 
@@ -110,11 +109,24 @@ class JFSFileDirList(object):
         for folder in self.filedirlist.folders.iterchildren():
             foldername = unicode(folder.attrib.get('name'))
             path = unicode(folder.path)
-            t = [treefile(unicode(f.attrib['name']),
-                          int(f.currentRevision.size),
-                          unicode(f.currentRevision.md5),
-                          unicode(f.attrib['uuid'])
-                          ) for f in folder.files.iterchildren()]
+            t = []
+            if hasattr(folder, 'files'):
+                for file_ in folder.files.iterchildren():
+                    if hasattr(file_, 'currentRevision'): # a normal file
+                        t.append(treefile(unicode(file_.attrib['name']),
+                                          int(file_.currentRevision.size),
+                                          unicode(file_.currentRevision.md5),
+                                          unicode(file_.attrib['uuid'])
+                                          )
+                                 )
+                    else:
+                        # an incomplete file
+                        t.append(treefile(unicode(file_.attrib['name']),
+                                          -1, # incomplete files have no size
+                                          unicode(file_.latestRevision.md5),
+                                          unicode(file_.attrib['uuid'])
+                                          )
+                                 )
             self.tree[os.path.join(path, foldername)] = t
 
 
@@ -198,6 +210,11 @@ class JFSFolder(object):
         r = self.jfs.up(os.path.join(self.path, filename), fileobj_or_path)
         self.sync()
         return r
+
+    def filedirlist(self):
+        'Get a JFSFileDirList, recursive tree of JFSFile and JFSFolder'
+        url = '%s?mode=list' % self.path
+        return self.jfs.getObject(url)
 
 class ProtoFile(object):
     'Prototype for different incarnations fo file, e.g. JFSIncompleteFile and JFSFile'
