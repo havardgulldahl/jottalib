@@ -28,9 +28,14 @@ import os, os.path, tempfile, time, math
 from clint.textui import progress, puts, colored
 from clint.textui.progress import Bar as ProgressBar
 
+#import httplib
+#httplib.HTTPConnection.debuglevel = 1
+
+
 
 # import jotta
 from jottalib import JFS, __version__
+from sansrequests import JFS as LiteJFS
 
 def humanizeFileSize(size):
     size = abs(size)
@@ -52,6 +57,7 @@ if __name__ == '__main__':
         password = os.environ['JOTTACLOUD_PASSWORD']
 
     jfs = JFS.JFS(username, password)
+    lite = LiteJFS(username, password)
 
     data = os.urandom(1024*10)
     testfile = tempfile.NamedTemporaryFile()
@@ -79,7 +85,6 @@ if __name__ == '__main__':
     puts(colored.magenta("Network download speed %s/sec" % ( humanizeFileSize( (filesize / (_end-_start)) ) )))
 
     # DOWNLOAD TEST 2
-    fileobj = jfs.getObject(p)
     puts(colored.green('Test3. Stream speed. File size: %s' % humanizeFileSize(filesize)))
     progr2 = ProgressBar(expected_size=filesize)
     _start = time.time()
@@ -94,6 +99,35 @@ if __name__ == '__main__':
     # Versions: jottalib, urllib3, requests, jottaAPI
     # Server version from jottacloud.com
 
-    # CLEANUP
+    # TEST WITHOUR REQUESTS, ONLY urllib3
+    p='/Jotta/Archive/test/tmp8PIRqV.data'
+    filesize=10240000
+    # DOWNLOAD TEST 1
+    puts(colored.green('Test4. urllib3 read speed . File size: %s' % humanizeFileSize(filesize)))
+    _start = time.time()
+    x = lite.get('%s?mode=bin' % p).read()
+    _end = time.time()
+    puts(colored.magenta("Network download speed %s/sec" % ( humanizeFileSize( (filesize / (_end-_start)) ) )))
+
+    # DOWNLOAD TEST 2
+    puts(colored.green('Test3. urllib3 stream speed. File size: %s' % humanizeFileSize(filesize)))
+    progr2 = ProgressBar(expected_size=filesize)
+    _start = time.time()
+    _bytesread = 0
+    for chunk in lite.get('%s?mode=bin' % p).stream():
+        _bytesread = _bytesread + len(chunk)
+        progr2.show(_bytesread)
+    _end = time.time()
+    puts(colored.magenta("Network download speed %s/sec" % ( humanizeFileSize( (filesize / (_end-_start)) ) )))
+
+
+
+
+
+
+    # CLEANUP JOTTALIB
     fileobj.delete()
+
+
+    #
     puts(colored.blue('Finished.'))
