@@ -58,7 +58,8 @@ class JottaFuseFile(object):
 
 ESUCCESS=0
 
-BLACKLISTED_FILENAMES = ('.hidden', '._', '.DS_Store', '.Trash', '.Spotlight-', '.hotfiles-btree',
+BLACKLISTED_FILENAMES = ('.hidden', '._', '._.', '.DS_Store',
+                         '.Trash', '.Spotlight-', '.hotfiles-btree',
                          'lost+found', 'Backups.backupdb', 'mach_kernel')
 
 def is_blacklisted(path):
@@ -82,6 +83,7 @@ class JottaFuse(LoggingMixIn, Operations):
         # TODO: make self.dirty more smart, to know what path, to get from cache and not
         self.__newfiles = {} # a dict of stringio objects
         self.__newfolders = []
+        self.ino = 0
 
     def _getpath(self, path):
         "A wrapper of JFS.getObject(), with some tweaks that make sense in a file system."
@@ -109,7 +111,8 @@ class JottaFuse(LoggingMixIn, Operations):
         if is_blacklisted(path):
             raise JottaFuseError('Blacklisted file')
         self.__newfiles[path] = StringIO()
-        return self.__newfiles[path]
+        self.ino += 1
+        return self.ino
 
     def chmod(self, path, mode):
         '''.chmod makes no sense here, always return success (0)'''
@@ -124,6 +127,8 @@ class JottaFuse(LoggingMixIn, Operations):
         pass
 
     def getattr(self, path, fh=None):
+        if is_blacklisted(path):
+            raise OSError(errno.ENOENT)
         pw = pwd.getpwuid( os.getuid() )
         if path in self.__newfolders: # folder was just created, not synced yet
             return {
@@ -150,7 +155,7 @@ class JottaFuse(LoggingMixIn, Operations):
         if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
             raise OSError(errno.ENOENT)
 
-        if isinstance(f, JFS.JFSFile):
+        if isinstance(f, (JFS.JFSIncompleteFile, JFS.JFSFile)):
             _mode = stat.S_IFREG | 0644
         elif isinstance(f, JFS.JFSFolder):
             _mode = stat.S_IFDIR | 0755
@@ -185,9 +190,13 @@ class JottaFuse(LoggingMixIn, Operations):
         return ESUCCESS
 
     def open(self, path, flags):
-        if not self.__newfiles.has_key(path):
+        print "repr flags: ", repr(flags)
+        if flags & os.O_RDONLY:
+            print "open rdonly"
+        if False and not self.__newfiles.has_key(path):
             self.__newfiles[path] = StringIO()
-        return self.__newfiles[path]
+        self.ino += 1
+        return self.ino
 
     def read(self, path, size, offset, fh):
         if path in self.__newfiles.keys(): # file was just created, not synced yet
@@ -203,6 +212,7 @@ class JottaFuse(LoggingMixIn, Operations):
                 raise OSError(errno.ENOENT, '')
             if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
                 raise OSError(errno.ENOENT)
+            print "f.readpartial(%s, %s" % (offset, offset+size)
             return f.readpartial(offset, offset+size)
 
     def readdir(self, path, fh):
@@ -222,8 +232,12 @@ class JottaFuse(LoggingMixIn, Operations):
                     if not el.is_deleted():
                         yield el.name
 
-    def release(self, path):
-        self.jfs.up(self.__newfiles[path])
+    def release(self, path, fh):
+
+        print "release! inpath:", path in self.__newfiles.keys()
+        if path in self.__newfiles.keys():
+            self.client.up(path, self.__newfiles[path])
+            del self.__newfiles[path]
         return ESUCCESS
 
     def rename(self, old, new):
@@ -317,9 +331,6 @@ class JottaFuse(LoggingMixIn, Operations):
         if is_blacklisted(path):
             raise JottaFuseError('Blacklisted file')
 
-        if not path in self.__newfiles: # file was just created, not synced yet
-            print "__newfiles path: %s" % path
-            self.__newfiles[path] = StringIO()
         buf = self.__newfiles[path]
         buf.seek(offset)
         buf.write(data)
@@ -334,7 +345,8 @@ if __name__ == '__main__':
                                      epilog="""The program expects to find an entry for "jottacloud" in your .netrc,
                                      or JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.
                                      This is not an official JottaCloud project.""")
-    parser.add_argument('--debug', action='store_true', help='Add a lot of messages to help debug')
+    parser.add_argument('--debug', action='store_true', help='Run fuse in the foreground and add a lot of messages to help debug')
+    parser.add_argument('--debug-fuse', action='store_true', help='Show all low-level filesystem operations')
     parser.add_argument('--debug-http', action='store_true', help='Show all HTTP traffic')
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('mountpoint', type=is_dir, help='A path to an existing directory where you want your JottaCloud tree mounted')
@@ -354,6 +366,8 @@ if __name__ == '__main__':
         username = os.environ['JOTTACLOUD_USERNAME']
         password = os.environ['JOTTACLOUD_PASSWORD']
 
-    fuse = FUSE(JottaFuse(username, password), args.mountpoint, foreground=True, nothreads=args.debug)
+    fuse = FUSE(JottaFuse(username, password), args.mountpoint, debug=args.debug_fuse,
+                sync_read=True, foreground=args.debug, raw_fi=False,
+                fsname="JottaCloudFS", subtype="fuse")
 
 
