@@ -42,7 +42,7 @@ cp /tmp/testdata.txt "$TESTFILE" || warn "copy failed!";
 sleep 1;
 
 info "T3. Read file";
-test /tmp/testdata.txt = "$TESTFILE" || warn "comparison failed!";
+diff -q /tmp/testdata.txt "$TESTFILE" || warn "read failed!";
 sleep 1;
 
 info "T4. Overwrite file";
