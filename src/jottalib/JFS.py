@@ -35,6 +35,7 @@ except ImportError:
 import requests
 import requests_cache
 import requests_toolbelt
+import certifi
 # TODO: Re-enable cache after making it work with MultipartEncoder
 #requests_cache.core.install_cache(backend='memory', expire_after=30.0, fast_save=True)
 import lxml, lxml.objectify
@@ -650,7 +651,7 @@ class JFS(object):
         self.session = requests.Session() # create a session for connection pooling, ssl keepalives and cookie jar
         self.username = username
         self.session.auth = HTTPBasicAuth(username, password)
-        self.session.verify = ca_bundle
+        self.session.verify = certifi.where()
         self.session.headers =  {'User-Agent':'jottalib %s (https://github.com/havardgulldahl/jottalib)' % (__version__, ),
                                  'X-JottaAPIVersion': self.apiversion,
                                 }
