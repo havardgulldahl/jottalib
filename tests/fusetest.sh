@@ -2,16 +2,58 @@
 
 # test jottafuse
 
+TMPDIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir');
+STAMP=$(date +%s);
+TESTFILE="$TMPDIR/Jotta/Archive/test/jottafuse.bashtest.${STAMP}.txt";
+cat << HERE > /tmp/testdata.txt
+Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec qu
+HERE
 
-TMPDIR=`mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir'`;
-TESTFILE="$TMPDIR/Jotta/Archive/test/jottafuse.bashtest.data";
-dd if=/dev/urandom bs=1 count=32 2>/dev/null | base64 -w 0 | rev | cut -b 2- | rev > /tmp/testdata;
 
+function cleanup {
+  umount "$TMPDIR" 2>&1 1>/dev/null;
+  rmdir "$TMPDIR";
+}
 
-python src/jottafuse.py $TMPDIR;
+function err {
+  echo "$(tput setaf 1)ERROR: $*$(tput sgr0)";
+  cleanup;
+  exit 1;
+}
 
-cp -iv /tmp/testdata "$TESTFILE" || echo "copy failed!";
+function warn {
+  echo "$(tput setaf 6)WARNING: $*$(tput sgr0)";
 
-test /tmp/testdata = "$TESTFILE" || echo "comparison failed!";
+}
 
-rm -iv "$TESTFILE" || echo "rm failed";
+function info {
+  echo "$(tput setaf 4)$*$(tput sgr0)";
+
+}
+
+info "Testing jottafuse implementation";
+
+info "T1. Mount";
+python src/jottafuse.py "$TMPDIR" || err "mounting jotta failed!";
+sleep 2;
+
+info "T2. Copy file";
+cp /tmp/testdata.txt "$TESTFILE" || warn "copy failed!";
+sleep 1;
+
+info "T3. Read file";
+test /tmp/testdata.txt = "$TESTFILE" || warn "comparison failed!";
+sleep 1;
+
+info "T4. Overwrite file";
+cp /tmp/testdata.txt "$TESTFILE" || warn "overwrite copy failed!";
+
+info "T5. Delete file";
+rm "$TESTFILE" || warn "rm failed";
+
+info "T6. Unmount";
+umount "$TMPDIR" || warn "unmounting jottafuse failed!";
+
+echo "$(tput setaf 3)Finishied$(tput sgr0)";
+
+cleanup;
