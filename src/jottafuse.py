@@ -107,6 +107,10 @@ class JottaFuse(LoggingMixIn, Operations):
         #TODO: Set up threaded work queue
         pass
 
+    def destroy(self, path):
+        #TODO: do proper teardown
+        pass
+
     def create(self, path, mode, fi=None):
         if is_blacklisted(path):
             raise JottaFuseError('Blacklisted file')
@@ -114,17 +118,12 @@ class JottaFuse(LoggingMixIn, Operations):
         self.ino += 1
         return self.ino
 
-    def chmod(self, path, mode):
-        '''.chmod makes no sense here, always return success (0)'''
+    def success(self, *args):
+        '''shortcut to always return success (0) to masquerade as a proper filesystem'''
         return ESUCCESS
 
-    def chown(self, path, uid, gid):
-        '''.chown makes no sense here, always return success (0)'''
-        return ESUCCESS
 
-    def destroy(self, path):
-        #TODO: do proper teardown
-        pass
+    chmod = chown = success
 
     def getattr(self, path, fh=None):
         if is_blacklisted(path):
@@ -151,8 +150,8 @@ class JottaFuse(LoggingMixIn, Operations):
         try:
             f = self._getpath(path)
         except JFS.JFSError:
-            raise OSError(errno.ENOENT, '') # can't help you
-        if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
+            raise OSError(errno.ENOENT, '') # file not found
+        if isinstance(f, (JFS.JFSFile, JFS.JFSFolder, JFS.JFSIncompleteFile)) and f.is_deleted():
             raise OSError(errno.ENOENT)
 
         if isinstance(f, (JFS.JFSIncompleteFile, JFS.JFSFile)):
@@ -162,14 +161,15 @@ class JottaFuse(LoggingMixIn, Operations):
         elif isinstance(f, (JFS.JFSMountPoint, JFS.JFSDevice) ):
             _mode = stat.S_IFDIR | 0555 # these are special jottacloud dirs, make them read only
         else:
-            logging.warning('Unknown jfs object: %s <-> "%s"' % (type(f), f.tag) )
+            if not f.tag in ('user', ):
+                logging.warning('Unknown jfs object: %s <-> "%s"' % (type(f), f.tag) )
             _mode = stat.S_IFDIR | 0555
         return {
-                'st_atime': isinstance(f, JFS.JFSFile) and time.mktime(f.updated.timetuple()) or time.time(),
+                'st_atime': time.mktime(f.modified.timetuple()) if isinstance(f, JFS.JFSFile) else time.time(),
                 'st_gid': pw.pw_gid,
                 'st_mode': _mode,
-                'st_mtime': isinstance(f, JFS.JFSFile) and time.mktime(f.modified.timetuple()) or time.time(),
-                'st_size': isinstance(f, JFS.JFSFile) and f.size  or 0,
+                'st_mtime': time.mktime(f.modified.timetuple()) if isinstance(f, JFS.JFSFile) else time.time(),
+                'st_size': f.size if isinstance(f, JFS.JFSFile) else 0,
                 'st_uid': pw.pw_uid,
                 }
 
