@@ -39,22 +39,14 @@ from jottalib import JFS, __version__
 
 # import dependenceis (get them with pip!)
 try:
-    from fuse import FUSE, Operations, LoggingMixIn # this is 'pip install fusepy'
+    from fuse import FUSE, Operations, LoggingMixIn, FuseOSError # this is 'pip install fusepy'
 except ImportError:
     print "JottaFuse won't work without fusepy! Please run `pip install fusepy`."
     raise
 
-class JottaFuseError(OSError):
+class JottaFuseError(FuseOSError):
     pass
 
-
-class JottaFuseFile(object):
-    pass
-    """def open(self, path):
-    def write(self, path, data, offset):
-    def read(self, path, offset):
-    def release(self, path):
-    """
 
 ESUCCESS=0
 
@@ -118,12 +110,15 @@ class JottaFuse(LoggingMixIn, Operations):
         self.ino += 1
         return self.ino
 
-    def success(self, *args):
+    def _success(self, *args):
         '''shortcut to always return success (0) to masquerade as a proper filesystem'''
-        return ESUCCESS
+        return 0
 
 
-    chmod = chown = success
+    chmod = _success
+    chown = _success
+    utimens = _success
+    setxattr = _success
 
     def getattr(self, path, fh=None):
         if is_blacklisted(path):
@@ -190,13 +185,12 @@ class JottaFuse(LoggingMixIn, Operations):
         return ESUCCESS
 
     def open(self, path, flags):
-        print "repr flags: ", repr(flags)
-        if flags & os.O_RDONLY:
-            print "open rdonly"
-        if False and not self.__newfiles.has_key(path):
-            self.__newfiles[path] = StringIO()
-        self.ino += 1
-        return self.ino
+        if flags & os.O_WRONLY:
+            if not self.__newfiles.has_key(path):
+                self.__newfiles[path] = StringIO()
+            self.ino += 1
+            return self.ino
+        return super(JottaFuse, self).open(path, flags)
 
     def read(self, path, size, offset, fh):
         if path in self.__newfiles.keys(): # file was just created, not synced yet
@@ -212,7 +206,7 @@ class JottaFuse(LoggingMixIn, Operations):
                 raise OSError(errno.ENOENT, '')
             if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
                 raise OSError(errno.ENOENT)
-            print "f.readpartial(%s, %s" % (offset, offset+size)
+#             print "f.readpartial(%s, %s" % (offset, offset+size)
             return f.readpartial(offset, offset+size)
 
     def readdir(self, path, fh):
@@ -233,11 +227,18 @@ class JottaFuse(LoggingMixIn, Operations):
                         yield el.name
 
     def release(self, path, fh):
-
-        print "release! inpath:", path in self.__newfiles.keys()
-        if path in self.__newfiles.keys():
-            self.client.up(path, self.__newfiles[path])
+        "Run after a read or write operation has finished. This is where we upload on writes"
+        #print "release! inpath:", path in self.__newfiles.keys()
+        # if the path exists in self.__newfiles.keys(), we have a new version to upload
+        try:
+            f = self.__newfiles[path] # make a local shortcut to Stringio object
+            f.seek(0, os.SEEK_END)
+            if f.tell() > 0: # file has length
+                self.client.up(path, f) # upload to jottacloud
             del self.__newfiles[path]
+            del f
+        except KeyError:
+            pass
         return ESUCCESS
 
     def rename(self, old, new):
@@ -288,27 +289,21 @@ class JottaFuse(LoggingMixIn, Operations):
 
         }
 
-    truncate = None
-    """def truncate(self, path, length, fh=None):
+    def truncate(self, path, length, fh=None):
         "Download existing path, truncate and reupload"
-        if path in self.__newfiles: # file was just created, not synced yet
-            return ''
         try:
             f = self._getpath(path)
         except JFS.JFSError:
             raise OSError(errno.ENOENT, '')
         if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
             raise OSError(errno.ENOENT)
-        data = StringIO(f.read())
+        data = StringIO(f.readpartial(0, length))
         data.truncate(length)
         try:
             self.client.up(path, data) # replace file contents
-            self.dirty = True
             return ESUCCESS
         except:
-            raise
             raise OSError(errno.ENOENT, '')
-    """
 
     def unlink(self, path):
         if path in self.__newfolders: # folder was just created, not synced yet
@@ -330,6 +325,8 @@ class JottaFuse(LoggingMixIn, Operations):
     def write(self, path, data, offset, fh=None):
         if is_blacklisted(path):
             raise JottaFuseError('Blacklisted file')
+        if not self.__newfiles.has_key(path):
+            self.__newfiles[path] = StringIO
 
         buf = self.__newfiles[path]
         buf.seek(offset)

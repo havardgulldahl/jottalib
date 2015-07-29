@@ -2,6 +2,25 @@
 
 # test jottafuse
 
+#
+# This file is part of jottalib.
+#
+# jottalib is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# jottalib is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with jottafs.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright 2015 Håvard Gulldahl <havard@gulldahl.no>
+
+
 TMPDIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir');
 STAMP=$(date +%s);
 TESTFILE="$TMPDIR/Jotta/Archive/test/jottafuse.bashtest.${STAMP}.txt";
@@ -11,7 +30,7 @@ HERE
 
 
 function cleanup {
-  umount "$TMPDIR" 2>&1 1>/dev/null;
+  mount | grep -q JottaCloudFS  && umount "$TMPDIR";
   rmdir "$TMPDIR";
 }
 
@@ -57,3 +76,11 @@ umount "$TMPDIR" || warn "unmounting jottafuse failed!";
 echo "$(tput setaf 3)Finishied$(tput sgr0)";
 
 cleanup;
+
+#TODO
+# GETATTR test
+# TRUNCATE test
+# READDIR test
+# STATFS test
+# RENAME test
+# MKDIR test
