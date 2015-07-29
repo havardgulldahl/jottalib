@@ -297,7 +297,7 @@ class JottaFuse(LoggingMixIn, Operations):
             raise OSError(errno.ENOENT, '')
         if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
             raise OSError(errno.ENOENT)
-        data = StringIO(f.readpartial(0, length))
+        data = StringIO(f.read())
         data.truncate(length)
         try:
             self.client.up(path, data) # replace file contents
