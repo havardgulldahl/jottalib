@@ -59,33 +59,36 @@ if __name__ == '__main__':
     jfs = JFS.JFS(username, password)
     lite = LiteJFS(username, password)
 
-    data = os.urandom(1024*10)
+    filesize = 1024*10*10
+
+    data = os.urandom(filesize)
     testfile = tempfile.NamedTemporaryFile()
     puts(colored.blue('Creating test file.'))
     for i in progress.bar(range(0, 1000)):
         testfile.write(data)
     filesize = os.path.getsize(testfile.name)
+
     p = '/Jotta/Archive/test/%s.data' % os.path.basename(testfile.name)
 
     # UPLOAD TEST
-    puts(colored.green('Test1. Upload speed. File size: %s' % humanizeFileSize(filesize)))
+    puts(colored.green('Test 1 | requests | Upload | File size: %s' % humanizeFileSize(filesize)))
     _start = time.time()
     progr = ProgressBar(expected_size=filesize)
     def UP(monitor, total):
         progr.show(monitor.bytes_read)
     fileobj = jfs.up(p, testfile, upload_callback=UP)
     _end = time.time()
-    puts(colored.magenta("Network upload speed %s/sec" % ( humanizeFileSize( (filesize / (_end-_start)) ) )))
+    puts(colored.magenta("Network upload speed %s/sec \n" % ( humanizeFileSize( (filesize / (_end-_start)) ) )))
 
     # DOWNLOAD TEST 1
-    puts(colored.green('Test2. Read speed. File size: %s' % humanizeFileSize(filesize)))
+    puts(colored.green('Test 2 | requests | Read | File size: %s' % humanizeFileSize(filesize)))
     _start = time.time()
     x = fileobj.read()
     _end = time.time()
-    puts(colored.magenta("Network download speed %s/sec" % ( humanizeFileSize( (filesize / (_end-_start)) ) )))
+    puts(colored.magenta("Network download speed %s/sec \n" % ( humanizeFileSize( (filesize / (_end-_start)) ) )))
 
     # DOWNLOAD TEST 2
-    puts(colored.green('Test3. Stream speed. File size: %s' % humanizeFileSize(filesize)))
+    puts(colored.green('Test 2 | requests | Stream | File size: %s' % humanizeFileSize(filesize)))
     progr2 = ProgressBar(expected_size=filesize)
     _start = time.time()
     _bytesread = 0
@@ -93,24 +96,23 @@ if __name__ == '__main__':
         _bytesread = _bytesread + len(chunk)
         progr2.show(_bytesread)
     _end = time.time()
-    puts(colored.magenta("Network download speed %s/sec" % ( humanizeFileSize( (filesize / (_end-_start)) ) )))
+    puts(colored.magenta("Network download speed %s/sec \n" % ( humanizeFileSize( (filesize / (_end-_start)) ) )))
 
     # TODO: PRINT STATS IN A TABLE FOR COMPARISON / BOOKKEEPING
     # Versions: jottalib, urllib3, requests, jottaAPI
     # Server version from jottacloud.com
 
     # TEST WITHOUR REQUESTS, ONLY urllib3
-    p='/Jotta/Archive/test/tmp8PIRqV.data'
-    filesize=10240000
+
     # DOWNLOAD TEST 1
-    puts(colored.green('Test4. urllib3 read speed . File size: %s' % humanizeFileSize(filesize)))
+    puts(colored.green('Test 3 | urllib3 | Read | File size: %s' % humanizeFileSize(filesize)))
     _start = time.time()
     x = lite.get('%s?mode=bin' % p).read()
     _end = time.time()
-    puts(colored.magenta("Network download speed %s/sec" % ( humanizeFileSize( (filesize / (_end-_start)) ) )))
+    puts(colored.magenta("Network download speed %s/sec \n" % ( humanizeFileSize( (filesize / (_end-_start)) ) )))
 
     # DOWNLOAD TEST 2
-    puts(colored.green('Test3. urllib3 stream speed. File size: %s' % humanizeFileSize(filesize)))
+    puts(colored.green('Test 3 | urllib3 | Stream | File size: %s' % humanizeFileSize(filesize)))
     progr2 = ProgressBar(expected_size=filesize)
     _start = time.time()
     _bytesread = 0
@@ -118,16 +120,9 @@ if __name__ == '__main__':
         _bytesread = _bytesread + len(chunk)
         progr2.show(_bytesread)
     _end = time.time()
-    puts(colored.magenta("Network download speed %s/sec" % ( humanizeFileSize( (filesize / (_end-_start)) ) )))
-
-
-
-
-
 
     # CLEANUP JOTTALIB
     fileobj.delete()
 
-
     #
-    puts(colored.blue('Finished.'))
+    puts(colored.blue('\nFinished.'))
