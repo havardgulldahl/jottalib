@@ -751,7 +751,7 @@ class JFS(object):
         if not files is None:
             m = requests_toolbelt.MultipartEncoder(fields=files)
             if upload_callback is not None:
-                m_len = len(m)
+                m_len = m.len # compute value for callback closure
                 def callback(monitor):
                     upload_callback(monitor, m_len)
 
