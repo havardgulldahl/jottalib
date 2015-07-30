@@ -24,6 +24,8 @@
 TMPDIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir');
 STAMP=$(date +%s);
 TESTFILE="$TMPDIR/Jotta/Archive/test/jottafuse.bashtest.${STAMP}.txt";
+INDIR=$(dirname "$TESTFILE");
+TESTDIR="$INDIR/test-${STAMP}";
 cat << HERE > /tmp/testdata.txt
 Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec qu
 HERE
@@ -64,13 +66,29 @@ info "T3. Read file";
 diff -q /tmp/testdata.txt "$TESTFILE" || warn "read failed!";
 sleep 1;
 
-info "T4. Overwrite file";
-cp /tmp/testdata.txt "$TESTFILE" || warn "overwrite copy failed!";
+info "T4. Rename file";
+mv "$TESTFILE" "${TESTFILE}-x" || warn "rename failed";
+sleep 1;
 
-info "T5. Delete file";
-rm "$TESTFILE" || warn "rm failed";
+info "T5. Overwrite file";
+cp /tmp/testdata.txt "${TESTFILE}-x" || warn "overwrite copy failed!";
+sleep 1;
 
-info "T6. Unmount";
+info "T6. Delete file";
+rm "${TESTFILE}-x" || warn "rm failed";
+
+
+info "T7. Make folder";
+mkdir "$TESTDIR" || warn "mkdir failed";
+sleep 1;
+
+info "T8. Rename folder";
+mv "$TESTDIR" "${TESTIR}-x" || warn "rename folder failed";
+
+info "T9. Remove folder";
+rm "${TESTDIR}-x" || warn "removing folder failed";
+
+info "T10. Unmount";
 umount "$TMPDIR" || warn "unmounting jottafuse failed!";
 
 echo "$(tput setaf 3)Finishied$(tput sgr0)";
@@ -84,3 +102,5 @@ cleanup;
 # STATFS test
 # RENAME test
 # MKDIR test
+# CACHING tests
+# SYMLINK test

@@ -24,6 +24,7 @@ __author__ = 'havard@gulldahl.no'
 # import standardlib
 import os, StringIO
 
+import pytest
 
 # import jotta
 from jottalib import JFS, __version__
@@ -95,11 +96,14 @@ class TestJFS:
         f.delete()
 
     def test_stream(self):
-        pass
+        p = "/Jotta/Archive/testfile_up_and_stream.txt"
+        t = jfs.up(p, StringIO.StringIO(TESTFILEDATA))
+        s = "".join( [ chunk for chunk in t.stream() ] )
+        assert s == TESTFILEDATA
+        t.delete()
 
     def test_resume(self):
         pass
-
 
     def test_post(self):
         pass
@@ -112,7 +116,42 @@ class TestJFS:
         assert isinstance(jfs.getObject('/Jotta'), JFS.JFSDevice)
         assert isinstance(jfs.getObject('/Jotta/Archive'), JFS.JFSMountPoint)
         assert isinstance(jfs.getObject('/Jotta/Archive/test'), JFS.JFSFolder)
-        assert isinstance(jfs.getObject('/Jotta/Sync/?mode=list'), JFS.JFSFileDirList)
-
-
         #TODO: test with a python-requests object
+
+
+class TestJFSFileDirList:
+    'Tests for JFSFileDirList'
+
+    def test_api(self):
+        fdl = jfs.getObject('/Jotta/Sync/?mode=list')
+        assert isinstance(fdl, JFS.JFSFileDirList)
+        assert len(fdl.tree) > 0
+
+class TestJFSError:
+    'Test different JFSErrors'
+    """
+    class JFSError(Exception):
+    class JFSBadRequestError(JFSError): # HTTP 400
+    class JFSCredentialsError(JFSError): # HTTP 401
+    class JFSNotFoundError(JFSError): # HTTP 404
+    class JFSAccessError(JFSError): #
+    class JFSAuthenticationError(JFSError): # HTTP 403
+    class JFSServerError(JFSError): # HTTP 500
+    """
+    def test_errors(self):
+        with pytest.raises(JFS.JFSCredentialsError): # HTTP 401
+            JFS.JFS('pytest', 'pytest')
+        with pytest.raises(JFS.JFSNotFoundError): # HTTP 404
+            jfs.get('/Jotta/Archive/FileNot.found')
+
+
+"""
+TODO
+class JFSFolder(object):
+class ProtoFile(object):
+class JFSIncompleteFile(ProtoFile):
+class JFSFile(JFSIncompleteFile):
+class JFSMountPoint(JFSFolder):
+class JFSDevice(object):
+class JFSenableSharing(object):
+"""
