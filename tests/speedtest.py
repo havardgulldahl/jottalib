@@ -120,6 +120,7 @@ if __name__ == '__main__':
         _bytesread = _bytesread + len(chunk)
         progr2.show(_bytesread)
     _end = time.time()
+    puts(colored.magenta("Network download speed %s/sec" % ( humanizeFileSize( (filesize / (_end-_start)) ) )))
 
     # CLEANUP JOTTALIB
     fileobj.delete()
