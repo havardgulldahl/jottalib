@@ -83,6 +83,7 @@ if __name__ == '__main__':
     x = fileobj.read()
     _end = time.time()
     puts(colored.magenta("Network download speed %s/sec" % ( humanizeFileSize( (filesize / (_end-_start)) ) )))
+    del x
 
     # DOWNLOAD TEST 2
     puts(colored.green('Test3. Stream speed. File size: %s' % humanizeFileSize(filesize)))
@@ -100,15 +101,31 @@ if __name__ == '__main__':
     # Server version from jottacloud.com
 
     # TEST WITHOUR REQUESTS, ONLY urllib3
+    # UPLOAD TEST
+    #
+    # 2015-07-30 Disabled until urllib3 supports streaming uploads. HG
+    #
+    #
+    #puts(colored.green('Test4. urllib3 upload speed. File size: %s' % humanizeFileSize(filesize)))
+    #_start = time.time()
+    #progr = ProgressBar(expected_size=filesize)
+    #def UP(monitor, total):
+    #    progr.show(monitor.bytes_read)
+    #fileobj = lite.up(p, testfile)#, upload_callback=UP)
+    #_end = time.time()
+    #puts(colored.magenta("Network upload speed %s/sec" % ( humanizeFileSize( (filesize / (_end-_start)) ) )))
+
+
     # DOWNLOAD TEST 1
     puts(colored.green('Test4. urllib3 read speed . File size: %s' % humanizeFileSize(filesize)))
     _start = time.time()
     x = lite.get('%s?mode=bin' % p).read()
     _end = time.time()
     puts(colored.magenta("Network download speed %s/sec" % ( humanizeFileSize( (filesize / (_end-_start)) ) )))
+    del x
 
     # DOWNLOAD TEST 2
-    puts(colored.green('Test3. urllib3 stream speed. File size: %s' % humanizeFileSize(filesize)))
+    puts(colored.green('Test5. urllib3 stream speed. File size: %s' % humanizeFileSize(filesize)))
     progr2 = ProgressBar(expected_size=filesize)
     _start = time.time()
     _bytesread = 0
