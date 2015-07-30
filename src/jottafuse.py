@@ -326,7 +326,7 @@ class JottaFuse(LoggingMixIn, Operations):
         if is_blacklisted(path):
             raise JottaFuseError('Blacklisted file')
         if not self.__newfiles.has_key(path):
-            self.__newfiles[path] = StringIO
+            self.__newfiles[path] = StringIO()
 
         buf = self.__newfiles[path]
         buf.seek(offset)
