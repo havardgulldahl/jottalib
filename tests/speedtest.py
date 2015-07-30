@@ -100,8 +100,6 @@ if __name__ == '__main__':
     # Server version from jottacloud.com
 
     # TEST WITHOUR REQUESTS, ONLY urllib3
-    p='/Jotta/Archive/test/tmp8PIRqV.data'
-    filesize=10240000
     # DOWNLOAD TEST 1
     puts(colored.green('Test4. urllib3 read speed . File size: %s' % humanizeFileSize(filesize)))
     _start = time.time()
