@@ -83,10 +83,16 @@ mkdir "$TESTDIR" || warn "mkdir failed";
 sleep 1;
 
 info "T8. Rename folder";
-mv "$TESTDIR" "${TESTIR}-x" || warn "rename folder failed";
+mv "$TESTDIR" "${TESTDIR}-x" || warn "rename folder failed";
 
 info "T9. Remove folder";
 rm "${TESTDIR}-x" || warn "removing folder failed";
+
+info "T10. Statfs.";
+df "$TMPDIR" 1>/dev/null || warn "statfs fsailed";
+
+info "T11. Symlink";
+ln -s /tmp/testdata.txt "${TESTFILE}-link" || warn "symlink failed";
 
 info "T10. Unmount";
 umount "$TMPDIR" || warn "unmounting jottafuse failed!";
@@ -99,8 +105,4 @@ cleanup;
 # GETATTR test
 # TRUNCATE test
 # READDIR test
-# STATFS test
-# RENAME test
-# MKDIR test
 # CACHING tests
-# SYMLINK test
