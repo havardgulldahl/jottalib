@@ -30,6 +30,17 @@ cat << HERE > /tmp/testdata.txt
 Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec qu
 HERE
 
+function unmount {
+    if [ -x /bin/fusermount ]
+    then {
+        R=$(/bin/fusermount -u "$1");
+    } else {
+        R=$(/bin/umount "$1");
+    }
+    fi
+    return $R;
+
+}
 
 function cleanup {
   mount | grep -q JottaCloudFS  && umount "$TMPDIR";
@@ -83,13 +94,13 @@ mkdir "$TESTDIR" || warn "mkdir failed";
 sleep 1;
 
 info "T8. Rename folder";
-mv "$TESTDIR" "${TESTIR}-x" || warn "rename folder failed";
+mv "$TESTDIR" "${TESTDIR}-x" || warn "rename folder failed";
 
 info "T9. Remove folder";
 rm "${TESTDIR}-x" || warn "removing folder failed";
 
 info "T10. Unmount";
-umount "$TMPDIR" || warn "unmounting jottafuse failed!";
+unmount "$TMPDIR" || warn "unmounting jottafuse failed!";
 
 echo "$(tput setaf 3)Finishied$(tput sgr0)";
 
@@ -100,7 +111,5 @@ cleanup;
 # TRUNCATE test
 # READDIR test
 # STATFS test
-# RENAME test
-# MKDIR test
 # CACHING tests
 # SYMLINK test
