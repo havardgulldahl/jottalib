@@ -149,7 +149,7 @@ class ShareEventHandler(FileSystemEventHandler):
     delete file: delete from cloud
     '''
     def __init__(self, jfs, topdir, jottaroot=None):
-        raise NotImplemented
+        raise NotImplementedError
 
 class SyncEventHandler(FileSystemEventHandler):
     '''Handles Sync events. Heuristics for this handler:
@@ -160,7 +160,7 @@ class SyncEventHandler(FileSystemEventHandler):
     file is deleted: delete it from the cloud
     '''
     def __init__(self, jfs, topdir, jottaroot=None):
-        raise NotImplemented
+        raise NotImplementedError
 
 def humanizeFileSize(size):
     size = abs(size)
@@ -220,8 +220,12 @@ if __name__=='__main__':
             errors.update( {args[0]:e} )
             return False
 
-    event_handler = ArchiveEventHandler(jfs, args.topdir)
-    #event_handler = LoggingEventHandler()
+    if args.mode == 'archive':
+        event_handler = ArchiveEventHandler(jfs, args.topdir)
+    elif args.mode == 'sync':
+        event_handler = SyncEventHandler(jfs, args.topdir)
+    elif args.mode == 'share':
+        event_handler = ShareEventHandler(jfs, args.topdir)
     observer = Observer()
     observer.schedule(event_handler, args.topdir, recursive=True)
     observer.start()
