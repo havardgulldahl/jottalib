@@ -24,6 +24,7 @@
 import time, os, os.path, sys, logging, argparse, netrc
 
 from watchdog.observers import Observer # pip install watchdog
+from watchdog.utils import platform
 from watchdog.events import LoggingEventHandler, FileSystemEventHandler
 
 from clint.textui import progress, puts, colored
@@ -44,9 +45,9 @@ from readlnk import readlnk
 2b. if --archive, delete it from the directory
 3. if a file is renamed, rename it in the cloud
 4. if a file is changed, upload the new file
-5. if a file is deleted... 
+5. if a file is deleted...
 
-ARCHIVE 
+ARCHIVE
 
 SHARE
 
@@ -57,72 +58,102 @@ keep a tree in sync
 """
 
 class ArchiveEventHandler(FileSystemEventHandler):
-    '''Handles Archive events:
-    
+    '''Handles Archive events. Heuristics for this handler:
+
     new file: upload to cloud and delete locally
+
+    Pro tip: If your create a symlink or a .lnk reference to the file you want to upload,
+             the upload will start straight away. Works great for big files.
+
     '''
     mode = 'Archive'
-    
+
     def __init__(self, jfs, topdir, jottaroot=None):
+        super(ArchiveEventHandler, self).__init__()
         self.jfs = jfs
         self.topdir = topdir
         self.jottaroot = jottaroot and jottaroot or ('/Jotta/%s' % self.mode)
-        
-    def get_jottapath(self, p):
+
+    def get_jottapath(self, p, filename=None):
         rel = os.path.relpath(p, self.topdir) # strip leading path
         parts = [self.jottaroot, ] + list(os.path.split(rel)) # explode path to normalize OS path separators
+        if filename is not None:
+            parts.pop() # remove origilan filename
+            parts.append(filename) # and replace with provided one
         return '/'.join( parts ).replace('//', '/') # return url
-    
+
     def on_modified(self, event, dry_run=False, remove_uploaded=True):
-        'Called when a file is modified. '
-        logging.info('Modified file detectd: %s', event.src_path)
-        try:
-            open(event.src_path)
-        except IOError: # file is not finished 
-            logging.info('File is not finished')
-            return 
+        'Called when a file (or directory) is modified. '
+        super(ArchiveEventHandler, self).on_modified(event)
+        src_path = event.src_path
         if event.is_directory:
-            jottacloud.mkdir(event.src_path, self.jfs)
+            if not platform.is_darwin():
+                logging.info("event is a directory, safe to ignore")
+                return
+            # OSX is behaving erratically and we need to paper over it.
+            # the OS only reports every other file event,
+            # but always fires off a directory event when a file has changed. (OSX 10.9 tested)
+            # so we need to find the actual file changed and then go on from there
+            files = [event.src_path+"/"+f for f in os.listdir(event.src_path)]
+            try:
+                src_path = max(files, key=os.path.getmtime)
+            except (OSError, ValueError) as e: # broken symlink or directory empty
+                return
+        logging.info('Modified file detectd: %s', src_path)
+        #
+        # we're receiving events at least two times: on file open and on file close.
+        # OSes might report even more
+        # we're only interested in files that are closed (finished), so we try to
+        # open it. if it is locked, we can infer that someone is still writing to it.
+        # this works on platforms: windows, ... ?
+        try:
+            open(src_path)
+        except IOError: # file is not finished
+            logging.info('File is not finished')
+            return
         else:
             # are we getting a symbolic link?
-            if os.path.islink(event.src_path):
-                sourcefile = os.path.normpath(os.readlink(event.src_path))
+            if os.path.islink(src_path):
+                sourcefile = os.path.normpath(os.path.join(self.topdir, os.readlink(src_path)))
                 if not os.path.exists(sourcefile): # broken symlink
-                    logging.error("broken symlink %s->%s", event.src_path, sourcefile)
-                    raise IOError("broken symliknk %s->%s", event.src_path, sourcefile)
-            elif os.path.splitext(event.src_path)[1].lower() == '.lnk':
-                # windows .lnk 
-                sourcefile = os.path.normpath(readlnk(event.src_path))
+                    logging.error("broken symlink %s->%s", src_path, sourcefile)
+                    raise IOError("broken symliknk %s->%s", src_path, sourcefile)
+                jottapath = self.get_jottapath(src_path, filename=os.path.basename(sourcefile))
+            elif os.path.splitext(src_path)[1].lower() == '.lnk':
+                # windows .lnk
+                sourcefile = os.path.normpath(readlnk(src_path))
                 if not os.path.exists(sourcefile): # broken symlink
-                    logging.error("broken fat32lnk %s->%s", event.src_path, sourcefile)
-                    raise IOError("broken fat32lnk %s->%s", event.src_path, sourcefile)
+                    logging.error("broken fat32lnk %s->%s", src_path, sourcefile)
+                    raise IOError("broken fat32lnk %s->%s", src_path, sourcefile)
+                jottapath = self.get_jottapath(src_path, filename=os.path.basename(sourcefile))
             else:
-                sourcefile = event.src_path
-                if not os.path.exists(sourcefile): # broken symlink
+                sourcefile = src_path
+                if not os.path.exists(sourcefile): # file not exis
                     logging.error("file does not exist: %s", sourcefile)
                     raise IOError("file does not exist: %s", sourcefile)
- 
-            logging.info('Uploading file %s to %s', sourcefile, self.get_jottapath(event.src_path))
+                jottapath = self.get_jottapath(src_path)
+
+            logging.info('Uploading file %s to %s', sourcefile, jottapath)
             if not dry_run:
-                if not jottacloud.new(sourcefile, self.get_jottapath(event.src_path), self.jfs):
+                if not jottacloud.new(sourcefile, jottapath, self.jfs):
                     logging.error('Uploading file %s failed', sourcefile)
-                    raise 
+                    raise
             if remove_uploaded:
-                logging.info('Removing file after upload: %s', event.src_path)
+                logging.info('Removing file after upload: %s', src_path)
                 if not dry_run:
-                    os.remove(event.src_path)
-    
+                    os.remove(src_path)
+
 class ShareEventHandler(FileSystemEventHandler):
-    '''Handles Share events:
-    
+    '''Handles Share events. Heuristics for this handler:
+
     new file: upload to cloud and replace contents with public share url
     delete file: delete from cloud
     '''
     pass
-    
+
 class SyncEventHandler(FileSystemEventHandler):
-    '''Handles Sync events:
-    
+    '''Handles Sync events. Heuristics for this handler:
+
     new file: upload it to the cloud
     file is renamed: rename it in the cloud
     file is changed: upload the new file
@@ -155,7 +186,7 @@ if __name__=='__main__':
     parser.add_argument('--no-unicode', action='store_true',
                         help="don't use unicode output")
     parser.add_argument('topdir', type=is_dir, help='Path to local dir that needs syncing')
-    parser.add_argument('mode', help='Mode of operation: ARCHIVE, SYNC or SHARE. See README.md', 
+    parser.add_argument('mode', help='Mode of operation: ARCHIVE, SYNC or SHARE. See README.md',
                         choices=( 'archive', 'sync', 'share') )
     args = parser.parse_args()
     logging.basicConfig(level=args.loglevel)
