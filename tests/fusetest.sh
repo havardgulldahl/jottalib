@@ -30,9 +30,23 @@ cat << HERE > /tmp/testdata.txt
 Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec qu
 HERE
 
+function unmount {
+    if [ -x /bin/fusermount ]
+    then {
+        R=$(/bin/fusermount -u "$1");
+    } elif [ -x /usr/sbin/diskutil ];
+    then {
+        R=$(/usr/sbin/diskutil unmount "$1");
+    } else {
+        R=$(/bin/umount "$1");
+    }
+    fi
+    return $R;
+
+}
 
 function cleanup {
-  mount | grep -q JottaCloudFS  && umount "$TMPDIR";
+  mount | grep -q JottaCloudFS && unmount "$TMPDIR";
   rmdir "$TMPDIR";
 }
 
@@ -94,8 +108,8 @@ df "$TMPDIR" 1>/dev/null || warn "statfs fsailed";
 info "T11. Symlink";
 ln -s /tmp/testdata.txt "${TESTFILE}-link" || warn "symlink failed";
 
-info "T10. Unmount";
-umount "$TMPDIR" || warn "unmounting jottafuse failed!";
+info "T12. Unmount";
+unmount "$TMPDIR" || warn "unmounting jottafuse failed!";
 
 echo "$(tput setaf 3)Finishied$(tput sgr0)";
 
