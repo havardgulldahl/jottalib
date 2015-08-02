@@ -149,7 +149,8 @@ class ShareEventHandler(FileSystemEventHandler):
     new file: upload to cloud and replace contents with public share url
     delete file: delete from cloud
     '''
-    pass
+    def __init__(self, jfs, topdir, jottaroot=None):
+        raise NotImplemented
 
 class SyncEventHandler(FileSystemEventHandler):
     '''Handles Sync events. Heuristics for this handler:
@@ -159,7 +160,8 @@ class SyncEventHandler(FileSystemEventHandler):
     file is changed: upload the new file
     file is deleted: delete it from the cloud
     '''
-    pass
+    def __init__(self, jfs, topdir, jottaroot=None):
+        raise NotImplemented
 
 def humanizeFileSize(size):
     size = abs(size)
