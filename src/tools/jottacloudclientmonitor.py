@@ -105,12 +105,22 @@ class ArchiveEventHandler(FileSystemEventHandler):
         # we're only interested in files that are closed (finished), so we try to
         # open it. if it is locked, we can infer that someone is still writing to it.
         # this works on platforms: windows, ... ?
+        # TODO: investigate http://stackoverflow.com/a/3876461 for POSIX support
         try:
             open(src_path)
         except IOError: # file is not finished
             logging.info('File is not finished')
             return
         else:
+            return self._new(src_path, remove_uploaded)
+
+    def on_created(self, event, dry_run=False, remove_uploaded=True):
+        'Called when a file (or directory) is created. '
+        super(ArchiveEventHandler, self).on_created(event)
+        logging.debug("created: %s", event)
+
+    def _new(self, src_path, dry_run=False, remove_uploaded=False):
+            'Code to upload'
             # are we getting a symbolic link?
             if os.path.islink(src_path):
                 sourcefile = os.path.normpath(os.path.join(self.topdir, os.readlink(src_path)))
