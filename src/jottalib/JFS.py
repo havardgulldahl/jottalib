@@ -665,7 +665,7 @@ class JFSenableSharing(object):
 
 
 class JFS(object):
-    def __init__(self, username, password, ca_bundle=True):
+    def __init__(self, username, password):
         from requests.auth import HTTPBasicAuth
         self.apiversion = '2.2' # hard coded per october 2014
         self.session = requests.Session() # create a session for connection pooling, ssl keepalives and cookie jar
