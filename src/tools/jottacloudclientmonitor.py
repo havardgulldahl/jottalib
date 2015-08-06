@@ -107,17 +107,19 @@ class ArchiveEventHandler(FileSystemEventHandler):
         # this works on platforms: windows, ... ?
         # TODO: investigate http://stackoverflow.com/a/3876461 for POSIX support
         try:
-            open(src_path)
+            open(src_path)   # win exclusively 
+            os.open(src_path, os.O_EXLOCK) # osx exclusively
         except IOError: # file is not finished
             logging.info('File is not finished')
             return
-        else:
-            return self._new(src_path, remove_uploaded)
+        except AttributeError: # no suuport for O_EXLOCK (only BSD)
+            pass
+        return self._new(src_path, remove_uploaded)
 
     def on_created(self, event, dry_run=False, remove_uploaded=True):
         'Called when a file (or directory) is created. '
         super(ArchiveEventHandler, self).on_created(event)
-        logging.debug("created: %s", event)
+        logging.info("created: %s", event)
 
     def _new(self, src_path, dry_run=False, remove_uploaded=False):
             'Code to upload'
@@ -234,6 +236,7 @@ if __name__=='__main__':
         event_handler = ArchiveEventHandler(jfs, args.topdir)
     elif args.mode == 'sync':
         event_handler = SyncEventHandler(jfs, args.topdir)
+        #event_handler = LoggingEventHandler()
     elif args.mode == 'share':
         event_handler = ShareEventHandler(jfs, args.topdir)
     observer = Observer()
