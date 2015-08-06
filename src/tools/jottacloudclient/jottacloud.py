@@ -21,7 +21,9 @@
 import sys, os, os.path, hashlib, logging, collections
 
 import jottalib
-from jottalib.JFS import JFSNotFoundError, JFSFolder, JFSFile, JFSIncompleteFile, JFSFileDirList
+from jottalib.JFS import JFSNotFoundError,
+                         JFSFolder, JFSFile, JFSIncompleteFile, JFSFileDirList,
+                         calculate_md5
 
 
 SyncFile = collections.namedtuple('SyncFile', 'localpath, jottapath')
@@ -102,7 +104,7 @@ def replace_if_changed(localfile, jottapath, JFS):
     Returns the JottaFile object"""
     jf = JFS.getObject(jottapath)
     with open(localfile) as lf:
-        lf_hash = hashlib.md5(lf.read()).hexdigest()
+        lf_hash = calculate_md5(lf)
     if type(jf) == JFSIncompleteFile:
         logging.debug("Local file %s is incompletely uploaded, continue", localfile)
         return resume(localfile, jf, JFS)
@@ -123,7 +125,7 @@ def mkdir(jottapath, JFS):
     Returns boolean"""
     jf = JFS.post('%s?mkDir=true' % jottapath)
     return instanceof(jf, JFSFolder)
-    
+
 def iter_tree(jottapath, JFS):
     """Get a tree of of files and folders. use as an iterator, you get something like os.walk"""
     filedirlist = JFS.getObject('%s?mode=list' % jottapath)

@@ -52,6 +52,23 @@ urllib3.fields.format_header_param = mp
 JFS_ROOT='https://www.jotta.no/jfs/'
 JFS_CACHELIMIT=1024*1024 # stuff below this threshold (in bytes) will be cached
 
+
+# helper functions
+
+def calculate_md5(fileobject, size=2**16):
+    """Utility function to calculate md5 hashes while being light on memory usage.
+
+    By reading the fileobject piece by piece, we are able to process content that
+    is larger than available memory"""
+    fileobject.seek(0)
+    md5 = hashlib.md5()
+    for data in iter(lambda: fileobject.read(size), b''):
+        md5.update(data)
+    fileobject.seek(0) # rewind read head
+    return md5.hexdigest()
+
+# error classes
+
 class JFSError(Exception):
     @staticmethod
     def raiseError(e, path): # parse object from lxml.objectify and
@@ -85,6 +102,9 @@ class JFSAuthenticationError(JFSError): # HTTP 403
 
 class JFSServerError(JFSError): # HTTP 500
     pass
+
+# classes mapping JFS structures
+
 
 class JFSFileDirList(object):
     'Wrapping <filedirlist>, a simple tree of folders and their files'
@@ -284,7 +304,7 @@ class JFSIncompleteFile(ProtoFile):
         if not hasattr(data, 'read'):
             data = StringIO(data)
         #check if what we're asked to upload is actually the right file
-        md5 = self.jfs._calculate_hash(data)
+        md5 = calculate_md5(data)
         if md5 != self.md5:
             raise JFSError('''MD5 hashes don't match! Are you trying to resume with the wrong file?''')
         logging.debug('Resuming %s from offset %s', self.path, self.size)
@@ -658,14 +678,6 @@ class JFS(object):
         self.rootpath = JFS_ROOT + username
         self.fs = self.get(self.rootpath)
 
-    def _calculate_hash(self, fileobject, size=2**16):
-        fileobject.seek(0)
-        md5 = hashlib.md5()
-        for data in iter(lambda: fileobject.read(size), b''):
-            md5.update(data)
-        fileobject.seek(0)
-        return md5.hexdigest()
-
     def request(self, url, usecache=True, extra_headers=None):
         'Make a GET request for url, with or without caching'
         if not url.startswith('http'):
@@ -801,7 +813,7 @@ class JFS(object):
         fileobject.seek(resume_offset if resume_offset is not None else 0)
 
         # Calculate file md5 hash
-        md5hash = self._calculate_hash(fileobject)
+        md5hash = calculate_md5(fileobject)
 
         logging.debug('posting content (len %s, hash %s) to url %s', contentlen, md5hash, url)
         now = datetime.datetime.now().isoformat()
