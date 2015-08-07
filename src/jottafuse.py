@@ -84,15 +84,9 @@ class JottaFuse(LoggingMixIn, Operations):
 
         return self.client.getObject(path, usecache=self.dirty is not True)
 
-    # def access(self, path, mode):
-    #     '''Use the real uid/gid to test for access to path.
-
-    #     mode should be F_OK to test the existence of path, or it can be the inclusive OR of
-    #     one or more of R_OK, W_OK, and X_OK to test permissions. Return True if access is allowed,
-    #     False if not. See the Unix man page access(2) for more information.
-    #     '''
-    #     if mode & os.X_OK:
-
+    #
+    # setup and teardown
+    #
     def init(self, rootpath):
         # Called on filesystem initialization. (Path is always /)
         # Use it instead of __init__ if you start threads on initialization.
@@ -103,12 +97,10 @@ class JottaFuse(LoggingMixIn, Operations):
         #TODO: do proper teardown
         pass
 
-    def create(self, path, mode, fi=None):
-        if is_blacklisted(path):
-            raise JottaFuseError('Blacklisted file')
-        self.__newfiles[path] = StringIO()
-        self.ino += 1
-        return self.ino
+
+    #
+    # some methods are expected to always work on a rw filesystem, so let's make them work
+    #
 
     def _success(self, *args):
         '''shortcut to always return success (0) to masquerade as a proper filesystem'''
@@ -119,6 +111,19 @@ class JottaFuse(LoggingMixIn, Operations):
     chown = _success
     utimens = _success
     setxattr = _success
+
+
+    #
+    # fuse syscall implementations
+    #
+
+
+    def create(self, path, mode, fi=None):
+        if is_blacklisted(path):
+            raise JottaFuseError('Blacklisted file')
+        self.__newfiles[path] = StringIO()
+        self.ino += 1
+        return self.ino
 
     def getattr(self, path, fh=None):
         if is_blacklisted(path):
