@@ -670,23 +670,14 @@ class JFS(object):
     def __init__(self, username, password, async_upload=False):
         from requests.auth import HTTPBasicAuth
         self.apiversion = '2.2' # hard coded per october 2014
-        self.session = requests.Session() # create a session for connection pooling, ssl keepalives and cookie jar
-        self.session_async = None
+        self.session = FuturesSession(max_workers=6)#requests.Session() # create a session for connection pooling, ssl keepalives and cookie jar
         self.username = username
         self.session.auth = HTTPBasicAuth(username, password)
         self.session.verify = certifi.where()
         self.session.headers =  {'User-Agent':'jottalib %s (https://github.com/havardgulldahl/jottalib)' % (__version__, ),
                                  'X-JottaAPIVersion': self.apiversion,
                                 }
-        if async_upload:
-            self.session_async = FuturesSession(max_workers=6) if async_upload is True else None # a pool of async request workers
-            self.session_async.auth = HTTPBasicAuth(username, password)
-            self.session_async.verify = certifi.where()
-            self.session_async.headers =  {'User-Agent':'jottalib %s (https://github.com/havardgulldahl/jottalib)' % (__version__, ),
-                                           'X-JottaAPIVersion': self.apiversion,
-                                          }
-
-
+        self.async_upload = async_upload
         self.rootpath = JFS_ROOT + username
         self.fs = self.get(self.rootpath)
 
@@ -698,11 +689,11 @@ class JFS(object):
         logging.debug("getting url: %s, usecache=%s, extra_headers=%s", url, usecache, extra_headers)
         if extra_headers is None: extra_headers={}
         if usecache:
-            r = self.session.get(url, headers=extra_headers)
+            r = self.session.get(url, headers=extra_headers).result() # GET queries are never async
         else:
 # TODO: Re-enable cache after making it work with MultipartEncoder
 #            with requests_cache.disabled():
-            r = self.session.get(url, headers=extra_headers)
+            r = self.session.get(url, headers=extra_headers).result()
 
         if r.status_code in ( 500, ):
             raise JFSError(r.reason)
@@ -783,22 +774,23 @@ class JFS(object):
             headers['content-type'] = m.content_type
         else:
             m = content
-        if self.session_async is not None:
-            def check_status(session, result):
-                logging.warning("Result is in: %s", result.url)
-                if result.status_code in ( 500, 404, 401, 403, 400 ):
-                    logging.warning('HTTP POST failed: %s', r.text)
-                    raise JFSError(r.reason)
-            # do background upload with requests-futures
-            r = self.session_async.post(url, data=m, params=params, headers=headers)
-#                                        background_callback=check_status)
+#             def check_status(session, result):
+#                 logging.warning("Result is in: %s", result.url)
+#                 if result.status_code in ( 500, 404, 401, 403, 400 ):
+#                     logging.warning('HTTP POST failed: %s', r.text)
+#                     raise JFSError(r.reason)
+        # do background upload with requests-futures
+        r = self.session.post(url, data=m, params=params, headers=headers)
+        #                                        background_callback=check_status)
+        if self.async_upload is True: # return a Future object, network activity in another thread
             return r
-        else:
-            r = self.session.post(url, data=m, params=params, headers=headers)
-            if r.status_code in ( 500, 404, 401, 403, 400 ):
-                logging.warning('HTTP POST failed: %s', r.text)
-                raise JFSError(r.reason)
-            return self.getObject(r) # return a JFS* class
+        else:           # get an instant reply (blocking the progmr)
+
+            response = r.result()
+            if response.status_code in ( 500, 404, 401, 403, 400 ):
+                logging.warning('HTTP POST failed: %s', response.text)
+                raise JFSError(response.reason)
+            return self.getObject(response) # return a JFS* class
 
     def up(self, path, fileobject, upload_callback=None, resume_offset=None):
         "Upload a fileobject to path, HTTP POST-ing to up.jottacloud.com, using the JottaCloud API"
