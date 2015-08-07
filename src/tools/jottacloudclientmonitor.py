@@ -107,7 +107,7 @@ class ArchiveEventHandler(FileSystemEventHandler):
         # this works on platforms: windows, ... ?
         # TODO: investigate http://stackoverflow.com/a/3876461 for POSIX support
         try:
-            open(src_path)   # win exclusively 
+            open(src_path)   # win exclusively
             os.open(src_path, os.O_EXLOCK) # osx exclusively
         except IOError: # file is not finished
             logging.info('File is not finished')
