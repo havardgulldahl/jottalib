@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with jottafs.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
+# Copyright 2014,2015 Håvard Gulldahl <havard@gulldahl.no>
 
 from setuptools import setup
 
