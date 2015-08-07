@@ -41,7 +41,7 @@ function unmount {
         R=$(/bin/umount "$1");
     }
     fi
-    return $R;
+    return $?;
 
 }
 
@@ -98,6 +98,7 @@ sleep 1;
 
 info "T8. Rename folder";
 mv "$TESTDIR" "${TESTDIR}-x" || warn "rename folder failed";
+sleep 1;
 
 info "T9. Remove folder";
 rm "${TESTDIR}-x" || warn "removing folder failed";
@@ -107,6 +108,8 @@ df "$TMPDIR" 1>/dev/null || warn "statfs fsailed";
 
 info "T11. Symlink";
 ln -s /tmp/testdata.txt "${TESTFILE}-link" || warn "symlink failed";
+sleep 1;
+rm "${TESTFILE}-link" || warn "rm failed";
 
 info "T12. Unmount";
 unmount "$TMPDIR" || warn "unmounting jottafuse failed!";

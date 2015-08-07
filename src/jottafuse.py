@@ -294,6 +294,24 @@ class JottaFuse(LoggingMixIn, Operations):
 
         }
 
+    def symlink(self, linkname, existing_file):
+        """Called to create a symlink `target -> source` (e.g. ln -s existing_file linkname). In jottafuse, we upload the _contents_ of source.
+
+        This is a handy shortcut for streaming uploads directly from disk, without reading the file
+        into memory first"""
+        logging.info("***SYMLINK* %s (link) -> %s (existing)", linkname, existing_file)
+        sourcepath = os.path.abspath(existing_file)
+        if not os.path.exists(sourcepath): # broken symlink
+            raise OSError(errno.ENOENT, '')
+        try:
+            with open(sourcepath) as sourcefile:
+                self.client.up(linkname, sourcefile)
+                return ESUCCESS
+        except Exception as e:
+            logging.exception(e)
+
+        raise OSError(errno.ENOENT, '')
+
     def truncate(self, path, length, fh=None):
         "Download existing path, truncate and reupload"
         try:
@@ -360,6 +378,7 @@ if __name__ == '__main__':
         requests_log = logging.getLogger("requests.packages.urllib3")
         requests_log.setLevel(logging.DEBUG)
         requests_log.propagate = True
+        logging.basicConfig(level=logging.DEBUG)
 
     try:
         n = netrc.netrc()
