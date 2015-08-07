@@ -21,12 +21,13 @@ Run it from crontab at an appropriate interval.
 # You should have received a copy of the GNU General Public License
 # along with jottacloudclient.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
+# Copyright 2014-2015 Håvard Gulldahl <havard@gulldahl.no>
 
 import os, os.path, sys, logging, argparse, netrc
-import math, time
+import math, time, signal, datetime
+from concurrent import futures
 
-
+logging.captureWarnings(True)
 from clint.textui import progress, puts, colored
 from jottalib.JFS import JFS
 from jottacloudclient import jottacloud, __version__
@@ -72,61 +73,66 @@ if __name__=='__main__':
         username = os.environ['JOTTACLOUD_USERNAME']
         password = os.environ['JOTTACLOUD_PASSWORD']
 
-    jfs = JFS(username, password)
+    jfs = JFS(username, password, async_upload=True)
 
     if not args.no_unicode: # use pretty characters to show progress
         progress.BAR_EMPTY_CHAR=u'○'
         progress.BAR_FILLED_CHAR=u'●'
 
     errors = {}
-    def saferun(cmd, *args):
-        logging.debug('running %s with args %s', cmd, args)
-        try:
-            return apply(cmd, args)
-        except Exception as e:
-            puts(colored.red('Ouch. Something\'s wrong with "%s":' % args[0]))
-            logging.exception('SAFERUN: Got exception when processing %s', args)
-            errors.update( {args[0]:e} )
-            return False
-
+    def sigint_handler(signum, frame):
+        logging.warning("Quitting after C-C keycombo")
+        jfs.session_async.executor.shutdown(wait=False)
+        sys.exit(1)
+    signal.signal(signal.SIGINT, sigint_handler)
     _files = 0
+    dangling_files = []
+    from requests.packages import urllib3
+    urllib3.disable_warnings()
+    q = {} # our task queue with Future network operations from requests-futures
+    def print_finished(j):
+        print "fhinished: %s" % repr(j)
 
-    try:
-        for dirpath, onlylocal, onlyremote, bothplaces in jottacloud.compare(args.topdir, args.jottapath, jfs):
-            puts(colored.green("Entering dir: %s" % dirpath))
-            if len(onlylocal):
-                _start = time.time()
-                _uploadedbytes = 0
-                for f in progress.bar(onlylocal, label="uploading %s new files: " % len(onlylocal)):
-                    if os.path.islink(f.localpath):
-                        logging.debug("skipping symlink: %s", f)
-                        continue
-                    logging.debug("uploading new file: %s", f)
-                    if not args.dry_run:
-                        if saferun(jottacloud.new, f.localpath, f.jottapath, jfs) is not False:
-                            _uploadedbytes += os.path.getsize(f.localpath)
-                            _files += 1
-                _end = time.time()
-                puts(colored.magenta("Network upload speed %s/sec" % ( humanizeFileSize( (_uploadedbytes / (_end-_start)) ) )))
+    puts(colored.green("Collecting changes recursively from %s" % args.topdir))
 
-            if len(onlyremote):
-                puts(colored.red("Deleting %s files from JottaCloud because they no longer exist locally " % len(onlyremote)))
-                for f in progress.bar(onlyremote, label="deleting JottaCloud file: "):
-                    logging.debug("deleting cloud file that has disappeared locally: %s", f)
-                    if not args.dry_run:
-                        if saferun(jottacloud.delete, f.jottapath, jfs) is not False:
-                            _files += 1
-            if len(bothplaces):
-                for f in progress.bar(bothplaces, label="comparing %s existing files: " % len(bothplaces)):
-                    logging.debug("checking whether file contents has changed: %s", f)
-                    if not args.dry_run:
-                        if saferun(jottacloud.replace_if_changed, f.localpath, f.jottapath, jfs) is not False:
-                            _files += 1
-    except KeyboardInterrupt:
-        # Ctrl-c pressed, cleaning up
-        pass
-    if len(errors) == 0:
-        puts('Finished syncing %s files to JottaCloud, no errors. yay!' % _files)
-    else:
-        puts(('Finished syncing %s files, ' % _files )+
-             colored.red('with %s errors (read %s for details)' % (len(errors), args.errorfile, )))
+    _start = time.time()
+    for dirpath, onlylocal, onlyremote, bothplaces in jottacloud.compare(args.topdir, args.jottapath, jfs):
+        puts(colored.green("Entering dir: %s" % dirpath))
+        for f in progress.bar(onlylocal,
+                              label="Adding new files to upload queue: ",
+                              hide=True if len(onlylocal) == 0 else None):
+            if os.path.islink(f.localpath):
+                logging.debug("skipping symlink: %s", f)
+                continue
+            if not args.dry_run:
+                job = jottacloud.new(f.localpath, f.jottapath, jfs)
+                #job.add_done_callback(print_finished)
+                q[job] = os.path.getsize(f.localpath) # add jobb to queue, store file size
+
+        dangling_files += list(onlyremote)
+
+        for f in progress.bar(bothplaces,
+                              label="Comparing %s existing files: " % len(bothplaces),
+                              hide=True if len(bothplaces) == 0 else None):
+            if not args.dry_run:
+                job = jottacloud.replace_if_changed(f.localpath, f.jottapath, jfs)
+                #job.add_done_callback(print_finished)
+                if job is not None: #if it is None, file hasnt changd'
+                    q[job] = os.path.getsize(f.localpath) ## add jobb to queue, store file size
+
+    _uploadedbytes = 0
+    puts(colored.green("Total size to upload: %s" % humanizeFileSize(sum(q.values()))))
+    for job in progress.bar(futures.as_completed(q),
+                            label="uploading %s new files: " % len(q),
+                            hide=True if len(q) == 0 else None,
+                            expected_size=len(q)):
+        _uploadedbytes = _uploadedbytes + q[job]
+        _now = time.time()
+        puts(colored.magenta("Current upload speed: %s/s" % ( humanizeFileSize(_uploadedbytes / (_now-_start) ) )))
+
+    for f in progress.bar(dangling_files, label="Deleting dangling JottaCloud files: ",
+                         hide=True if len(dangling_files) == 0 else None):
+        if not args.dry_run:
+            jottacloud.delete(f.jottapath, jfs)
+
+    puts(colored.blue("[%s] Finished syncing files" % datetime.datetime.now().isoformat()))

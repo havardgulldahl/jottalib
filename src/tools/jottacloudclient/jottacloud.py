@@ -16,13 +16,13 @@
 # You should have received a copy of the GNU General Public License
 # along with jottabox.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
+# Copyright 2014-2015 Håvard Gulldahl <havard@gulldahl.no>
 
 import sys, os, os.path, hashlib, logging, collections
 
 import jottalib
-from jottalib.JFS import JFSNotFoundError,
-                         JFSFolder, JFSFile, JFSIncompleteFile, JFSFileDirList,
+from jottalib.JFS import JFSNotFoundError, \
+                         JFSFolder, JFSFile, JFSIncompleteFile, JFSFileDirList,\
                          calculate_md5
 
 
@@ -85,45 +85,49 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False):
 def new(localfile, jottapath, JFS):
     """Upload a new file from local disk (doesn't exist on JottaCloud).
 
-    Returns JottaFile object"""
-    with open(localfile) as lf:
-        _new = JFS.up(jottapath, lf)
-    return _new
+    Returns Request object of the new file (or a Future if async uploading).
+    Run it through JFS.getObject if you need a JFS* object.
+
+    """
+    return JFS.up(jottapath, open(localfile))
 
 def resume(localfile, jottafile, JFS):
-    """Continue uploading a new file from local file (already exists on JottaCloud"""
-    with open(localfile) as lf:
-        _complete = jottafile.resume(lf)
-    return _complete
+    """Continue uploading a new file from local file (already exists on JottaCloud)
+
+    Returns Request object of the new file (or a Future if async uploading).
+    Run it through JFS.getObject if you need a JFS* object.
+    """
+    return jottafile.resume(open(localfile))
 
 def replace_if_changed(localfile, jottapath, JFS):
     """Compare md5 hash to determine if contents have changed.
     Upload a file from local disk and replace file on JottaCloud if the md5s differ,
     or continue uploading if the file is incompletely uploaded.
 
-    Returns the JottaFile object"""
+    Returns None if the file in the cloud is identical to the local one,
+    or the request object (a Future if async uploading is used) if we are resuming or
+    uploading."""
     jf = JFS.getObject(jottapath)
-    with open(localfile) as lf:
-        lf_hash = calculate_md5(lf)
+    lf_hash = calculate_md5(open(localfile))
     if type(jf) == JFSIncompleteFile:
         logging.debug("Local file %s is incompletely uploaded, continue", localfile)
         return resume(localfile, jf, JFS)
     elif jf.md5 == lf_hash: # hashes are the same
         logging.debug("hash match (%s), file contents haven't changed", lf_hash)
-        return jf         # return the version from jottaclouds
+        return None         # nothing needs to be done
     else:
         return new(localfile, jottapath, JFS)
 
 def delete(jottapath, JFS):
     """Remove file from JottaCloud because it is no longer present on local disk.
     Returns boolean"""
-    jf = JFS.post('%s?dl=true' % jottapath)
+    jf = JFS.getObject(JFS.post('%s?dl=true' % jottapath).result())
     return jf.is_deleted()
 
 def mkdir(jottapath, JFS):
     """Make a new directory (a.k.a. folder) on JottaCloud.
     Returns boolean"""
-    jf = JFS.post('%s?mkDir=true' % jottapath)
+    jf = JFS.getObject(JFS.post('%s?mkDir=true' % jottapath).result())
     return instanceof(jf, JFSFolder)
 
 def iter_tree(jottapath, JFS):
