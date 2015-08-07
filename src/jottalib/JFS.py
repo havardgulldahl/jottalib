@@ -372,6 +372,7 @@ class JFSFile(JFSIncompleteFile):
     BIGTHUMB=1
     MEDIUMTHUMB=2
     SMALLTHUMB=3
+    #TODO: Add these thumb sizes: WXL
 
     def __init__(self, fileobject, jfs, parentpath): # fileobject from lxml.objectify
         self.f = fileobject
