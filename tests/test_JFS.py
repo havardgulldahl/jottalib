@@ -100,11 +100,13 @@ class TestJFS:
         assert s == TESTFILEDATA
         t.delete()
 
+    @pytest.mark.xfail
     def test_resume(self):
-        pass
+        raise NotImplementedError
 
+    @pytest.mark.xfail
     def test_post(self):
-        pass
+        raise NotImplementedError
         #TODO: test unicode string upload
         #TODO: test file list upload
         #TODO: test upload_callback
@@ -116,6 +118,11 @@ class TestJFS:
         assert isinstance(jfs.getObject('/Jotta/Archive/test'), JFS.JFSFolder)
         #TODO: test with a python-requests object
 
+    @pytest.mark.xfail
+    def test_urlencoded_filename(self):
+        #TODO: make sure filenames that contain percent-encoded characters are
+        # correctly parsed
+        raise NotImplementedError
 
 class TestJFSFileDirList:
     'Tests for JFSFileDirList'
