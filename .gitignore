@@ -12,5 +12,6 @@ include/
 ^jottalib.sublime-*
 *.log
 *.session
-
 *.rc
+setup.py
+
