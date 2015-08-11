@@ -33,7 +33,7 @@ except ImportError:
 
 # importing external dependencies (pip these, please!)
 import requests
-import requests_cache
+#import requests_cache
 import requests_toolbelt
 import certifi
 # TODO: Re-enable cache after making it work with MultipartEncoder
