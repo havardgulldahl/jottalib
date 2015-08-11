@@ -51,6 +51,10 @@ setup(name='jottalib',
                         'certifi',
                         'python-dateutil',
                         'lxml'],
+      # see https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
+      extras_require = {
+        'Qt':  ['python-qt4',],
+      },
      )
 
 
