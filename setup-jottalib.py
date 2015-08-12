@@ -41,15 +41,20 @@ setup(name='jottalib',
       long_description=long_desc,
       author=u'Håvard Gulldahl',
       author_email='havard@gulldahl.no',
-      url='https://gitorious.org/jottafs',
+      url='https://github.com/havardgulldahl/jottalib',
       package_dir={'':'src'},
       packages=['jottalib', ],
-      scripts=['src/jottafuse.py', 'src/jottashare.py'],
-      install_requires=['requests==2.1.0',
+      #scripts=[],
+      install_requires=['requests',
                         'requests_toolbelt',
-                        'requests_cache==0.4.4',
+                        #'requests_cache',
+                        'certifi',
                         'python-dateutil',
                         'lxml'],
+      # see https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
+      extras_require = {
+        'Qt':  ['python-qt4',],
+      },
      )
 
 
