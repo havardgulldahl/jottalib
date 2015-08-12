@@ -21,9 +21,9 @@
 from setuptools import setup
 
 import os, sys
-sys.path.insert(0, './src')
+sys.path.insert(0, './src/tools')
 
-from jottalib import __version__
+from jottacloudclient import __version__
 
 try:
     os.system('pandoc --from=markdown --to=rst --output=README.txt src/tools/README.jottacloudclient.md')
@@ -48,7 +48,7 @@ setup(name='jottacloudclient',
                'src/tools/jottacloudclientscanner.py',
                'src/jottafuse.py',
                'src/jottashare.py'],
-      install_requires=['jottalib>=0.2.10',
+      install_requires=['jottalib>=%s' % __version__,
                         'clint',
                         ],
       # see https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
