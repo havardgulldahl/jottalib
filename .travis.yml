@@ -10,7 +10,7 @@ python:
   - "nightly"
   - "pypy"
 # command to install dependencies
-install: "pip install -r ."
+install: "pip install -r requirements.txt"
 # command to run tests
 script: py.test tests/
 script: bash tests/fusetest.sh
