@@ -9,8 +9,12 @@ python:
   - "3.5-dev"
   - "nightly"
   - "pypy"
+branches:
+  only:
+    - master
+    - development
 # command to install dependencies
-install: "pip install -r requirements.txt"
+install: "pip install -r tests/requirements.txt"
 # command to run tests
 script: py.test tests/
 script: bash tests/fusetest.sh
