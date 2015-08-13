@@ -88,7 +88,7 @@ if __name__=='__main__':
     _files = 0
     dangling_files = []
     from requests.packages import urllib3
-    urllib3.disable_warnings()
+    urllib3.disable_warnings() # TODO: remove this before release?
     q = {} # our task queue with Future network operations from requests-futures
     def print_finished(j):
         print "fhinished: %s" % repr(j)
