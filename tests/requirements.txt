@@ -1,12 +1,18 @@
 # enumerating ALL dependencies, also extras, for both packages for easy testing
 
-#jottalib
+# jottalib
+
 requests
 requests_toolbelt
 certifi
 python-dateutil
 lxml
-#jottacloudclient
+
+# jottacloudclient
+
 clint
 fusepy
 watchdog
+
+# test environment
+py.test
