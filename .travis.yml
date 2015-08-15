@@ -2,7 +2,7 @@ language: python
 
 # what pythons to test
 python:
-  - "2.6"
+#  - "2.6"
   - "2.7"
 #  - "3.3"
 #  - "3.4"
@@ -21,7 +21,9 @@ before_install:
   - sudo apt-get install -qq libfuse-dev pkg-config fuse user-mode-linux
   - sudo mknod /dev/fuse c 10 229
   - sudo chmod 666 /dev/fuse
-install: "pip install -r tests/requirements.txt"
+  - PYTHONPATH=$PYTHONPATH:./src # here is jottalib
+install:
+  - pip install -r tests/requirements.txt
 
 # run tests
 script:
