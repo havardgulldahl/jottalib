@@ -22,9 +22,10 @@
 __author__ = 'havard@gulldahl.no'
 
 # import standardlib
-import os, StringIO
+import os, StringIO, logging
 
-import pytest
+# import py.test
+import pytest # pip install pytest
 
 # import jotta
 from jottalib import JFS, __version__
