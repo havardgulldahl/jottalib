@@ -27,4 +27,5 @@ install:
 # run tests
 script:
   - PYTHONPATH=$PYTHONPATH:./src py.test tests/
-  - ./tests/fusetest.sh
+  # TODO: add fuse tests when travis suports it https://github.com/travis-ci/travis-ci/issues/3491
+  # - ./tests/fusetest.sh
