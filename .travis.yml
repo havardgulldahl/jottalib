@@ -15,6 +15,15 @@ branches:
     - master
     - development
 
+# ping these services with our results
+notifications:
+  webhooks:
+    urls:
+      - https://webhooks.gitter.im/e/4d39320d101700354362
+    on_success: change  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+    on_start: never     # options: [always|never|change] default: always
+
 # install dependencies
 before_install:
   - sudo apt-get update -qq
