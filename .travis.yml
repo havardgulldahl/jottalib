@@ -21,11 +21,10 @@ before_install:
   - sudo apt-get install -qq libfuse-dev pkg-config fuse user-mode-linux
   - sudo mknod /dev/fuse c 10 229
   - sudo chmod 666 /dev/fuse
-  - PYTHONPATH=$PYTHONPATH:./src # here is jottalib
 install:
   - pip install -r tests/requirements.txt
 
 # run tests
 script:
-  - py.test tests/
+  - PYTHONPATH=$PYTHONPATH:./src py.test tests/
   - ./tests/fusetest.sh
