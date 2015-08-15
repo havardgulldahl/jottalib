@@ -89,8 +89,10 @@ class TestJFS:
         p = "/Jotta/Archive/testfile_up_and_readpartial.txt"
         t = jfs.up(p, StringIO.StringIO(TESTFILEDATA))
         f = jfs.getObject(p)
+        # pick a number less than length of text
         start = random.randint(0, len(TESTFILEDATA))
-        end = random.randint(0, len(TESTFILEDATA)-start)
+        # pick a number between start and length of text
+        end = random.randint(0, len(TESTFILEDATA)-start) + start
         assert f.readpartial(start, end) == TESTFILEDATA[start:end]
         f.delete()
 
