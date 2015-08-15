@@ -4,11 +4,9 @@
 
 [![Requirements Status](https://requires.io/github/havardgulldahl/jottalib/requirements.svg?branch=master)](https://requires.io/github/havardgulldahl/jottalib/requirements/?branch=master)
 
-Stable: [![Build status master branch])(https://travis-ci.org/havardgulldahl/jottalib.svg?branch=master)](https://travis-ci.org/havardgulldahl/jottalib.svg?branch=development)
+Stable: [![Build status master branch](https://travis-ci.org/havardgulldahl/jottalib.svg?branch=master)](https://travis-ci.org/havardgulldahl/jottalib.svg?branch=development)
 
-Development: [![Build status master branch])(https://travis-ci.org/havardgulldahl/jottalib.svg?branch=development)](https://travis-ci.org/havardgulldahl/jottalib.svg?branch=development)
-
-
+Development: [![Build status development branch](https://travis-ci.org/havardgulldahl/jottalib.svg?branch=development)](https://travis-ci.org/havardgulldahl/jottalib.svg?branch=development)
 
 This is a rich, pythonic interface to the Jottacloud backup/cloud storage service. The service itself exposes a nice and simple HTTP REST api, and this library wraps that interface in a python module, in the hope that it may be useful.
 
