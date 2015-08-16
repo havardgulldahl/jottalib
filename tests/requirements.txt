@@ -1,0 +1,18 @@
+# enumerating ALL dependencies, also extras, for both packages for easy testing
+
+# jottalib
+
+requests
+requests_toolbelt
+certifi
+python-dateutil
+lxml
+
+# jottacloudclient
+
+clint
+fusepy
+watchdog
+
+# test environment
+pytest

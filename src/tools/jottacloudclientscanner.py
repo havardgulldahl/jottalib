@@ -98,6 +98,9 @@ if __name__=='__main__':
                 _start = time.time()
                 _uploadedbytes = 0
                 for f in progress.bar(onlylocal, label="uploading %s new files: " % len(onlylocal)):
+                    if os.path.islink(f.localpath):
+                        logging.debug("skipping symlink: %s", f)
+                        continue
                     logging.debug("uploading new file: %s", f)
                     if not args.dry_run:
                         if saferun(jottacloud.new, f.localpath, f.jottapath, jfs) is not False:

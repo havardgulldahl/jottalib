@@ -25,6 +25,7 @@ from jottalib import __version__
 # importing stdlib
 import sys, os, os.path, time
 import urllib, logging, datetime, hashlib
+from collections import defaultdict, namedtuple
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -32,8 +33,9 @@ except ImportError:
 
 # importing external dependencies (pip these, please!)
 import requests
-import requests_cache
+#import requests_cache
 import requests_toolbelt
+import certifi
 # TODO: Re-enable cache after making it work with MultipartEncoder
 #requests_cache.core.install_cache(backend='memory', expire_after=30.0, fast_save=True)
 import lxml, lxml.objectify
@@ -50,6 +52,23 @@ urllib3.fields.format_header_param = mp
 JFS_ROOT='https://www.jotta.no/jfs/'
 JFS_CACHELIMIT=1024*1024 # stuff below this threshold (in bytes) will be cached
 
+
+# helper functions
+
+def calculate_md5(fileobject, size=2**16):
+    """Utility function to calculate md5 hashes while being light on memory usage.
+
+    By reading the fileobject piece by piece, we are able to process content that
+    is larger than available memory"""
+    fileobject.seek(0)
+    md5 = hashlib.md5()
+    for data in iter(lambda: fileobject.read(size), b''):
+        md5.update(data)
+    fileobject.seek(0) # rewind read head
+    return md5.hexdigest()
+
+# error classes
+
 class JFSError(Exception):
     @staticmethod
     def raiseError(e, path): # parse object from lxml.objectify and
@@ -59,6 +78,8 @@ class JFSError(Exception):
             raise JFSCredentialsError("Your credentials don't match for %s (%s) (probably incorrect password!)" % (path, e.message))
         elif(e.code) == 403:
             raise JFSAuthenticationError("You don't have access to %s (%s)" % (path, e.message))
+        elif(e.code) == 416:
+            raise JFSRangeError("Requested Range Not Satisfiable (%s)" % e.message)
         elif(e.code) == 500:
             raise JFSServerError("Internal server error: %s (%s)" % (path, e.message))
         elif(e.code) == 400:
@@ -81,11 +102,60 @@ class JFSAccessError(JFSError): #
 class JFSAuthenticationError(JFSError): # HTTP 403
     pass
 
+class JFSRangeError(JFSError): # HTTP 416
+    pass
+
 class JFSServerError(JFSError): # HTTP 500
     pass
 
+# classes mapping JFS structures
+
+
 class JFSFileDirList(object):
-    pass # TODO: Implement this
+    'Wrapping <filedirlist>, a simple tree of folders and their files'
+    """get a <filedirlist> for any jottafolder by appending ?mode=list to your query
+
+    <filedirlist time="2015-05-28-T18:57:06Z" host="dn-093.site-000.jotta.no">
+        <folders>
+          <folder name="Sync">
+            <path xml:space="preserve">/havardgulldahl/Jotta</path>
+            <abspath xml:space="preserve">/havardgulldahl/Jotta</abspath>
+            <files>
+                <file>..."""
+
+
+    def __init__(self, filedirlistobject, jfs, parentpath): # filedirlistobject from lxml.objectify
+        self.filedirlist = filedirlistobject
+        self.parentPath = parentpath
+        self.jfs = jfs
+
+        treefile = namedtuple('TreeFile', 'name size md5 uuid')
+
+        self.tree = {}
+        for folder in self.filedirlist.folders.iterchildren():
+            foldername = unicode(folder.attrib.get('name'))
+            path = unicode(folder.path)
+            t = []
+            if hasattr(folder, 'files'):
+                for file_ in folder.files.iterchildren():
+                    if hasattr(file_, 'currentRevision'): # a normal file
+                        t.append(treefile(unicode(file_.attrib['name']),
+                                          int(file_.currentRevision.size),
+                                          unicode(file_.currentRevision.md5),
+                                          unicode(file_.attrib['uuid'])
+                                          )
+                                 )
+                    else:
+                        # an incomplete file
+                        t.append(treefile(unicode(file_.attrib['name']),
+                                          -1, # incomplete files have no size
+                                          unicode(file_.latestRevision.md5),
+                                          unicode(file_.attrib['uuid'])
+                                          )
+                                 )
+            self.tree[os.path.join(path, foldername)] = t
+
+
 
 class JFSFolder(object):
     'OO interface to a folder, for convenient access. Type less, do more.'
@@ -97,8 +167,7 @@ class JFSFolder(object):
 
     @property
     def name(self):
-        return self.folder.attrib.has_key('name') and unicode(self.folder.attrib['name']) or unicode(self.folder.name)
-        return unicode(self.folder.attrib.get('name', self.folder.name))
+        return unicode(self.folder.attrib['name']) if self.folder.attrib.has_key('name') else unicode(self.folder.name)
 
     @property
     def path(self):
@@ -168,29 +237,25 @@ class JFSFolder(object):
         self.sync()
         return r
 
-class JFSIncompleteFile(object):
-    'OO interface to an incomplete file.'
-    """<file name="h2.jpg" uuid="d492d1fb-6dd4-4ce3-9ab6-e5369ac8abf1" time="2014-12-11-T22:25:04Z" host="dn-092.site-000.jotta.no">
-<path xml:space="preserve">/havardgulldahl/gulldahlpc/B/teste/jottatest</path>
-<abspath xml:space="preserve">/havardgulldahl/gulldahlpc/B/teste/jottatest</abspath>
-<latestRevision>
-<number>1</number>
-<state>INCOMPLETE</state>
-<created>2014-12-11-T21:45:13Z</created>
-<modified>2014-12-11-T21:45:13Z</modified>
-<mime>image/jpeg</mime>
-<mstyle>IMAGE_JPEG</mstyle>
-<md5>25bf47bf6fa3b11b9b920887fb19f717</md5>
-<updated>2014-12-11-T21:45:13Z</updated>
-</latestRevision>
-</file>"""
+    def filedirlist(self):
+        'Get a JFSFileDirList, recursive tree of JFSFile and JFSFolder'
+        url = '%s?mode=list' % self.path
+        return self.jfs.getObject(url)
+
+class ProtoFile(object):
+    'Prototype for different incarnations fo file, e.g. JFSIncompleteFile and JFSFile'
+
+    # constants for known file states
+    STATE_COMPLETED = 'COMPLETED' # -> JFSFile
+    STATE_ADDED = 'ADDED'
+    STATE_INCOMPLETE = 'INCOMPLETE' # -> JFSIncompleteFile
+    STATE_PROCESSING = 'PROCESSING'
+    STATE_CORRUPT = 'CORRUPT'
+
     def __init__(self, fileobject, jfs, parentpath): # fileobject from lxml.objectify
         self.f = fileobject
         self.jfs = jfs
         self.parentPath = parentpath
-
-    def resume(self, fileobj_or_path):
-        raise NotImplementedError
 
     def is_image(self):
         'Return bool based on self.mime'
@@ -211,9 +276,44 @@ class JFSIncompleteFile(object):
         if _d is None: return None
         return dateutil.parser.parse(str(_d))
 
+    def is_deleted(self):
+        'Return bool based on self.deleted'
+        return self.deleted is not None
+
     @property
     def path(self):
         return '%s/%s' % (self.parentPath, self.name)
+
+
+class JFSIncompleteFile(ProtoFile):
+    'OO interface to an incomplete file.'
+    """<file name="iii.m4v" uuid="e8f268ac-d081-4d4f-bfb1-77149b2bd51d" time="2015-05-29-T18:11:56Z" host="dn-091.site-000.jotta.no">
+  <path xml:space="preserve">/havardgulldahl/Jotta/Sync</path>
+  <abspath xml:space="preserve">/havardgulldahl/Jotta/Sync</abspath>
+  <latestRevision>
+    <number>1</number>
+    <state>INCOMPLETE</state>
+    <created>2014-05-22-T22:13:52Z</created>
+    <modified>2014-05-19-T13:37:14Z</modified>
+    <mime>video/mp4</mime>
+    <mstyle>VIDEO_MP4</mstyle>
+    <size>100483008</size> <!-- THIS IS THE SIZE OF WHAT'S BEEN TRANSFERED THIS FAR. havardgulldahl -->
+    <md5>4d7cdab5256b72d17075ec388e467e99</md5>
+    <updated>2015-05-29-T18:07:56Z</updated>
+  </latestRevision>
+</file>
+</file>"""
+
+    def resume(self, data):
+        'Resume uploading an incomplete file, after a previous upload was interrupted. Returns new file object'
+        if not hasattr(data, 'read'):
+            data = StringIO(data)
+        #check if what we're asked to upload is actually the right file
+        md5 = calculate_md5(data)
+        if md5 != self.md5:
+            raise JFSError('''MD5 hashes don't match! Are you trying to resume with the wrong file?''')
+        logging.debug('Resuming %s from offset %s', self.path, self.size)
+        return self.jfs.up(self.path, data, resume_offset=self.size)
 
     @property
     def revisionNumber(self):
@@ -247,6 +347,11 @@ class JFSIncompleteFile(object):
     def state(self):
         return unicode(self.f.latestRevision.state)
 
+    @property
+    def size(self):
+        'return int'
+        return int(self.f.latestRevision.size)
+
 class JFSFile(JFSIncompleteFile):
     'OO interface to a file, for convenient access. Type less, do more.'
     ## TODO: add <revisions> iterator for all
@@ -268,9 +373,11 @@ class JFSFile(JFSIncompleteFile):
 </file>
 
     """
+    # Constants for thumb nail sizes
     BIGTHUMB=1
     MEDIUMTHUMB=2
     SMALLTHUMB=3
+    #TODO: Add these thumb sizes: WXL
 
     def __init__(self, fileobject, jfs, parentpath): # fileobject from lxml.objectify
         self.f = fileobject
@@ -303,12 +410,13 @@ class JFSFile(JFSIncompleteFile):
         'Get a part of the file, from start byte to end byte (integers)'
         return self.jfs.raw('%s?mode=bin' % self.path,
                             usecache=False,
-                            extra_headers={'Range':'bytes=%s-%s' % (start, end)})
+                            # note that we deduct 1 from end because
+                            # in http Range requests, the end value is included in the slice,
+                            # whereas in python, it is not
+                            extra_headers={'Range':'bytes=%s-%s' % (start, end-1)})
 
     def write(self, data):
         'Put, possibly replace, file contents with (new) data'
-#         return self.jfs.post(self.path, content=data,
-#                              extra_headers={'Content-Type':'application/octet-stream'})
         if not hasattr(data, 'read'):
             data = StringIO(data)
         self.jfs.up(self.path, data)
@@ -345,10 +453,6 @@ class JFSFile(JFSIncompleteFile):
                     self.MEDIUMTHUMB:'WM',
                     self.SMALLTHUMB:'WS'}
         return self.jfs.raw('%s?mode=thumb&ts=%s' % (self.path, thumbmap[size]))
-
-    def is_deleted(self):
-        'Return bool based on self.deleted'
-        return self.deleted is not None
 
     @property
     def revisionNumber(self):
@@ -409,14 +513,21 @@ class JFSMountPoint(JFSFolder):
         return dateutil.parser.parse(str(self.dev.modified))
 
 class JFSDevice(object):
-    'OO interface to a device, for convenient access. Type less, do more.'
-    """
+    '''OO interface to a device, for convenient access. Type less, do more.
+
+
+    Note that sometimes we cheat a little and instantiate this object with only the elements
+    available from <user>, in which case some elements aren't there.'''
+    """ raw xml example:
     <device time="2014-02-20-T21:02:42Z" host="dn-036.site-000.jotta.no">
   <name xml:space="preserve">laptop</name>
   <type>LAPTOP</type>
   <sid>d831efc4-f885-4d97-bd8d-</sid>
   <size>371951820971</size>
   <modified>2014-02-20-T14:03:52Z</modified>
+  <!-- the following elements are only available if we get the metadata from
+       the http path explicitly.
+       you won't find it here under the <user/> element -->
   <user>hgl</user>
   <mountPoints>
     <mountPoint>
@@ -460,6 +571,8 @@ class JFSDevice(object):
         self.mountPoints = {unicode(mp.name):mp for mp in self.mountpointobjects()}
 
     def contents(self, path=None):
+        """Get _all_ metadata for this device.
+        Call this method if you have the lite/abbreviated device info from e.g. <user/>. """
         if isinstance(path, lxml.objectify.ObjectifiedElement) and hasattr(path, 'name'):
             # passed an object, use .'name' as path value
             path = '/%s' % path.name
@@ -467,7 +580,11 @@ class JFSDevice(object):
         return c
 
     def mountpointobjects(self):
-        return [ JFSMountPoint(obj, self._jfs, self.path) for obj in self.contents().mountPoints.iterchildren() ]
+        try:
+            return [ JFSMountPoint(obj, self._jfs, self.path) for obj in self.contents().mountPoints.iterchildren() ]
+        except AttributeError:
+            # there are no mountpoints. this may happen on newly created devices. see github bug#26
+            return []
 
     def files(self, mountPoint):
         """Get an iterator of JFSFile() from the given mountPoint.
@@ -554,26 +671,18 @@ class JFSenableSharing(object):
 
 
 class JFS(object):
-    def __init__(self, username, password, ca_bundle=True):
+    def __init__(self, username, password):
         from requests.auth import HTTPBasicAuth
         self.apiversion = '2.2' # hard coded per october 2014
         self.session = requests.Session() # create a session for connection pooling, ssl keepalives and cookie jar
         self.username = username
         self.session.auth = HTTPBasicAuth(username, password)
-        self.session.verify = ca_bundle
+        self.session.verify = certifi.where()
         self.session.headers =  {'User-Agent':'jottalib %s (https://github.com/havardgulldahl/jottalib)' % (__version__, ),
                                  'X-JottaAPIVersion': self.apiversion,
                                 }
         self.rootpath = JFS_ROOT + username
         self.fs = self.get(self.rootpath)
-        
-    def _calculate_hash(self, fileobject, size=2**16):
-        fileobject.seek(0)
-        md5 = hashlib.md5()
-        for data in iter(lambda: fileobject.read(size), b''):
-            md5.update(data)
-        fileobject.seek(0)
-        return md5.hexdigest()
 
     def request(self, url, usecache=True, extra_headers=None):
         'Make a GET request for url, with or without caching'
@@ -597,9 +706,13 @@ class JFS(object):
         'Make a GET request for url and return whatever content we get'
         r = self.request(url, usecache=usecache, extra_headers=extra_headers)
         # uncomment to dump raw xml
-        # f = open('/tmp/%s.xml' % time.time(), 'wb')
-        # f.write(r.content)
-        # f.close()
+#         with open('/tmp/%s.xml' % time.time(), 'wb') as f:
+#             f.write(r.content)
+
+        if not r.ok:
+            logging.warning('HTTP GET failed: %s', r.text)
+            o = lxml.objectify.fromstring(r.content)
+            JFSError.raiseError(o, url)
         return r.content
 
     def get(self, url, usecache=True):
@@ -634,6 +747,7 @@ class JFS(object):
         elif o.tag == 'user':
             self.fs = o
             return self.fs
+        elif o.tag == 'filedirlist': return JFSFileDirList(o, jfs=self, parentpath=parent)
         raise JFSError("invalid object: %s <- %s" % (repr(o), url_or_requests_response))
 
     def stream(self, url, chunkSize=1024):
@@ -653,28 +767,28 @@ class JFS(object):
         #logging.debug('yanking url from cache: %s', url)
         #cache = requests_cache.core.get_cache()
         #cache.delete_url(url)
-        logging.debug('posting content (len %s) to url %s', content is not None and len(content) or '?', url)
+        logging.debug('posting content (len %s) to url %s', len(content) if content is not None else '?', url)
         headers = self.session.headers.copy()
         headers.update(**extra_headers)
-        
+
         if not files is None:
             m = requests_toolbelt.MultipartEncoder(fields=files)
             if upload_callback is not None:
-                m_len = len(m)
+                m_len = m.len # compute value for callback closure
                 def callback(monitor):
                     upload_callback(monitor, m_len)
-                
+
                 m = requests_toolbelt.MultipartEncoderMonitor(m, callback)
             headers['content-type'] = m.content_type
         else:
             m = content
         r = self.session.post(url, data=m, params=params, headers=headers)
-        if r.status_code in ( 500, 404, 401, 403, 400 ):
+        if not r.ok:
             logging.warning('HTTP POST failed: %s', r.text)
             raise JFSError(r.reason)
         return self.getObject(r) # return a JFS* class
 
-    def up(self, path, fileobject, upload_callback=None):
+    def up(self, path, fileobject, upload_callback=None, resume_offset=None):
         "Upload a fileobject to path, HTTP POST-ing to up.jottacloud.com, using the JottaCloud API"
         """
 
@@ -704,10 +818,13 @@ class JFS(object):
         # Calculate file length
         fileobject.seek(0,2)
         contentlen = fileobject.tell()
-        fileobject.seek(0)
+
+        # Rewind read head to correct offset
+        # If we're resuming a borked upload, continue from that offset
+        fileobject.seek(resume_offset if resume_offset is not None else 0)
 
         # Calculate file md5 hash
-        md5hash = self._calculate_hash(fileobject)
+        md5hash = calculate_md5(fileobject)
 
         logging.debug('posting content (len %s, hash %s) to url %s', contentlen, md5hash, url)
         now = datetime.datetime.now().isoformat()
@@ -737,34 +854,34 @@ class JFS(object):
     @property
     def locked(self):
         'return bool'
-        return self.fs is not None and bool(self.fs.locked) or None
+        return bool(self.fs.locked) if self.fs is not None else None
 
     @property
     def read_locked(self):
         'return bool'
-        return self.fs is not None and bool(self.fs['read-locked']) or None
+        return bool(self.fs['read-locked']) if self.fs is not None else None
 
     @property
     def write_locked(self):
         'return bool'
-        return self.fs is not None and bool(self.fs['write-locked']) or None
+        return bool(self.fs['write-locked']) if self.fs is not None else None
 
     @property
     def capacity(self):
         'Return int of storage capacity in bytes. A value of -1 means "unlimited"'
-        return self.fs is not None and int(self.fs.capacity) or 0
+        return int(self.fs.capacity) if self.fs is not None else 0
 
     @property
     def usage(self):
         'Return int of storage usage in bytes'
-        return self.fs is not None and int(self.fs.usage) or 0
+        return int(self.fs.usage) if self.fs is not None else 0
 
 
 if __name__=='__main__':
     # debug setup
     import httplib as http_client
     logging.basicConfig(level=logging.DEBUG)
-    #http_client.HTTPConnection.debuglevel = 1
+    http_client.HTTPConnection.debuglevel = 1
     #requests_log = logging.getLogger("requests.packages.urllib3")
     #requests_log.setLevel(logging.DEBUG)
     #requests_log.propagate = True
