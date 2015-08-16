@@ -13,7 +13,6 @@ python:
 branches:
   only:
     - master
-    - development
 
 # ping these services with our results
 notifications:
