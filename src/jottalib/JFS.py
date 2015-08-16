@@ -78,6 +78,8 @@ class JFSError(Exception):
             raise JFSCredentialsError("Your credentials don't match for %s (%s) (probably incorrect password!)" % (path, e.message))
         elif(e.code) == 403:
             raise JFSAuthenticationError("You don't have access to %s (%s)" % (path, e.message))
+        elif(e.code) == 416:
+            raise JFSRangeError("Requested Range Not Satisfiable (%s)" % e.message)
         elif(e.code) == 500:
             raise JFSServerError("Internal server error: %s (%s)" % (path, e.message))
         elif(e.code) == 400:
@@ -98,6 +100,9 @@ class JFSAccessError(JFSError): #
     pass
 
 class JFSAuthenticationError(JFSError): # HTTP 403
+    pass
+
+class JFSRangeError(JFSError): # HTTP 416
     pass
 
 class JFSServerError(JFSError): # HTTP 500
@@ -703,6 +708,11 @@ class JFS(object):
         # uncomment to dump raw xml
 #         with open('/tmp/%s.xml' % time.time(), 'wb') as f:
 #             f.write(r.content)
+
+        if not r.ok:
+            logging.warning('HTTP GET failed: %s', r.text)
+            o = lxml.objectify.fromstring(r.content)
+            JFSError.raiseError(o, url)
         return r.content
 
     def get(self, url, usecache=True):
@@ -773,7 +783,7 @@ class JFS(object):
         else:
             m = content
         r = self.session.post(url, data=m, params=params, headers=headers)
-        if r.status_code in ( 500, 404, 401, 403, 400 ):
+        if not r.ok:
             logging.warning('HTTP POST failed: %s', r.text)
             raise JFSError(r.reason)
         return self.getObject(r) # return a JFS* class

@@ -145,12 +145,19 @@ class TestJFSError:
     class JFSAccessError(JFSError): #
     class JFSAuthenticationError(JFSError): # HTTP 403
     class JFSServerError(JFSError): # HTTP 500
+    class JFSRangeError(JFSError): # HTTP 416
     """
     def test_errors(self):
         with pytest.raises(JFS.JFSCredentialsError): # HTTP 401
             JFS.JFS('pytest', 'pytest')
         with pytest.raises(JFS.JFSNotFoundError): # HTTP 404
             jfs.get('/Jotta/Archive/FileNot.found')
+        with pytest.raises(JFS.JFSRangeError): # HTTP 416
+            p = "/Jotta/Archive/testfile_up_and_readpartial.txt"
+            t = jfs.up(p, StringIO.StringIO(TESTFILEDATA))
+            f = jfs.getObject(p)
+            f.readpartial(10, 3) # Range start index larger than end index;
+            f.delete()
 
 
 """
