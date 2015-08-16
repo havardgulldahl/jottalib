@@ -1,10 +1,6 @@
 # JOTTALIB #
 
-[![Join the chat at https://gitter.im/havardgulldahl/jottalib](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/havardgulldahl/jottalib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
-[![Requirements Status](https://requires.io/github/havardgulldahl/jottalib/requirements.svg?branch=master)](https://requires.io/github/havardgulldahl/jottalib/requirements/?branch=master)
-
-[![Build status master branch](https://travis-ci.org/havardgulldahl/jottalib.svg?branch=master)](https://travis-ci.org/havardgulldahl/jottalib.svg?branch=master)
+[![Join the chat at https://gitter.im/havardgulldahl/jottalib](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/havardgulldahl/jottalib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Requirements Status](https://requires.io/github/havardgulldahl/jottalib/requirements.svg?branch=master)](https://requires.io/github/havardgulldahl/jottalib/requirements/?branch=master) [![Build status master branch](https://travis-ci.org/havardgulldahl/jottalib.svg?branch=master)](https://travis-ci.org/havardgulldahl/jottalib.svg?branch=master)
 
 This is a rich, pythonic interface to the Jottacloud backup/cloud storage service. The service itself exposes a nice and simple HTTP REST api, and this library wraps that interface in a python module, in the hope that it may be useful.
 
