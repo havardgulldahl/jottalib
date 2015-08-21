@@ -21,8 +21,8 @@
 import sys, os, os.path, hashlib, logging, collections
 
 import jottalib
-from jottalib.JFS import JFSNotFoundError,
-                         JFSFolder, JFSFile, JFSIncompleteFile, JFSFileDirList,
+from jottalib.JFS import JFSNotFoundError, \
+                         JFSFolder, JFSFile, JFSIncompleteFile, JFSFileDirList, \
                          calculate_md5
 
 
