@@ -211,8 +211,12 @@ class JottaFuse(LoggingMixIn, Operations):
                 raise OSError(errno.ENOENT, '')
             if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
                 raise OSError(errno.ENOENT)
-#             print "f.readpartial(%s, %s" % (offset, offset+size)
-            return f.readpartial(offset, offset+size)
+            # gnu tools may happily ask for content beyond file size
+            # but jottacloud doesn't like that
+            # so we make sure we stay within file size (f.size)
+            end = min(offset+size, f.size)
+            logging.debug("f.readpartial(%s, %s) on file of size %s" % (offset, end, f.size))
+            return f.readpartial(offset, end)
 
     def readdir(self, path, fh):
         yield '.'
