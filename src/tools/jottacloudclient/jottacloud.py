@@ -55,7 +55,7 @@ def filelist(jottapath, JFS):
         return False
     return set([f.name for f in jf.files() if not f.is_deleted()]) # Only return files that aren't deleted
 
-def compare(localtopdir, jottamountpoint, JFS, followlinks=False):
+def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patterns=None):
     """Make a tree of local files and folders and compare it with what's currently on JottaCloud.
 
     For each folder, yields three set()s:
@@ -63,10 +63,19 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False):
         onlyremote, # files that only exist in the JottaCloud, i.e. deleted locally
         bothplaces # files that exist both locally and remotely
     """
+    def excluded(dirpath, fname):
+        fpath = os.path.join(dirpath, _decode_filename(fname))
+        if not exclude_patterns:
+            return False
+        for p in exclude_patterns:
+            if p.search(fpath):
+                logging.debug("%r excluded by pattern %r", fpath, p.pattern)
+                return True
+        return False
     for dirpath, dirnames, filenames in os.walk(localtopdir, followlinks=followlinks):
         dirpath = dirpath.decode(sys.getfilesystemencoding())
         logging.debug("compare walk: %s -> %s files ", dirpath, len(filenames))
-        localfiles = set([f.decode(sys.getfilesystemencoding()) for f in filenames]) # these are on local disk
+        localfiles = set([_decode_filename(f) for f in filenames if not excluded(dirpath, f)]) # these are on local disk
         jottapath = get_jottapath(localtopdir, dirpath, jottamountpoint) # translate to jottapath
         logging.debug("compare jottapath: %s", jottapath)
         cloudfiles = filelist(jottapath, JFS) # set(). these are on jottacloud
@@ -81,6 +90,11 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False):
         onlyremote = [ sf(f) for f in cloudfiles.difference(localfiles)]
         bothplaces = [ sf(f) for f in localfiles.intersection(cloudfiles)]
         yield dirpath, onlylocal, onlyremote, bothplaces
+
+
+def _decode_filename(f):
+    return f.decode(sys.getfilesystemencoding())
+
 
 def new(localfile, jottapath, JFS):
     """Upload a new file from local disk (doesn't exist on JottaCloud).
