@@ -36,63 +36,20 @@ The easiest way: `pip install jottacloudclient` or `pip install jottalib`.
 These are extras you would install if you need it:
 
   * `pip install jottacloudclient[FUSE]` for a Fuse client (see below)
-  * `pip install jottacloudclient[monitor]` for a tool to contiually monitor a folder on your system (see below)
+  * `pip install jottacloudclient[monitor]` for a tool to continually monitor a folder on your system (see below)
   * `pip install jottalib[Qt]` for developers wanting to use the Qt models
 
-## How to get started
+## Documentation
 
-Export your Jottacloud username and password to the running environment. Running macosx or linux, it would normally go like this:
+To help both end users and developers to get started, a lot of use cases are [covered in the wiki](https://github.com/havardgulldahl/jottalib/wiki).
 
-    export JOTTACLOUD_USERNAME="yourusername"
-    export JOTTACLOUD_PASSWORD="yourpassword"
-
-## Crontab client
-
-The **main use case** for Jottacloud customers is probably a (headless) client that works the same way as the official clients. That is, a program that automatically mirrors every file in some paths and keeps a file-by-file copy up to date in the cloud.  That way you'll get a tried and tested, cross-platform backup solution.
-
-Take a look at `jottacloudclientscanner.py` from `jottacloudclient`, which will scan through a local file tree and make sure the online tree is in sync. And when you get it up and running, add it to your `crontab` / `schtasks.exe` and enjoy some fresh air. Your files are safe! (But who knows about your cat photos)
-
-## FUSE client, a.k.a. Virtual jottacloud file system
-
-This will "mount" jottacloud as a folder on your system, allowing you to use your normal file system utilities to browse your account.
-
-*Note* Being a remote mounted folder, it won't be anywhere as snappy as a locally synchronised folder. Since everything has to go over the network, and Jottacloud never intended for this kind of use, the **performance will probably make you sad**.
-
-0. Install necessary stuff:
-
-       `pip install jottacloudclient[FUSE]`
-
-1. Create a folder where you want your Jottacloud file system:
-
-       `mkdir $HOME/jottafs`
-
-2. Run fuse **as a normal user**:
-
-       `jottafuse.py $HOME/jottafs`
-
-
-## QT models
-
-Take a look at `jottalib.qt`, where you'll find a JFSModel(QtGui.QStandardItemModel) class and various JFSNode(QtGui.QStandardItem) classes to match the jottacloud api. Using these classes you'll hopefully be able to focus on the UI/UX and leave the plumbing to jottalib.
-
-Remember to `pip install jottalib[Qt]` first.
-
-## jottashare.py
-
-A simple command line script to easily upload and share a file at a public, secret URI
-
-Usage:
-
-	jottashare.py <some great file you need to share>
-
-## Duplicity backend
-
-The goal is to integrate JottaCloud with [duplicity](http://duplicity.nongnu.org/). Then we can run automated backups and store them in the JottaCloud.
 
 ## Authors
 
-The library was initiated by havard@gulldahl.no, but **a project like this needs a lot of community love**. Luckily patches, suggestions and comments are trickling in, take a look at [authors.md](authors.md) for the full picture.
+The library was initiated by havard@gulldahl.no, but **a project like this needs a lot of community love**. Luckily patches, suggestions and comments are trickling in, take a look at [authors.md](AUTHORS.md) for the full picture.
 
 If you notice something wrong, need some new functionality or want to participate, [let us know about it!](https://github.com/havardgulldahl/jottalib/issues/)
 
-We need coders, quality assurance and power users alike, so if you want to lend a hand, don't hesitate to open a new issue. Your help will be much appreciated.
+We need coders, quality assurance and power users alike, so if you want to lend a hand, don't hesitate to open a new issue. Your help will be much appreciated!
+
+If you want to chat about a bug or ask a general question, you'll find the core contributors [in the gitter.im room](https://gitter.im/havardgulldahl/jottalib).
