@@ -36,8 +36,8 @@ The easiest way: `pip install jottacloudclient` or `pip install jottalib`.
 These are extras you would install if you need it:
 
   * `pip install jottacloudclient[FUSE]` for a Fuse client ([read more about it](https://github.com/havardgulldahl/jottalib/wiki/Normal-use-cases#i-want-a-virtual-jottacloud-file-system))
-  * `pip install jottacloudclient[monitor]` for a tool to continuously monitor a folder on your system ([read more about it](https://github.com/havardgulldahl/jottalib/wiki/Normal-use-cases#i-want-a-virtual-jottacloud-file-system))
-  * `pip install jottalib[Qt]` for developers wanting to use the Qt models
+  * `pip install jottacloudclient[monitor]` for a tool to continuously monitor a folder on your system ([read more about it](https://github.com/havardgulldahl/jottalib/wiki/Normal-use-cases#i-want-a-drop-folder-so-everything-i-put-there-is-stored-automatically))
+  * `pip install jottalib[Qt]` for developers wanting to use the Qt models ([help is on the way](https://github.com/havardgulldahl/jottalib/wiki/Developers#qt-models))
 
 ## Documentation
 
