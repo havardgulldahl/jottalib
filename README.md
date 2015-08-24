@@ -36,7 +36,7 @@ The easiest way: `pip install jottacloudclient` or `pip install jottalib`.
 These are extras you would install if you need it:
 
   * `pip install jottacloudclient[FUSE]` for a Fuse client (see below)
-  * `pip install jottacloudclient[monitor]` for a tool to continually monitor a folder on your system (see below)
+  * `pip install jottacloudclient[monitor]` for a tool to continuously monitor a folder on your system (see below)
   * `pip install jottalib[Qt]` for developers wanting to use the Qt models
 
 ## Documentation
