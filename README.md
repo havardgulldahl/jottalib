@@ -52,4 +52,4 @@ If you notice something wrong, need some new functionality or want to participat
 
 We need coders, quality assurance and power users alike, so if you want to lend a hand, don't hesitate to open a new issue. Your help will be much appreciated!
 
-If you want to chat about a bug or ask a general question, you'll find the core contributors [in the gitter.im room](https://gitter.im/havardgulldahl/jottalib).
+If you want to chat about a bug or ask a general question, you'll find the core contributors [in the gitter.im room](https://gitter.im/havardgulldahl/jottalib). Come and take a look!
