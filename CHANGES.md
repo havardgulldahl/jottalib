@@ -1,5 +1,18 @@
 # Change Log
 
+## [0.3.1] - 2015-08-26
+
+### Changed
+
+- `jottacloudclientscanner.py` now supports excluding files and directory matching a regex. Thanks Morten Lied Johansen
+
+### Fixed
+
+- Fix regression in `jottafuse.py` on linux, where attempting to read data beyond file size would return an error instead of all the data there is. See bug#43
+
+
+
+
 ## [0.3] - 2015-08-12
 
 
