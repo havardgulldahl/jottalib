@@ -53,7 +53,8 @@ setup(name='jottacloudclient',
                         ],
       # see https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
       extras_require = {
-        'FUSE':  ['fusepy',],
+        'FUSE':  ['fusepy', 'fastcache',],
         'monitor': ['watchdog',],
+        'scanner': ['xattr',],
       },
      )
