@@ -23,7 +23,7 @@ Run it from crontab at an appropriate interval.
 #
 # Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
 
-import os, os.path, sys, logging, argparse, netrc
+import os, re, os.path, sys, logging, argparse, netrc
 import math, time
 
 
@@ -51,6 +51,7 @@ if __name__=='__main__':
                                     This is not an official JottaCloud project.""")
     parser.add_argument('--loglevel', type=int, help='Loglevel from 1 (only errors) to 9 (extremely chatty)', default=logging.WARNING)
     parser.add_argument('--errorfile', help='A file to write errors to', default='./jottacloudclient.log')
+    parser.add_argument('--exclude', type=re.compile, action='append', help='Exclude paths matched by this pattern (can be repeated)')
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('--dry-run', action='store_true',
                         help="don't actually do any uploads or deletes, just show what would be done")
@@ -92,7 +93,7 @@ if __name__=='__main__':
     _files = 0
 
     try:
-        for dirpath, onlylocal, onlyremote, bothplaces in jottacloud.compare(args.topdir, args.jottapath, jfs):
+        for dirpath, onlylocal, onlyremote, bothplaces in jottacloud.compare(args.topdir, args.jottapath, jfs, exclude_patterns=args.exclude):
             puts(colored.green("Entering dir: %s" % dirpath))
             if len(onlylocal):
                 _start = time.time()
