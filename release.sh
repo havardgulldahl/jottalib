@@ -6,8 +6,31 @@ function err {
 	exit 1;
 }
 
+function confirm {
+    # thank you, http://stackoverflow.com/a/3232082
+    # call with a prompt string or use a default
+    read -r -p "${1:-Are you sure? [y/N]} " response
+    case $response in
+        [yY][eE][sS]|[yY])
+            true
+            ;;
+        *)
+            false
+            ;;
+    esac
+}
+
 source bin/activate || err "couldnt activate virtualenv";
 VERSION=$(cat src/jottalib/__init__.py | cut -b14- | sed s/\'//) || err "couldnt get version";
+
+echo "RUNNING TESTS"
+echo "=======================";
+py.test tests/
+tests/fusetest.sh
+
+
+confirm "Continue with release?" || exit 0;
+
 
 echo "RELEASE JOTTALIB AND JOTTACLOUDCLIENT VERSION $VERSION:"
 echo "=======================";
