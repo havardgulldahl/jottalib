@@ -65,7 +65,7 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patter
     """
     def excluded(dirpath, fname):
         fpath = os.path.join(dirpath, _decode_filename(fname))
-        if not exclude_patterns:
+        if exclude_patterns is None:
             return False
         for p in exclude_patterns:
             if p.search(fpath):
