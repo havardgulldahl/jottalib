@@ -57,4 +57,20 @@ setup(name='jottacloudclient',
         'monitor': ['watchdog',],
         'scanner': ['xattr',],
       },
-     )
+      classifiers = """
+Intended Audience :: End Users/Desktop
+License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)
+Operating System :: Microsoft :: Windows
+Operating System :: POSIX
+Operating System :: POSIX :: Linux
+Operating System :: MacOS :: MacOS X
+Programming Language :: Python :: 2.7
+Programming Language :: Python :: Implementation :: CPython
+Programming Language :: Python :: Implementation :: PyPy
+Topic :: System :: Archiving
+Topic :: System :: Archiving :: Backup
+Topic :: Utilities
+""".split('\n'),
+
+      )
+

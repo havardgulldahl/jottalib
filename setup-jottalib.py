@@ -55,6 +55,17 @@ setup(name='jottalib',
       extras_require = {
         'Qt':  ['python-qt4',],
       },
-     )
+      classifiers = """
+Intended Audience :: Developers
+License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)
+Operating System :: OS Independent
+Programming Language :: Python :: 2.7
+Programming Language :: Python :: Implementation :: CPython
+Programming Language :: Python :: Implementation :: PyPy
+Topic :: System :: Archiving
+Topic :: System :: Archiving :: Backup
+Topic :: Utilities
+""".split('\n'),
 
+     )
 
