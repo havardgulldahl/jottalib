@@ -34,6 +34,7 @@
 #
 
 import time
+import logging
 
 class MWT(object):
     """Memoize With Timeout"""
@@ -62,11 +63,11 @@ class MWT(object):
             key = (args, tuple(kw))
             try:
                 v = self.cache[key]
-                print "cache"
+                logging.debug("get object from cache: %s", key)
                 if (time.time() - v[1]) > self.timeout:
                     raise KeyError
             except KeyError:
-                print "new"
+                logging.debug("new object in cache: %s", key)
                 v = self.cache[key] = f(*args,**kwargs),time.time()
             return v[0]
         func.func_name = f.func_name
