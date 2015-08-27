@@ -36,6 +36,7 @@ except ImportError:
 
 # import jotta
 from jottalib import JFS, __version__
+from tools.mwt import MWT
 
 # import dependenceis (get them with pip!)
 try:
@@ -71,8 +72,6 @@ class JottaFuse(LoggingMixIn, Operations):
     def __init__(self, username, password, path='.'):
         self.client = JFS.JFS(username, password)
         self.root = path
-        self.dirty = False # True if some method has changed/added something and we need to get fresh data from JottaCloud
-        # TODO: make self.dirty more smart, to know what path, to get from cache and not
         self.__newfiles = {} # a dict of stringio objects
         self.__newfolders = []
         self.ino = 0
@@ -82,7 +81,7 @@ class JottaFuse(LoggingMixIn, Operations):
         if is_blacklisted(path):
             raise JottaFuseError('Blacklisted file, refusing to retrieve it')
 
-        return self.client.getObject(path, usecache=self.dirty is not True)
+        return self.client.getObject(path)
 
     #
     # setup and teardown
@@ -125,6 +124,7 @@ class JottaFuse(LoggingMixIn, Operations):
         self.ino += 1
         return self.ino
 
+    @MWT(timeout=60)
     def getattr(self, path, fh=None):
         if is_blacklisted(path):
             raise OSError(errno.ENOENT)
@@ -260,6 +260,7 @@ class JottaFuse(LoggingMixIn, Operations):
         self.dirty = True
         return ESUCCESS
 
+    @MWT(timeout=60)
     def statfs(self, path):
         "Return a statvfs(3) structure, for stat and df and friends"
         # from fuse.py source code:
