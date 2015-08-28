@@ -36,7 +36,7 @@ except ImportError:
 
 # import jotta
 from jottalib import JFS, __version__
-from tools.mwt import MWT
+from tools.mwt import Memoize
 
 # import dependenceis (get them with pip!)
 try:
@@ -62,6 +62,7 @@ def is_blacklisted(path):
             return True
     return False
 
+
 class JottaFuse(LoggingMixIn, Operations):
     '''
     A simple filesystem for JottaCloud.
@@ -71,17 +72,9 @@ class JottaFuse(LoggingMixIn, Operations):
 
     def __init__(self, username, password, path='.'):
         self.client = JFS.JFS(username, password)
-        self.root = path
         self.__newfiles = {} # a dict of stringio objects
         self.__newfolders = []
         self.ino = 0
-
-    def _getpath(self, path):
-        "A wrapper of JFS.getObject(), with some tweaks that make sense in a file system."
-        if is_blacklisted(path):
-            raise JottaFuseError('Blacklisted file, refusing to retrieve it')
-
-        return self.client.getObject(path)
 
     #
     # setup and teardown
@@ -96,6 +89,21 @@ class JottaFuse(LoggingMixIn, Operations):
         #TODO: do proper teardown
         pass
 
+
+    #
+    # helpers
+    #
+
+    def _getpath(self, path):
+        "A wrapper of JFS.getObject(), with some tweaks that make sense in a file system."
+        if is_blacklisted(path):
+            raise JottaFuseError('Blacklisted file, refusing to retrieve it')
+
+        return self.client.getObject(path)
+
+    def _dirty(self, path):
+        'Remove path from cache'
+        return Memoize().yank_path(path)
 
     #
     # some methods are expected to always work on a rw filesystem, so let's make them work
@@ -124,7 +132,7 @@ class JottaFuse(LoggingMixIn, Operations):
         self.ino += 1
         return self.ino
 
-    @MWT(timeout=60)
+    @Memoize(timeout=60) # remember every result for 60 seconds
     def getattr(self, path, fh=None):
         if is_blacklisted(path):
             raise OSError(errno.ENOENT)
@@ -185,8 +193,8 @@ class JottaFuse(LoggingMixIn, Operations):
         if isinstance(f, (JFS.JFSFile, JFS.JFSFolder)) and f.is_deleted():
             raise OSError(errno.ENOENT)
         r = f.mkdir(newfolder)
-        self.dirty = True
         self.__newfolders.append(path)
+        self._dirty(path)
         return ESUCCESS
 
     def open(self, path, flags):
@@ -230,7 +238,6 @@ class JottaFuse(LoggingMixIn, Operations):
                 for name in p.mountPoints.keys():
                     yield name
             else:
-                self.dirty = False # TODO: make this a dirty flag per branch/twig, not whole tree
                 for el in itertools.chain(p.folders(), p.files()):
                     if not el.is_deleted():
                         yield el.name
@@ -246,6 +253,7 @@ class JottaFuse(LoggingMixIn, Operations):
                 self.client.up(path, f) # upload to jottacloud
             del self.__newfiles[path]
             del f
+            self._dirty(path)
         except KeyError:
             pass
         return ESUCCESS
@@ -257,10 +265,11 @@ class JottaFuse(LoggingMixIn, Operations):
         except JFS.JFSError:
             raise OSError(errno.ENOENT, '')
         f.rename(new)
-        self.dirty = True
+        self._dirty(old)
+        self._dirty(new)
         return ESUCCESS
 
-    @MWT(timeout=60)
+    @Memoize(timeout=60)
     def statfs(self, path):
         "Return a statvfs(3) structure, for stat and df and friends"
         # from fuse.py source code:
@@ -329,6 +338,7 @@ class JottaFuse(LoggingMixIn, Operations):
         data.truncate(length)
         try:
             self.client.up(path, data) # replace file contents
+            self._dirty(path)
             return ESUCCESS
         except:
             raise OSError(errno.ENOENT, '')
@@ -336,19 +346,21 @@ class JottaFuse(LoggingMixIn, Operations):
     def unlink(self, path):
         if path in self.__newfolders: # folder was just created, not synced yet
             self.__newfolders.remove(path)
+            self._dirty(path)
             return
         elif path in self.__newfiles.keys(): # file was just created, not synced yet
             del self.__newfiles[path]
+            self._dirty(path)
             return
         try:
             f = self._getpath(path)
         except JFS.JFSError:
             raise OSError(errno.ENOENT, '')
         r = f.delete()
-        self.dirty = True
+        self._dirty(path)
         return ESUCCESS
 
-    rmdir = unlink # alias
+    rmdir = unlink # TODO: flesh out a full rmdir() method
 
     def write(self, path, data, offset, fh=None):
         if is_blacklisted(path):
@@ -359,6 +371,7 @@ class JottaFuse(LoggingMixIn, Operations):
         buf = self.__newfiles[path]
         buf.seek(offset)
         buf.write(data)
+        self._dirty(path)
         return len(data)
 
 if __name__ == '__main__':
