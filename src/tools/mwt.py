@@ -73,3 +73,21 @@ class MWT(object):
         func.func_name = f.func_name
 
         return func
+
+
+#
+#
+# This stuff added by the jottalib project, under the same terms as above (PSF License)
+#
+
+class Memoize(MWT):
+    '''A superset of MWT that adds the possibility to yank paths from cached results'''
+    def yank_path(self, path):
+        """Clear cache of results from a specific path"""
+        for func in self._caches:
+            cache = {}
+            for key in self._caches[func].keys():
+                logging.debug("cache key %s for func %s", key, func)
+                if path in key[0]:
+                    logging.debug("del cache key %s", key)
+                    del self._caches[func][key]
