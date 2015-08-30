@@ -22,7 +22,7 @@
 # Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 # stdlib
-import os, os.path
+import os, os.path, posixpath
 import string
 import urllib, locale
 
@@ -78,9 +78,9 @@ class JottaCloudBackend(duplicity.backend.Backend):
 
     @retry
     def get(self, remote_filename, local_path, raise_errors=False):
-        print "YYYYYYYYY %s" % os.path.join(self.folder.path, remote_filename)
+        print "YYYYYYYYY %s" % posixpath.join(self.folder.path, remote_filename)
         to_file = open( local_path.name, 'wb' )
-        f = self.client.getObject(os.path.join(self.folder.path, remote_filename))
+        f = self.client.getObject(posixpath.join(self.folder.path, remote_filename))
         log.Debug('jottacloud.get(%s,%s): %s'%(remote_filename,local_path.name, f))
         to_file.write(f.read())
         to_file.close()
@@ -98,7 +98,7 @@ class JottaCloudBackend(duplicity.backend.Backend):
     def delete(self, filenames, raise_errors=False):
         log.Debug('jottacloud.delete: %s'%filenames)
         for filename in filenames:
-            remote_name = os.path.join(self.folder.path, filename )
+            remote_name = posixpath.join(self.folder.path, filename )
             #first, get file object
             f = self.client.getObject(remote_name)
             log.Debug('jottacloud.delete deleting: %s (%s)'%(f, type(f)))

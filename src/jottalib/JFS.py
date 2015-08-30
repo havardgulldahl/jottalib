@@ -24,8 +24,8 @@ from jottalib import __version__
 
 # importing stdlib
 import sys, os, os.path, time
-import urllib, logging, datetime, hashlib
-from collections import defaultdict, namedtuple
+import posixpath, logging, datetime, hashlib
+from collections import namedtuple
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -153,7 +153,7 @@ class JFSFileDirList(object):
                                           unicode(file_.attrib['uuid'])
                                           )
                                  )
-            self.tree[os.path.join(path, foldername)] = t
+            self.tree[posixpath.join(path, foldername)] = t
 
 
 
@@ -208,7 +208,7 @@ class JFSFolder(object):
 
     def mkdir(self, foldername):
         'Create a new subfolder and return the new JFSFolder'
-        url = '%s?mkDir=true' % os.path.join(self.path, foldername)
+        url = '%s?mkDir=true' % posixpath.join(self.path, foldername)
         r = self.jfs.post(url)
         self.sync()
         return r
@@ -233,7 +233,7 @@ class JFSFolder(object):
             filename = os.path.basename(fileobj_or_path)
             fileobj_or_path = open(fileobj_or_path, 'rb')
         logging.debug('.up %s ->  %s %s', repr(fileobj_or_path), repr(self.path), repr(filename))
-        r = self.jfs.up(os.path.join(self.path, filename), fileobj_or_path)
+        r = self.jfs.up(posixpath.join(self.path, filename), fileobj_or_path)
         self.sync()
         return r
 
@@ -619,8 +619,7 @@ class JFSDevice(object):
 
     @property
     def path(self):
-        return os.path.join(self.parentPath, self.name)
-        # return '%s/%s' % (self.parentPath, self.name)
+        return posixpath.join(self.parentPath, self.name)
 
     @property
     def name(self):

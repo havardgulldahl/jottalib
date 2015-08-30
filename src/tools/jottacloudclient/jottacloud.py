@@ -18,9 +18,8 @@
 #
 # Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
 
-import sys, os, os.path, hashlib, logging, collections
+import sys, os, os.path, posixpath, logging, collections
 
-import jottalib
 from jottalib.JFS import JFSNotFoundError, \
                          JFSFolder, JFSFile, JFSIncompleteFile, JFSFileDirList, \
                          calculate_md5
@@ -32,8 +31,8 @@ SyncFile = collections.namedtuple('SyncFile', 'localpath, jottapath')
 def get_jottapath(localtopdir, dirpath, jottamountpoint):
     """Translate localtopdir to jottapath"""
     logging.debug("get_jottapath %s %s %s", localtopdir, dirpath, jottamountpoint)
-    return os.path.normpath(os.path.join(jottamountpoint, os.path.basename(localtopdir),
-                                         os.path.relpath(dirpath, localtopdir)))
+    return posixpath.normpath(posixpath.join(jottamountpoint, posixpath.basename(localtopdir),
+                                         posixpath.relpath(dirpath, localtopdir)))
 
 def is_file(jottapath, JFS):
     """Check if a file exists on jottacloud"""
@@ -83,7 +82,7 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patter
         def sf(f):
             """Create SyncFile tuple from filename"""
             return SyncFile(localpath=os.path.join(dirpath, f),
-                            jottapath=os.path.join(jottapath, f))
+                            jottapath=posixpath.join(jottapath, f))
         logging.debug("--cloudfiles: %s", cloudfiles)
         logging.debug("--localfiles: %s", localfiles)
         onlylocal = [ sf(f) for f in localfiles.difference(cloudfiles)]
