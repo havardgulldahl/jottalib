@@ -53,6 +53,7 @@ if __name__ == '__main__':
     for j in jfs.devices: # find Jotta/Shared folder
         if j.name == 'Jotta':
             jottadev = j
+            break
     jottashare = jottadev.mountPoints['Shared']
     upload = jottashare.up(args.localfile)  # upload file
     public = upload.share() # share file
