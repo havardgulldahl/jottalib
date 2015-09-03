@@ -121,11 +121,18 @@ class TestJFS:
         assert isinstance(jfs.getObject('/Jotta/Archive/test'), JFS.JFSFolder)
         #TODO: test with a python-requests object
 
-    @pytest.mark.xfail
     def test_urlencoded_filename(self):
         #TODO: make sure filenames that contain percent-encoded characters are
         # correctly parsed
-        raise NotImplementedError
+        # https://github.com/havardgulldahl/jottalib/issues/25
+        import tempfile, posixpath, urllib, requests
+        f = '%2FVolumes%2FMedia%2Ftest.mov'
+        p = posixpath.join('/Jotta/Archive', f)
+        _f = tempfile.NamedTemporaryFile(prefix=f)
+        _f.write('123test')
+        jfs_f = jfs.up(p, _f)
+        assert jfs.session.get('%s%s' % (JFS.JFS_ROOT, jfs.username) + '/Jotta/Archive/%252FVolumes%252FMedia%252Ftest.mov').ok # check that strange file name is preserved
+        jfs_f.delete()
 
 class TestJFSFileDirList:
     'Tests for JFSFileDirList'
