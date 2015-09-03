@@ -232,6 +232,8 @@ class JFSFolder(object):
         if not isinstance(fileobj_or_path, file):
             filename = os.path.basename(fileobj_or_path)
             fileobj_or_path = open(fileobj_or_path, 'rb')
+        elif filename is None: # fileobj is file, but filename is None
+            filename = os.path.basename(fileobj_or_path.name)
         logging.debug('.up %s ->  %s %s', repr(fileobj_or_path), repr(self.path), repr(filename))
         r = self.jfs.up(os.path.join(self.path, filename), fileobj_or_path)
         self.sync()
