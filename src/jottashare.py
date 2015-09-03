@@ -33,7 +33,8 @@ from jottalib import JFS
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.WARNING)
+    logging.basicConfig(level=logging.ERROR)
+    logging.captureWarnings(True)
     parser = argparse.ArgumentParser(description='Share a file on JottaCloud and get the public URI.',
                                      epilog='Note: This utility needs to find JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.')
     parser.add_argument('localfile', help='The local file that you want to share',
