@@ -21,13 +21,16 @@ Run it from crontab at an appropriate interval.
 # You should have received a copy of the GNU General Public License
 # along with jottacloudclient.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
+# Copyright 2014-2015 Håvard Gulldahl <havard@gulldahl.no>
 
+#import included batteries
 import os, re, os.path, sys, logging, argparse, netrc
 import math, time
 
-
+#import pip modules
 from clint.textui import progress, puts, colored
+
+#import jottalib
 from jottalib.JFS import JFS
 from jottacloudclient import jottacloud, __version__
 
@@ -49,7 +52,7 @@ if __name__=='__main__':
                                     epilog="""The program expects to find an entry for "jottacloud" in your .netrc,
                                     or JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.
                                     This is not an official JottaCloud project.""")
-    parser.add_argument('--loglevel', type=int, help='Loglevel from 1 (only errors) to 9 (extremely chatty)', default=logging.WARNING)
+    parser.add_argument('--loglevel', help='Choose how much to put in the log. One of DEBUG, INFO, WARNING, ERROR', default=logging.ERROR)
     parser.add_argument('--errorfile', help='A file to write errors to', default='./jottacloudclient.log')
     parser.add_argument('--exclude', type=re.compile, action='append', help='Exclude paths matched by this pattern (can be repeated)')
     parser.add_argument('--version', action='version', version=__version__)
@@ -61,6 +64,7 @@ if __name__=='__main__':
     parser.add_argument('jottapath', help='The path at JottaCloud where the tree shall be synced (must exist)')
     args = parser.parse_args()
     logging.basicConfig(level=args.loglevel)
+    logging.captureWarnings(True)
     fh = logging.FileHandler(args.errorfile)
     fh.setLevel(logging.ERROR)
     logging.getLogger('').addHandler(fh)
