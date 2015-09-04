@@ -121,6 +121,7 @@ class TestJFS:
         assert isinstance(jfs.getObject('/Jotta/Archive/test'), JFS.JFSFolder)
         #TODO: test with a python-requests object
 
+    @pytest.mark.xfail
     def test_urlencoded_filename(self):
         # make sure filenames that contain percent-encoded characters are
         # correctly parsed and the percent encoding is preserved
