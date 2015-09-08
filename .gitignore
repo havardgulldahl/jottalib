@@ -15,4 +15,5 @@ include/
 *.rc
 setup.py
 \.cache
-
+.idea
+*.iml

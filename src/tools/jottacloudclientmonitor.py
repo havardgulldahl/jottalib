@@ -21,7 +21,7 @@
 #
 # Copyright 2015 Håvard Gulldahl <havard@gulldahl.no>
 
-import time, os, os.path, sys, logging, argparse, netrc
+import time, os, os.path, sys, logging, argparse, netrc, posixpath
 
 from watchdog.observers import Observer # pip install watchdog
 from watchdog.utils import platform
@@ -77,9 +77,9 @@ class ArchiveEventHandler(FileSystemEventHandler):
         rel = os.path.relpath(p, self.topdir) # strip leading path
         parts = [self.jottaroot, ] + list(os.path.split(rel)) # explode path to normalize OS path separators
         if filename is not None:
-            parts.pop() # remove origilan filename
-            parts.append(filename) # and replace with provided one
-        return '/'.join( parts ).replace('//', '/') # return url
+            parts.pop()  # remove original filename
+            parts.append(filename)  # and replace with provided one
+        return posixpath.join(*parts)  # return url
 
     def on_modified(self, event, dry_run=False, remove_uploaded=True):
         'Called when a file (or directory) is modified. '

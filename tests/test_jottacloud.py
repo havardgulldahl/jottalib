@@ -65,6 +65,12 @@ class TestXattr:
         assert x.get('user.jottalib.filesize') == str(os.path.getsize(temp.name)) # xattr always stores strings
 
 
+def test_get_jottapath(tmpdir):
+    topdir = tmpdir.mkdir("topdir")
+    subdir = topdir.mkdir("subdir1").mkdir("subdir2")
+    jottapath = jottacloud.get_jottapath(str(topdir), str(subdir), "/TEST_ROOT")
+    assert jottapath == "/TEST_ROOT/topdir/subdir1/subdir2"
+
 # TODO:
 # def get_jottapath(localtopdir, dirpath, jottamountpoint):
 # def is_file(jottapath, JFS):
