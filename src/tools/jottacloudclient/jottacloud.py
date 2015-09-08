@@ -20,6 +20,9 @@
 
 import sys, os, os.path, hashlib, logging, collections
 
+from xattr import xattr # pip install xattr
+
+
 import jottalib
 from jottalib.JFS import JFSNotFoundError, \
                          JFSFolder, JFSFile, JFSIncompleteFile, JFSFileDirList, \
@@ -117,15 +120,19 @@ def replace_if_changed(localfile, jottapath, JFS):
 
     Returns the JottaFile object"""
     jf = JFS.getObject(jottapath)
-    with open(localfile) as lf:
-        lf_hash = calculate_md5(lf)
+    lf_hash = getxattrhash(localfile) # try to read previous hash, stored in xattr
+    if lf_hash is None:               # no valid hash found in xattr,
+        with open(localfile) as lf:
+            lf_hash = calculate_md5(lf) # (re)calculate it
     if type(jf) == JFSIncompleteFile:
         logging.debug("Local file %s is incompletely uploaded, continue", localfile)
         return resume(localfile, jf, JFS)
     elif jf.md5 == lf_hash: # hashes are the same
         logging.debug("hash match (%s), file contents haven't changed", lf_hash)
+        setxattrhash(localfile, lf_hash)
         return jf         # return the version from jottaclouds
     else:
+        setxattrhash(localfile, lf_hash)
         return new(localfile, jottapath, JFS)
 
 def delete(jottapath, JFS):
@@ -149,3 +156,30 @@ def iter_tree(jottapath, JFS):
     for folder in filedirlist.tree():
         logging.debug(folder)
         yield folder, tuple(folder.folders()), tuple(folder.files())
+
+def setxattrhash(filename, md5hash):
+    logging.debug('set xattr hash for %s', filename)
+    try:
+        x = xattr(filename)
+        x.set('user.jottalib.md5', md5hash)
+        #x.set('user.jottalib.timestamp', time.time())
+        x.set('user.jottalib.filesize', str(os.path.getsize(filename)))
+        return True
+    except Exception as e:
+        logging.exception(e)
+        #logging.debug('setxattr got exception %r', e)
+    return False
+
+def getxattrhash(filename):
+    logging.debug('get xattr hash for %s', filename)
+    try:
+        x = xattr(filename)
+        if x.get('user.jottalib.filesize') != str(os.path.getsize(filename)):
+            x.remove('user.jottalib.filesize')
+            x.remove('user.jottalib.md5')
+            return None # this is not the file we have calculated md5 for
+        return x.get('user.jottalib.md5')
+    except Exception as e:
+        logging.debug('setxattr got exception %r', e)
+        return None
+
