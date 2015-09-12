@@ -13,6 +13,7 @@ lxml
 clint
 fusepy
 watchdog
+xattr
 
 # test environment
 pytest
