@@ -740,7 +740,7 @@ class JFSenableSharing(object):
         'iterate over shared files and get their public URI'
         for f in self.sharing.files.iterchildren():
             yield (f.attrib['name'], f.attrib['uuid'],
-                'http://www.jottacloud.com/p/%s/%s' % (self.jfs.username, f.publicURI.text))
+                'https://www.jottacloud.com/p/%s/%s' % (self.jfs.username, f.publicURI.text))
 
 
 class JFS(object):
