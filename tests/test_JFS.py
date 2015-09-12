@@ -125,19 +125,19 @@ class TestJFS:
     def test_urlencoded_filename(self):
         # make sure filenames that contain percent-encoded characters are
         # correctly parsed and the percent encoding is preserved
-        # https://github.com/havardgulldahl/jottalib/issues/25
         import tempfile, posixpath, urllib, requests
-        f = '%2FVolumes%2FMedia%2Ftest.txt'
-        p = posixpath.join('/Jotta/Archive', f)
-        _f = tempfile.NamedTemporaryFile(prefix=f)
-        _f.write('123test')
-        jfs_f = jfs.up(p, _f)
-        clean_room_path = '%s%s' % (JFS.JFS_ROOT, jfs.username) + '/Jotta/Archive/%252FVolumes%252FMedia%252Ftest.txt'
-        #print clean_room_path
-        #print jfs_f.path
-        assert jfs.session.get(clean_room_path).status_code == 200 # check that strange file name is preserved
-        assert jfs_f.path == clean_room_path
-        jfs_f.delete()
+        tests = ['%2FVolumes%2FMedia%2Ftest.txt', # existing percent encoding, see #25
+                 'My funky file.txt', # file name with spaces, see 57
+                ]
+        for f in tests:
+            p = posixpath.join('/Jotta/Archive', f)
+            _f = tempfile.NamedTemporaryFile(prefix=f)
+            _f.write('123test')
+            jfs_f = jfs.up(p, _f)
+            clean_room_path = '%s%s%s%s' % (JFS.JFS_ROOT, jfs.username, '/Jotta/Archive/', f)
+            assert jfs.session.get(clean_room_path).status_code == 200 # check that strange file name is preserved
+            assert jfs_f.path == clean_room_path
+            jfs_f.delete()
 
 class TestJFSFileDirList:
     'Tests for JFSFileDirList'
