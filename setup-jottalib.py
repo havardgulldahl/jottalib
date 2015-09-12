@@ -20,7 +20,8 @@
 
 from setuptools import setup
 
-import os, sys
+import os
+import sys
 sys.path.insert(0, './src')
 
 from jottalib import __version__
@@ -52,10 +53,10 @@ setup(name='jottalib',
                         'python-dateutil',
                         'lxml'],
       # see https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
-      extras_require = {
-        'Qt':  ['python-qt4',],
+      extras_require={
+          'Qt':  ['python-qt4',],
       },
-      classifiers = """
+      classifiers="""
 Intended Audience :: Developers
 License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)
 Operating System :: OS Independent
@@ -66,6 +67,4 @@ Topic :: System :: Archiving
 Topic :: System :: Archiving :: Backup
 Topic :: Utilities
 """.split('\n'),
-
      )
-
