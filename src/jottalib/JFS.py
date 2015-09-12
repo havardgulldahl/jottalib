@@ -276,7 +276,7 @@ class JFSFolder(object):
         r = self.jfs.post(url, extra_headers={'Content-Type':'application/octet-stream'})
         return r
 
-    def up(self, fileobj_or_path, filename=None):
+    def up(self, fileobj_or_path, filename=None, upload_callback=None):
         'Upload a file to current folder and return the new JFSFile'
         if not isinstance(fileobj_or_path, file):
             filename = os.path.basename(fileobj_or_path)
@@ -284,7 +284,8 @@ class JFSFolder(object):
         elif filename is None: # fileobj is file, but filename is None
             filename = os.path.basename(fileobj_or_path.name)
         logging.debug('.up %s ->  %s %s', repr(fileobj_or_path), repr(self.path), repr(filename))
-        r = self.jfs.up(posixpath.join(self.path, filename), fileobj_or_path)
+        r = self.jfs.up(posixpath.join(self.path, filename), fileobj_or_path,
+            upload_callback=upload_callback)
         self.sync()
         return r
 
