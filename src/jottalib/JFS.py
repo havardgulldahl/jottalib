@@ -436,9 +436,9 @@ class JFSFile(JFSIncompleteFile):
         self.jfs = jfs
         self.parentPath = parentpath
 
-    def stream(self, chunkSize=1024):
+    def stream(self, chunk_size=64*1024):
         'Returns a generator to iterate over the file contents'
-        return self.jfs.stream(url='%s?mode=bin' % self.path, chunkSize=chunkSize)
+        return self.jfs.stream(url='%s?mode=bin' % self.path, chunk_size=chunk_size)
 
     def read(self):
         'Get the file contents as string'
@@ -828,10 +828,10 @@ class JFS(object):
         elif o.tag == 'filedirlist': return JFSFileDirList(o, jfs=self, parentpath=parent)
         raise JFSError("invalid object: %s <- %s" % (repr(o), url_or_requests_response))
 
-    def stream(self, url, chunkSize=1024):
-        'Iterator to get remote content by chunkSize (bytes)'
+    def stream(self, url, chunk_size=64*1024):
+        'Iterator to get remote content by chunk_size (bytes)'
         r = self.request(url)
-        for chunk in r.iter_content(chunkSize):
+        for chunk in r.iter_content(chunk_size):
             yield chunk
 
     def post(self, url, content='', files=None, params=None, extra_headers={}, upload_callback=None):
