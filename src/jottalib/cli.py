@@ -106,6 +106,21 @@ def upload():
     print '%s uploaded successfully' % args.localfile.name
 
 
+def share():
+    parser = argparse.ArgumentParser(description='Share a file on JottaCloud and get the public URI.',
+                                     epilog='Note: This utility needs to find JOTTACLOUD_USERNAME'
+                                     ' and JOTTACLOUD_PASSWORD in the running environment.')
+    parser.add_argument('localfile', help='The local file that you want to share',
+                                     type=argparse.FileType('r'))
+    args = parser.parse_args()
+    jfs = JFS.JFS()
+    jottadev = get_jotta_device(jfs)
+    jottashare = jottadev.mountPoints['Shared']
+    upload = jottashare.up(args.localfile)  # upload file
+    public = upload.share() # share file
+    for (filename, uuid, publicURI) in public.sharedFiles():
+        print '%s is now available to the world at %s' % (filename, publicURI)
+
 
 def ls():
     parser = argparse.ArgumentParser(description='List files in Jotta folder.', add_help=False)

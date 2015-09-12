@@ -65,6 +65,7 @@ setup(name='jottalib',
               'jotta-mkdir = jottalib.cli:mkdir',
               'jotta-restore = jottalib.cli:restore',
               'jotta-rm = jottalib.cli:rm',
+              'jotta-share = jottalib.cli:share',
               'jotta-upload = jottalib.cli:upload',
         ]
       },
