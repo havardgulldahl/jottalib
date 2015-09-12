@@ -239,12 +239,35 @@ class JFSFolder(object):
         self.sync()
         return r
 
+    def restore(self):
+        'Restore the folder'
+        if not self.deleted:
+            raise JFSError('Tried to restore a not deleted file')
+        url = 'https://www.jottacloud.com/rest/webrest/%s/action/restore' % self.jfs.username
+        data = {'paths[]': self.path.replace(u'https://www.jotta.no/jfs', ''),
+                'web': 'true',
+                'ts': int(time.time()),
+                'authToken': 0}
+        r = self.jfs.post(url, content=data)
+        return r
+
     def delete(self):
         'Delete this folder and return a deleted JFSFolder'
         url = '%s?dlDir=true' % self.path
         r = self.jfs.post(url)
         self.sync()
         return r
+
+    def hard_delete(self):
+        'Deletes without possibility to restore'
+        url = 'https://www.jottacloud.com/rest/webrest/%s/action/delete' % self.jfs.username
+        data = {'paths[]': self.path.replace(u'https://www.jotta.no/jfs', ''),
+                'web': 'true',
+                'ts': int(time.time()),
+                'authToken': 0}
+        r = self.jfs.post(url, content=data)
+        return r
+
 
     def rename(self, newpath):
         "Move folder to a new name, possibly a whole new path"
@@ -456,6 +479,28 @@ class JFSFile(JFSIncompleteFile):
                 'web':'true',
                 'ts':int(time.time()),
                 'authToken':0}
+        r = self.jfs.post(url, content=data)
+        return r
+
+    def restore(self):
+        'Restore the file'
+        if not self.deleted:
+            raise JFSError('Tried to restore a not deleted file')
+        url = 'https://www.jottacloud.com/rest/webrest/%s/action/restore' % self.jfs.username
+        data = {'paths[]': self.path.replace(u'https://www.jotta.no/jfs', ''),
+                'web': 'true',
+                'ts': int(time.time()),
+                'authToken': 0}
+        r = self.jfs.post(url, content=data)
+        return r
+
+    def hard_delete(self):
+        'Deletes without possibility to restore'
+        url = 'https://www.jottacloud.com/rest/webrest/%s/action/delete' % self.jfs.username
+        data = {'paths[]': self.path.replace(u'https://www.jotta.no/jfs', ''),
+                'web': 'true',
+                'ts': int(time.time()),
+                'authToken': 0}
         r = self.jfs.post(url, content=data)
         return r
 
@@ -766,6 +811,8 @@ class JFS(object):
         elif o.tag == 'device': return JFSDevice(o, jfs=self, parentpath=parent)
         elif o.tag == 'folder': return JFSFolder(o, jfs=self, parentpath=parent)
         elif o.tag == 'mountPoint': return JFSMountPoint(o, jfs=self, parentpath=parent)
+        elif o.tag == 'restoredFiles': return JFSFile(o, jfs=self, parentpath=parent)
+        elif o.tag == 'deleteFiles': return JFSFile(o, jfs=self, parentpath=parent)
         elif o.tag == 'file':
             try:
                 if o.latestRevision.state == 'INCOMPLETE':
