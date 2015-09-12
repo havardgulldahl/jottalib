@@ -33,6 +33,7 @@ except ImportError:
 
 # importing external dependencies (pip these, please!)
 import requests
+import netrc
 #import requests_cache
 import requests_toolbelt
 import certifi
@@ -54,6 +55,31 @@ JFS_CACHELIMIT=1024*1024 # stuff below this threshold (in bytes) will be cached
 
 
 # helper functions
+
+def get_auth_info():
+    """ Get authentication details to jottacloud.
+
+    Will first check environment variables, then the .netrc file.
+    """
+    env_username = os.environ.get('JOTTACLOUD_USERNAME')
+    env_password = os.environ.get('JOTTACLOUD_PASSWORD')
+    netrc_auth = None
+    try:
+        netrc_file = netrc.netrc()
+        netrc_auth = netrc_file.authenticators('jottalib')
+    except IOError:
+        # .netrc file doesn't exist
+        pass
+    netrc_username = None
+    netrc_password = None
+    if netrc_auth:
+        netrc_username, _, netrc_password = netrc_auth
+    username = env_username or netrc_username
+    password = env_password or netrc_password
+    if not (username and password):
+        raise JFSError('Could not find username and password in either env or ~/.netrc, '
+            'you need to add one of these to use these tools')
+    return (username, password)
 
 def calculate_md5(fileobject, size=2**16):
     """Utility function to calculate md5 hashes while being light on memory usage.
@@ -672,17 +698,19 @@ class JFSenableSharing(object):
 
 
 class JFS(object):
-    def __init__(self, username, password):
+    def __init__(self, auth=None):
         from requests.auth import HTTPBasicAuth
         self.apiversion = '2.2' # hard coded per october 2014
         self.session = requests.Session() # create a session for connection pooling, ssl keepalives and cookie jar
-        self.username = username
-        self.session.auth = HTTPBasicAuth(username, password)
+        if not auth:
+            auth = get_auth_info()
+        self.username, password = auth
+        self.session.auth = HTTPBasicAuth(self.username, password)
         self.session.verify = certifi.where()
         self.session.headers =  {'User-Agent':'jottalib %s (https://github.com/havardgulldahl/jottalib)' % (__version__, ),
                                  'X-JottaAPIVersion': self.apiversion,
                                 }
-        self.rootpath = JFS_ROOT + username
+        self.rootpath = JFS_ROOT + self.username
         self.fs = self.get(self.rootpath)
 
     def request(self, url, usecache=True, extra_headers=None):
