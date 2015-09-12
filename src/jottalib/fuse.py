@@ -66,7 +66,6 @@ def is_blacklisted(path):
 class JottaFuse(LoggingMixIn, Operations):
     '''
     A simple filesystem for JottaCloud.
-
     '''
 
 
@@ -402,5 +401,4 @@ if __name__ == '__main__':
     fuse = FUSE(JottaFuse(auth), args.mountpoint, debug=args.debug_fuse,
                 sync_read=True, foreground=args.debug, raw_fi=False,
                 fsname="JottaCloudFS", subtype="fuse")
-
 
