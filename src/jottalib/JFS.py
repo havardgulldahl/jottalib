@@ -815,7 +815,6 @@ class JFS(object):
         Host: up.jottacloud.com
         """
         url = path.replace('www.jotta.no', 'up.jottacloud.com')
-
         # Calculate file length
         fileobject.seek(0,2)
         contentlen = fileobject.tell()
@@ -837,7 +836,6 @@ class JFS(object):
                    'jx_csid': '',
                    'jx_lisence': ''
                    }
-        #TODO: enable partial uploading using HTTP Range bytes=start
         params = {'cphash':md5hash,}
         fileobject.seek(0) # rewind read index for requests.post
         files = {'md5': ('', md5hash),
@@ -877,35 +875,3 @@ class JFS(object):
         'Return int of storage usage in bytes'
         return int(self.fs.usage) if self.fs is not None else 0
 
-
-if __name__=='__main__':
-    # debug setup
-    import httplib as http_client
-    logging.basicConfig(level=logging.DEBUG)
-    http_client.HTTPConnection.debuglevel = 1
-    #requests_log = logging.getLogger("requests.packages.urllib3")
-    #requests_log.setLevel(logging.DEBUG)
-    #requests_log.propagate = True
-    from lxml.objectify import dump as xdump
-    from pprint import pprint
-    import netrc
-    try:
-        n = netrc.netrc()
-        username, account, password = n.authenticators('jottacloud') # read .netrc entry for 'machine jottacloud'
-    except Exception as e:
-        logging.exception(e)
-        username = os.environ['JOTTACLOUD_USERNAME']
-        password = os.environ['JOTTACLOUD_PASSWORD']
-
-    jfs = JFS(username, password)
-    #logging.info(xdump(jfs.fs))
-    jottadev = None
-    for j in jfs.devices:
-        if j.name == 'Jotta':
-            jottadev = j
-    jottasync = jottadev.mountPoints['Sync']
-    try:
-        _filename = sys.argv[1]
-    except IndexError:
-        _filename = '/tmp/test.pdf'
-    r = jottasync.up(_filename)
