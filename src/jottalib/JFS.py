@@ -856,15 +856,22 @@ class JFS(object):
 
         logging.debug('posting content (len %s, hash %s) to url %s', contentlen, md5hash, url)
         now = datetime.datetime.now().isoformat()
+        params = {'cphash': md5hash}
+        m = requests_toolbelt.MultipartEncoder({
+             'md5': ('', md5hash),
+             'modified': ('', now),
+             'created': ('', now),
+             'file': (os.path.basename(url), fileobject, 'application/octet-stream'),
+        })
         headers = {'JMd5':md5hash,
                    'JCreated': now,
                    'JModified': now,
                    'X-Jfs-DeviceName': 'Jotta',
                    'JSize': contentlen,
                    'jx_csid': '',
-                   'jx_lisence': ''
+                   'jx_lisence': '',
+                   'content-type': m.content_type,
                    }
-        params = {'cphash':md5hash,}
         fileobject.seek(0) # rewind read index for requests.post
         files = {'md5': ('', md5hash),
                  'modified': ('', now),
