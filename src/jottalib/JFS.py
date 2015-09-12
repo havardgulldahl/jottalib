@@ -33,11 +33,9 @@ except ImportError:
 
 # importing external dependencies (pip these, please!)
 import requests
-#import requests_cache
 import requests_toolbelt
 import certifi
-# TODO: Re-enable cache after making it work with MultipartEncoder
-#requests_cache.core.install_cache(backend='memory', expire_after=30.0, fast_save=True)
+
 import lxml, lxml.objectify
 import dateutil, dateutil.parser
 
@@ -50,8 +48,6 @@ urllib3.fields.format_header_param = mp
 
 # some setup
 JFS_ROOT='https://www.jotta.no/jfs/'
-JFS_CACHELIMIT=1024*1024 # stuff below this threshold (in bytes) will be cached
-
 
 # helper functions
 
@@ -392,7 +388,7 @@ class JFSFile(JFSIncompleteFile):
 
     def read(self):
         'Get the file contents as string'
-        return self.jfs.raw('%s?mode=bin' % self.path, usecache=self.size < JFS_CACHELIMIT) # dont cache large files
+        return self.jfs.raw('%s?mode=bin' % self.path)
         """
             * name = 'jottacloud.sync.pdfname'
             * uuid = '37530f11-d55b-4f31-acf4-27854813cd34'
@@ -411,7 +407,6 @@ class JFSFile(JFSIncompleteFile):
     def readpartial(self, start, end):
         'Get a part of the file, from start byte to end byte (integers)'
         return self.jfs.raw('%s?mode=bin' % self.path,
-                            usecache=False,
                             # note that we deduct 1 from end because
                             # in http Range requests, the end value is included in the slice,
                             # whereas in python, it is not
@@ -685,27 +680,22 @@ class JFS(object):
         self.rootpath = JFS_ROOT + username
         self.fs = self.get(self.rootpath)
 
-    def request(self, url, usecache=True, extra_headers=None):
+    def request(self, url, extra_headers=None):
         'Make a GET request for url, with or without caching'
         if not url.startswith('http'):
             # relative url
             url = self.rootpath + url
-        logging.debug("getting url: %s, usecache=%s, extra_headers=%s", url, usecache, extra_headers)
+        logging.debug("getting url: %s, extra_headers=%s", url, extra_headers)
         if extra_headers is None: extra_headers={}
-        if usecache:
-            r = self.session.get(url, headers=extra_headers)
-        else:
-# TODO: Re-enable cache after making it work with MultipartEncoder
-#            with requests_cache.disabled():
-            r = self.session.get(url, headers=extra_headers)
+        r = self.session.get(url, headers=extra_headers)
 
         if r.status_code in ( 500, ):
             raise JFSError(r.reason)
         return r
 
-    def raw(self, url, usecache=True, extra_headers=None):
+    def raw(self, url, extra_headers=None):
         'Make a GET request for url and return whatever content we get'
-        r = self.request(url, usecache=usecache, extra_headers=extra_headers)
+        r = self.request(url, extra_headers=extra_headers)
         # uncomment to dump raw xml
 #         with open('/tmp/%s.xml' % time.time(), 'wb') as f:
 #             f.write(r.content)
@@ -716,21 +706,21 @@ class JFS(object):
             JFSError.raiseError(o, url)
         return r.content
 
-    def get(self, url, usecache=True):
+    def get(self, url):
         'Make a GET request for url and return the response content as a generic lxml object'
-        o = lxml.objectify.fromstring(self.raw(url, usecache=usecache))
+        o = lxml.objectify.fromstring(self.raw(url))
         if o.tag == 'error':
             JFSError.raiseError(o, url)
         return o
 
-    def getObject(self, url_or_requests_response, usecache=True):
+    def getObject(self, url_or_requests_response):
         'Take a url or some xml response from JottaCloud and wrap it up with the corresponding JFS* class'
         if isinstance(url_or_requests_response, requests.models.Response):
             url = url_or_requests_response.url
             o = lxml.objectify.fromstring(url_or_requests_response.content)
         else:
             url = url_or_requests_response
-            o = self.get(url, usecache=usecache)
+            o = self.get(url)
 
         parent = os.path.dirname(url).replace('up.jottacloud.com', 'www.jotta.no')
         if o.tag == 'error':
@@ -763,11 +753,6 @@ class JFS(object):
             # relative url
             url = self.rootpath + url
 
-        # TODO: Re-enable cache after making it work with MultipartEncoder
-        # see: https://stackoverflow.com/questions/28198147/python-requests-memoryerror-despite-using-streaming-uploads
-        #logging.debug('yanking url from cache: %s', url)
-        #cache = requests_cache.core.get_cache()
-        #cache.delete_url(url)
         logging.debug('posting content (len %s) to url %s', len(content) if content is not None else '?', url)
         headers = self.session.headers.copy()
         headers.update(**extra_headers)
