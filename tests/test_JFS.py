@@ -175,6 +175,17 @@ class TestJFS:
         # correctly parsed and the percent encoding is preserved
         tests = ['%2FVolumes%2FMedia%2Ftest.txt', # existing percent encoding, see #25
                  'My funky file.txt', # file name with spaces, see 57
+                 'My+funky+file.txt', # file name with plus signs
+                 'My?funky?file.txt', # file name with question marks
+                 'My=funky=file.txt', # file name with equal signs
+                 'My&funky&file.txt', # file name with ampersand signs
+                 'My#funky#file.txt', # file name with pound signs
+                 'My:funky:file.txt', # file name with colon signs
+                 'My@funky@file.txt', # file name with at signs
+                 'My;funky;file.txt', # file name with semi-colon signs
+                 'My$funky$file.txt', # file name with dollar signs
+                 'My%funky%file.txt', # file name with per cent signs
+                 'My,funky,file.txt', # file name with commas
                 ]
         for f in tests:
             p = posixpath.join('/Jotta/Archive', f)
@@ -330,6 +341,17 @@ class TestJFSMountPoint:
         newfile.delete()
         assert isinstance(dev.filedirlist(), JFS.JFSFileDirList)
 
+class TestJFSFile:
+
+    def test_xml(self):
+
+        assert dev.thumb(size=JFSFile.BIGTHUMB) is not None
+        assert dev.thumb(size=JFSFile.XLTHUMB) is not None
+        assert dev.thumb(size=JFSFile.MEDIUMTHUMB) is not None
+        assert dev.thumb(size=JFSFile.SMALLTHUMB) is not None
+
+
+
 class TestJFSFileDirList:
     'Tests for JFSFileDirList'
 
@@ -366,7 +388,6 @@ class TestJFSError:
 """
 TODO
 class JFSFolder(object):
-class ProtoFile(object):
 class JFSIncompleteFile(ProtoFile):
 class JFSFile(JFSIncompleteFile):
 class JFSenableSharing(object):
