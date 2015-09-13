@@ -33,6 +33,7 @@ try:
 except ImportError:
     from StringIO import StringIO
 
+logging.captureWarnings(True)
 
 # import jotta
 from jottalib import JFS, __version__
