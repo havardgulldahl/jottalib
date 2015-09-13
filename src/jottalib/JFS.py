@@ -37,7 +37,7 @@ import requests_toolbelt
 import certifi
 
 import lxml, lxml.objectify
-import dateutil, dateutil.parser
+import dateutil, dateutil.parser # pip install python-dateutil
 
 #monkeypatch urllib3 param function to bypass bug in jottacloud servers
 from requests.packages import urllib3
@@ -372,10 +372,10 @@ class JFSFile(JFSIncompleteFile):
 
     """
     # Constants for thumb nail sizes
-    BIGTHUMB=1
-    MEDIUMTHUMB=2
-    SMALLTHUMB=3
-    #TODO: Add these thumb sizes: WXL
+    BIGTHUMB='WL'
+    MEDIUMTHUMB='WM'
+    SMALLTHUMB='WS'
+    XLTHUMB='WXL'
 
     def __init__(self, fileobject, jfs, parentpath): # fileobject from lxml.objectify
         self.f = fileobject
@@ -446,10 +446,7 @@ class JFSFile(JFSIncompleteFile):
         if not self.is_image():
             return None
 
-        thumbmap = {self.BIGTHUMB:'WL',
-                    self.MEDIUMTHUMB:'WM',
-                    self.SMALLTHUMB:'WS'}
-        return self.jfs.raw('%s?mode=thumb&ts=%s' % (self.path, thumbmap[size]))
+        return self.jfs.raw('%s?mode=thumb&ts=%s' % (self.path, getattr(self, size)))
 
     @property
     def revisionNumber(self):
