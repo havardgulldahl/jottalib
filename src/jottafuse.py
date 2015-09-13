@@ -343,13 +343,9 @@ class JottaFuse(LoggingMixIn, Operations):
         except:
             raise OSError(errno.ENOENT, '')
 
-    def unlink(self, path):
+    def rmdir(self, path):
         if path in self.__newfolders: # folder was just created, not synced yet
             self.__newfolders.remove(path)
-            self._dirty(path)
-            return
-        elif path in self.__newfiles.keys(): # file was just created, not synced yet
-            del self.__newfiles[path]
             self._dirty(path)
             return
         try:
@@ -360,7 +356,18 @@ class JottaFuse(LoggingMixIn, Operations):
         self._dirty(path)
         return ESUCCESS
 
-    rmdir = unlink # TODO: flesh out a full rmdir() method
+    def unlink(self, path):
+        if path in self.__newfiles.keys(): # file was just created, not synced yet
+            del self.__newfiles[path]
+            self._dirty(path)
+            return
+        try:
+            f = self._getpath(path)
+        except JFS.JFSError:
+            raise OSError(errno.ENOENT, '')
+        r = f.delete()
+        self._dirty(path)
+        return ESUCCESS
 
     def write(self, path, data, offset, fh=None):
         if is_blacklisted(path):

@@ -101,7 +101,7 @@ mv "$TESTDIR" "${TESTDIR}-x" || warn "rename folder failed";
 sleep 1;
 
 info "T9. Remove folder";
-rm "${TESTDIR}-x" || warn "removing folder failed";
+rmdir "${TESTDIR}-x" || warn "removing folder failed";
 
 info "T10. Statfs.";
 df "$TMPDIR" 1>/dev/null || warn "statfs fsailed";
