@@ -570,7 +570,8 @@ class JFSDevice(object):
     def contents(self, path=None):
         """Get _all_ metadata for this device.
         Call this method if you have the lite/abbreviated device info from e.g. <user/>. """
-        if isinstance(path, lxml.objectify.ObjectifiedElement) and hasattr(path, 'name'):
+        if isinstance(path, object) and hasattr(path, 'name'):
+            logging.debug("passed an object, use .'name' as path value")
             # passed an object, use .'name' as path value
             path = '/%s' % path.name
         c = self._jfs.get('%s%s' % (self.path, path or '/'))

@@ -22,7 +22,10 @@
 __author__ = 'havard@gulldahl.no'
 
 # import standardlib
-import os, StringIO, logging
+import os, StringIO, logging, datetime
+
+# import dependencies
+import lxml
 
 # import py.test
 import pytest # pip install pytest
@@ -49,9 +52,51 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla est dolor, conval
 
 
 class TestJFS:
+    def test_xml(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+
+<user time="2015-09-12-T23:14:23Z" host="dn-093.site-000.jotta.no">
+  <username>havardgulldahl</username>
+  <account-type>unlimited</account-type>
+  <locked>false</locked>
+  <capacity>-1</capacity>
+  <max-devices>-1</max-devices>
+  <max-mobile-devices>-1</max-mobile-devices>
+  <usage>2039672393219</usage>
+  <read-locked>false</read-locked>
+  <write-locked>false</write-locked>
+  <quota-write-locked>false</quota-write-locked>
+  <enable-sync>true</enable-sync>
+  <enable-foldershare>true</enable-foldershare>
+  <devices>
+    <device>
+      <name xml:space="preserve">My funky iphone</name>
+      <type>IPHONE</type>
+      <sid>0d015a5b-c2e6-46b3-9df8-00269c35xxxx</sid>
+      <size>4280452534</size>
+      <modified>2015-01-04-T08:03:09Z</modified>
+    </device>
+    <device>
+      <name xml:space="preserve">My funky ipad</name>
+      <type>IPAD</type>
+      <sid>a179ffb0-23a1-48ca-89bc-e92a571xxxxx</sid>
+      <size>4074923911</size>
+      <modified>2015-08-06-T05:34:39Z</modified>
+    </device>
+    <device>
+      <name xml:space="preserve">My funky laptop</name>
+      <type>LAPTOP</type>
+      <sid>a018410c-f00b-49ff-aab8-18b7a50xxxxx</sid>
+      <size>159113667199</size>
+      <modified>2015-09-12-T23:14:02Z</modified>
+    </device>
+  </devices>
+</user>"""
+
+
+
     def test_login(self):
         assert isinstance(jfs, JFS.JFS)
-
 
     def test_root(self):
         import lxml.objectify
@@ -139,6 +184,64 @@ class TestJFS:
             assert jfs_f.path == clean_room_path
             jfs_f.delete()
 
+class TestJFSDevice:
+
+    def test_xml(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+
+<device time="2015-09-12-T23:14:25Z" host="dn-093.site-000.jotta.no">
+  <name xml:space="preserve">Jotta</name>
+  <type>JOTTA</type>
+  <sid>ee93a510-907a-4d7c-bbb9-59df7894xxxx</sid>
+  <size>58428516774</size>
+  <modified>2015-09-12-T23:10:51Z</modified>
+  <user>havardgulldahl</user>
+  <mountPoints>
+    <mountPoint>
+      <name xml:space="preserve">Archive</name>
+      <size>18577011381</size>
+      <modified>2015-09-12-T23:10:51Z</modified>
+    </mountPoint>
+    <mountPoint>
+      <name xml:space="preserve">Shared</name>
+      <size>43777</size>
+      <modified>2015-09-03-T21:12:55Z</modified>
+    </mountPoint>
+    <mountPoint>
+      <name xml:space="preserve">Sync</name>
+      <size>39851461616</size>
+      <modified>2015-07-26-T22:26:54Z</modified>
+    </mountPoint>
+  </mountPoints>
+  <metadata first="" max="" total="3" num_mountpoints="3"/>
+</device>"""
+        o = lxml.objectify.fromstring(xml)
+        dev = JFS.JFSDevice(o, jfs, parentpath=jfs.rootpath)
+        assert isinstance(o, lxml.objectify.ObjectifiedElement)
+        # Test that mountpoints are populated correctly"
+        assert sorted(dev.mountPoints.keys()) == ['Archive', 'Shared', 'Sync']
+        assert all(isinstance(item, JFS.JFSMountPoint) for item in dev.mountPoints.values())
+        # test "mountPoint" may be either an actual mountPoint element from JFSDevice.mountPoints{} or its .name. '
+        assert all(isinstance(item, JFS.JFSFile) for item in dev.files('Archive'))
+        # test "mountPoint" may be either an actual mountPoint element from JFSDevice.mountPoints{} or its .name. '
+        mps = dev.mountpointobjects()
+        assert all(isinstance(item, JFS.JFSFile) for item in dev.files(mps[2]))
+
+        #test "mountPoint" may be either an actual mountPoint element from JFSDevice.mountPoints{} or its .name. '
+        assert all(isinstance(item, JFS.JFSFolder) for item in dev.folders('Archive'))
+        #test "mountPoint" may be either an actual mountPoint element from JFSDevice.mountPoints{} or its .name. '
+        mps = dev.mountpointobjects()
+        assert all(isinstance(item, JFS.JFSFolder) for item in dev.folders(mps[0]))
+
+        # test_properties
+        assert isinstance(dev.modified, datetime.datetime)
+        assert dev.path == '%s/%s' % (jfs.rootpath, 'Jotta')
+        assert dev.name == 'Jotta'
+        assert dev.type == 'JOTTA'
+        assert dev.size == 58428516774
+        assert dev.sid == 'ee93a510-907a-4d7c-bbb9-59df7894xxxx'
+
+
 class TestJFSFileDirList:
     'Tests for JFSFileDirList'
 
@@ -179,6 +282,5 @@ class ProtoFile(object):
 class JFSIncompleteFile(ProtoFile):
 class JFSFile(JFSIncompleteFile):
 class JFSMountPoint(JFSFolder):
-class JFSDevice(object):
 class JFSenableSharing(object):
 """
