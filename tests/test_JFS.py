@@ -23,9 +23,12 @@ __author__ = 'havard@gulldahl.no'
 
 # import standardlib
 import os, StringIO, logging, datetime
+import tempfile, posixpath, urllib
 
 # import dependencies
 import lxml
+import dateutil
+import requests
 
 # import py.test
 import pytest # pip install pytest
@@ -170,7 +173,6 @@ class TestJFS:
     def test_urlencoded_filename(self):
         # make sure filenames that contain percent-encoded characters are
         # correctly parsed and the percent encoding is preserved
-        import tempfile, posixpath, urllib, requests
         tests = ['%2FVolumes%2FMedia%2Ftest.txt', # existing percent encoding, see #25
                  'My funky file.txt', # file name with spaces, see 57
                 ]
@@ -242,6 +244,92 @@ class TestJFSDevice:
         assert dev.sid == 'ee93a510-907a-4d7c-bbb9-59df7894xxxx'
 
 
+class TestJFSMountPoint:
+
+    def test_xml(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+
+<mountPoint time="2015-09-13-T00:16:31Z" host="dn-097.site-000.jotta.no">
+  <name xml:space="preserve">Sync</name>
+  <path xml:space="preserve">/havardgulldahl/Jotta</path>
+  <abspath xml:space="preserve">/havardgulldahl/Jotta</abspath>
+  <size>39851461616</size>
+  <modified>2015-07-26-T22:26:54Z</modified>
+  <device>Jotta</device>
+  <user>havardgulldahl</user>
+  <folders>
+    <folder name="folder1"/>
+    <folder name="folder2"/>
+    <folder name="folder3"/>
+    <folder name="folder4"/>
+    <folder name="folder5"/>
+    <folder name="folder6"/>
+    <folder name="folder7"/>
+  </folders>
+  <files>
+    <file name="bigfile" uuid="7a36a217-88d5-4804-99df-bbc42eb4a9f2">
+      <latestRevision>
+        <number>1</number>
+        <state>INCOMPLETE</state>
+        <created>2015-05-29-T09:02:53Z</created>
+        <modified>2015-05-29-T09:02:53Z</modified>
+        <mime>application/octet-stream</mime>
+        <mstyle>APPLICATION_OCTET_STREAM</mstyle>
+        <md5>4d710d3a12699730976216836a5217a8</md5>
+        <updated>2015-05-29-T09:02:53Z</updated>
+      </latestRevision>
+    </file>
+    <file name="test.pdf" uuid="1caec763-2ed0-4e88-9d3c-650f3babecc4">
+      <currentRevision>
+        <number>3</number>
+        <state>COMPLETED</state>
+        <created>2015-07-26-T22:26:54Z</created>
+        <modified>2015-07-26-T22:26:54Z</modified>
+        <mime>application/pdf</mime>
+        <mstyle>APPLICATION_PDF</mstyle>
+        <size>116153</size>
+        <md5>138396327a51ea6bf20caa72cf6d6667</md5>
+        <updated>2015-07-26-T22:26:54Z</updated>
+      </currentRevision>
+    </file>
+  </files>
+  <metadata first="" max="" total="9" num_folders="7" num_files="2"/>
+</mountPoint>"""
+        o = lxml.objectify.fromstring(xml)
+        dev = JFS.JFSMountPoint(o, jfs, parentpath=jfs.rootpath + '/Jotta')
+
+        #test native properties
+        assert dev.name == 'Sync'
+        assert dev.size == 39851461616
+        assert isinstance(dev.modified, datetime.datetime)
+        assert dev.modified == datetime.datetime(2015, 7, 26, 22, 26, 54).replace(tzinfo=dateutil.tz.tzutc())
+
+        with pytest.raises(JFS.JFSError):
+            dev.delete()
+            dev.rename('sillywalkministry')
+
+        # test JFSFolder inheritance
+        assert dev.path == jfs.rootpath + '/Jotta/Sync'
+        assert dev.deleted == None
+        assert dev.is_deleted() == False
+        assert all(isinstance(item, JFS.JFSFile) for item in dev.files())
+        assert all(isinstance(item, JFS.JFSFolder) for item in dev.folders())
+        newf = dev.mkdir('testdir')
+        assert isinstance(newf, JFS.JFSFolder)
+        newf.delete()
+
+        _f = tempfile.NamedTemporaryFile()
+        _f.write('123test')
+
+        newfile = dev.up(_f)
+        assert isinstance(newfile, JFS.JFSFile)
+        newfile.delete()
+        newfile = dev.up(_f, filename='heyhei123.txt')
+        assert isinstance(newfile, JFS.JFSFile)
+        assert newfile.name == 'heyhei123.txt'
+        newfile.delete()
+        assert isinstance(dev.filedirlist(), JFS.JFSFileDirList)
+
 class TestJFSFileDirList:
     'Tests for JFSFileDirList'
 
@@ -281,6 +369,5 @@ class JFSFolder(object):
 class ProtoFile(object):
 class JFSIncompleteFile(ProtoFile):
 class JFSFile(JFSIncompleteFile):
-class JFSMountPoint(JFSFolder):
 class JFSenableSharing(object):
 """

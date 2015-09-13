@@ -225,7 +225,7 @@ class JFSFolder(object):
 
     def up(self, fileobj_or_path, filename=None):
         'Upload a file to current folder and return the new JFSFile'
-        if not isinstance(fileobj_or_path, file):
+        if not ( hasattr(fileobj_or_path, 'read') and hasattr(fileobj_or_path, 'name') ):
             filename = os.path.basename(fileobj_or_path)
             fileobj_or_path = open(fileobj_or_path, 'rb')
         elif filename is None: # fileobj is file, but filename is None
@@ -492,22 +492,29 @@ class JFSMountPoint(JFSFolder):
     'OO interface to a mountpoint, for convenient access. Type less, do more.'
     def __init__(self, mountpointobject, jfs, parentpath): # folderobject from lxml.objectify
         super(JFSMountPoint, self).__init__(mountpointobject, jfs, parentpath)
-        self.mp = mountpointobject
-        # del(self.folder)
+        self.folder = mountpointobject # name it 'folder' because of inheritance
+
+    def delete(self):
+        "override inherited method that makes no sense here"
+        raise JFSError('Cant delete a mountpoint')
+
+    def rename(self, newpath):
+        "override inherited method that makes no sense here"
+        raise JFSError('Cant rename a mountpoint')
 
     @property
     def name(self):
-        return unicode(self.mp.name)
+        return unicode(self.folder.name)
 
     @property
     def size(self):
         'Return int of size in bytes'
-        return int(self.mp.size)
+        return int(self.folder.size)
 
     @property
     def modified(self):
         'Return datetime.datetime'
-        return dateutil.parser.parse(str(self.dev.modified))
+        return dateutil.parser.parse(str(self.folder.modified))
 
 class JFSDevice(object):
     '''OO interface to a device, for convenient access. Type less, do more.
