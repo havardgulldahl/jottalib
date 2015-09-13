@@ -344,13 +344,99 @@ class TestJFSMountPoint:
 class TestJFSFile:
 
     def test_xml(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
 
-        assert dev.thumb(size=JFSFile.BIGTHUMB) is not None
-        assert dev.thumb(size=JFSFile.XLTHUMB) is not None
-        assert dev.thumb(size=JFSFile.MEDIUMTHUMB) is not None
-        assert dev.thumb(size=JFSFile.SMALLTHUMB) is not None
+<file name="testimage.jpg" uuid="9ebcfe1a-98b1-4e38-a73e-f498555da865" time="2015-09-13-T21:22:46Z" host="dn-094.site-000.jotta.no">
+  <path xml:space="preserve">/havardgulldahl/Jotta/Archive</path>
+  <abspath xml:space="preserve">/havardgulldahl/Jotta/Archive</abspath>
+  <currentRevision>
+    <number>5</number>
+    <state>COMPLETED</state>
+    <created>2015-07-25-T21:18:49Z</created>
+    <modified>2015-07-25-T21:18:49Z</modified>
+    <mime>image/jpeg</mime>
+    <mstyle>IMAGE_JPEG</mstyle>
+    <size>1816221</size>
+    <md5>125073533339a616b99bc53efc509561</md5>
+    <updated>2015-07-25-T21:18:50Z</updated>
+  </currentRevision>
+  <revisions>
+    <revision>
+      <number>4</number>
+      <state>COMPLETED</state>
+      <created>2015-07-25-T21:18:05Z</created>
+      <modified>2015-07-25-T21:18:05Z</modified>
+      <mime>image/jpeg</mime>
+      <mstyle>IMAGE_JPEG</mstyle>
+      <size>1816221</size>
+      <md5>125073533339a616b99bc53efc509561</md5>
+      <updated>2015-07-25-T21:18:07Z</updated>
+    </revision>
+    <revision>
+      <number>3</number>
+      <state>COMPLETED</state>
+      <created>2015-07-25-T21:17:49Z</created>
+      <modified>2015-07-25-T21:17:49Z</modified>
+      <mime>image/jpeg</mime>
+      <mstyle>IMAGE_JPEG</mstyle>
+      <size>1816221</size>
+      <md5>125073533339a616b99bc53efc509561</md5>
+      <updated>2015-07-25-T21:17:50Z</updated>
+    </revision>
+    <revision>
+      <number>2</number>
+      <state>COMPLETED</state>
+      <created>2015-07-25-T21:01:45Z</created>
+      <modified>2015-07-25-T21:01:45Z</modified>
+      <mime>image/jpeg</mime>
+      <mstyle>IMAGE_JPEG</mstyle>
+      <size>1816221</size>
+      <md5>125073533339a616b99bc53efc509561</md5>
+      <updated>2015-07-25-T21:01:46Z</updated>
+    </revision>
+    <revision>
+      <number>1</number>
+      <state>COMPLETED</state>
+      <created>2015-07-25-T21:00:02Z</created>
+      <modified>2015-07-25-T21:00:02Z</modified>
+      <mime>image/jpeg</mime>
+      <mstyle>IMAGE_JPEG</mstyle>
+      <size>1816221</size>
+      <md5>125073533339a616b99bc53efc509561</md5>
+      <updated>2015-07-25-T21:00:03Z</updated>
+    </revision>
+  </revisions>
+</file>"""
 
+        o = lxml.objectify.fromstring(xml)
+        dev = JFS.JFSFile(o, jfs, parentpath=jfs.rootpath + '/Jotta/Archive')
 
+        #test ProtoFile properties
+        assert dev.path == jfs.rootpath + '/Jotta/Archive/testimage.jpg'
+        assert dev.name == 'testimage.jpg'
+        assert dev.uuid == '9ebcfe1a-98b1-4e38-a73e-f498555da865'
+        assert dev.deleted == None
+        assert dev.is_deleted() == False
+
+        #test native properties
+        assert dev.revisionNumber == 5
+        assert dev.created == datetime.datetime(2015, 7, 25, 21, 18, 49).replace(tzinfo=dateutil.tz.tzutc())
+        assert dev.modified == datetime.datetime(2015, 7, 25, 21, 18, 49).replace(tzinfo=dateutil.tz.tzutc())
+        assert dev.updated == datetime.datetime(2015, 7, 25, 21, 18, 50).replace(tzinfo=dateutil.tz.tzutc())
+        assert dev.size == 1816221
+        assert dev.md5 == '125073533339a616b99bc53efc509561'
+        assert dev.mime == 'image/jpeg'
+        assert dev.state == 'COMPLETED'
+
+        #test image stuff
+        assert dev.is_image() == True
+        assert dev.thumb(size=JFS.JFSFile.BIGTHUMB) is not None
+        assert dev.thumb(size=JFS.JFSFile.XLTHUMB) is not None
+        assert dev.thumb(size=JFS.JFSFile.MEDIUMTHUMB) is not None
+        assert dev.thumb(size=JFS.JFSFile.SMALLTHUMB) is not None
+
+        #TODO: test file operations: .stream(), .rename(), .read(), .read_partial, .delete etc
+        #TODO: test revisions
 
 class TestJFSFileDirList:
     'Tests for JFSFileDirList'
