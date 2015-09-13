@@ -442,11 +442,15 @@ class JFSFile(JFSIncompleteFile):
         return r
 
     def thumb(self, size=BIGTHUMB):
-        'Get a thumbnail as string or None if the file isnt an image'
+        '''Get a thumbnail as string or None if the file isnt an image
+
+        size would be one of JFSFile.BIGTHUMB, .MEDIUMTHUMB, .SMALLTHUMB or .XLTHUMB'''
         if not self.is_image():
             return None
+        if not size in (self.BIGTHUMB, self.MEDIUMTHUMB, self.SMALLTHUMB, self.XLTHUMB):
+            raise JFSError('Invalid thumbnail size: %s for image %s' % (size, self.path))
 
-        return self.jfs.raw('%s?mode=thumb&ts=%s' % (self.path, getattr(self, size)))
+        return self.jfs.raw('%s?mode=thumb&ts=%s' % (self.path, size))
 
     @property
     def revisionNumber(self):
