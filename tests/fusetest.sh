@@ -69,7 +69,7 @@ function info {
 info "Testing jottafuse implementation";
 
 info "T1. Mount";
-python src/jottafuse.py "$TMPDIR" || err "mounting jotta failed!";
+PYTHONPATH=src python -c 'from jottalib import cli; cli.fuse()' "$TMPDIR" || err "mounting jotta failed!";
 sleep 2;
 
 info "T2. Copy file";

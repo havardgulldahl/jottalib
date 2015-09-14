@@ -57,6 +57,13 @@ setup(name='jottacloudclient',
         'monitor': ['watchdog',],
         'scanner': ['xattr',],
       },
+      entry_points={
+          'console_scripts': [
+              'jotta-fuse = jottalib.cli:fuse',
+              'jotta-scanner = jottalib.cli:scanner',
+              'jotta-monitor = jottalib.cli:monitor',
+        ]
+      },
       classifiers = """
 Intended Audience :: End Users/Desktop
 License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)

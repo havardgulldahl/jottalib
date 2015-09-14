@@ -32,11 +32,11 @@ import time
 from clint.textui import progress
 from functools import partial
 
-from jottalib import JFS
+from jottalib import JFS, __version__
 
 HAS_FUSE = False
 try:
-    import fuse # pylint: disable=unused-import
+    from fuse import FUSE # pylint: disable=unused-import
     HAS_FUSE = True
 except ImportError:
     pass
@@ -45,15 +45,43 @@ ProgressBar = partial(progress.Bar, empty_char='○', filled_char='●')
 
 
 def fuse():
-    if HAS_FUSE:
-        from .fuse import fuse as real_fuse
-        real_fuse()
-    else:
+    if not HAS_FUSE:
         message = ['jotta-fuse requires fusepy (pip install fusepy), install that and try again.']
         if os.name == 'nt':
             message.append('Note: jotta-fuse is not supported on Windows, but Cygwin might work.')
         print(' '.join(message))
         sys.exit(1)
+
+
+    from .jottafuse import JottaFuse
+    def is_dir(path):
+        if not os.path.isdir(path):
+            raise argparse.ArgumentTypeError('%s is not a valid directory' % path)
+        return path
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     epilog="""The program expects to find an entry for "jottacloud.com" in your .netrc,
+                                     or JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.
+                                     This is not an official JottaCloud project.""")
+    parser.add_argument('--debug', action='store_true', help='Run fuse in the foreground and add a lot of messages to help debug')
+    parser.add_argument('--debug-fuse', action='store_true', help='Show all low-level filesystem operations')
+    parser.add_argument('--debug-http', action='store_true', help='Show all HTTP traffic')
+    parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument('mountpoint', type=is_dir, help='A path to an existing directory where you want your JottaCloud tree mounted')
+    args = parser.parse_args()
+    if args.debug_http:
+        import httplib
+        httplib.HTTPConnection.debuglevel = 1
+    if args.debug:
+        requests_log = logging.getLogger("requests.packages.urllib3")
+        requests_log.setLevel(logging.DEBUG)
+        requests_log.propagate = True
+        logging.basicConfig(level=logging.DEBUG)
+
+    auth = JFS.get_auth_info()
+    fuse = FUSE(JottaFuse(auth), args.mountpoint, debug=args.debug_fuse,
+                sync_read=True, foreground=args.debug, raw_fi=False,
+                fsname="JottaCloudFS", subtype="fuse")
+
 
 
 def get_jotta_device(jfs):
