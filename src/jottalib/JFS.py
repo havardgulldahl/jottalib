@@ -62,7 +62,7 @@ def get_auth_info():
     netrc_auth = None
     try:
         netrc_file = netrc.netrc()
-        netrc_auth = netrc_file.authenticators('jottalib')
+        netrc_auth = netrc_file.authenticators('jottacloud.com')
     except IOError:
         # .netrc file doesn't exist
         pass
