@@ -4,7 +4,7 @@
 
 requests
 requests_toolbelt
-certifi
+certifi==2015.04.28
 python-dateutil
 lxml
 
