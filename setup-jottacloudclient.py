@@ -47,9 +47,9 @@ setup(name='jottacloudclient',
                         ],
       # see https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
       extras_require = {
-        'FUSE':  ['fusepy',],
-        'monitor': ['watchdog',],
-        'scanner': ['xattr',],
+        'FUSE':  ['fusepy',],      # required for jotta-fuse
+        'monitor': ['watchdog',],  # required for jotta-monitor
+        'scanner': ['xattr',],     # optional for jotta-scanner
       },
       entry_points={
           'console_scripts': [
