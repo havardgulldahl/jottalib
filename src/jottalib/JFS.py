@@ -33,6 +33,7 @@ except ImportError:
 
 # importing external dependencies (pip these, please!)
 import requests
+import netrc
 import requests_toolbelt
 import certifi
 
@@ -50,6 +51,31 @@ urllib3.fields.format_header_param = mp
 JFS_ROOT='https://www.jotta.no/jfs/'
 
 # helper functions
+
+def get_auth_info():
+    """ Get authentication details to jottacloud.
+
+    Will first check environment variables, then the .netrc file.
+    """
+    env_username = os.environ.get('JOTTACLOUD_USERNAME')
+    env_password = os.environ.get('JOTTACLOUD_PASSWORD')
+    netrc_auth = None
+    try:
+        netrc_file = netrc.netrc()
+        netrc_auth = netrc_file.authenticators('jottalib')
+    except IOError:
+        # .netrc file doesn't exist
+        pass
+    netrc_username = None
+    netrc_password = None
+    if netrc_auth:
+        netrc_username, _, netrc_password = netrc_auth
+    username = env_username or netrc_username
+    password = env_password or netrc_password
+    if not (username and password):
+        raise JFSError('Could not find username and password in either env or ~/.netrc, '
+            'you need to add one of these to use these tools')
+    return (username, password)
 
 def calculate_md5(fileobject, size=2**16):
     """Utility function to calculate md5 hashes while being light on memory usage.
@@ -209,12 +235,35 @@ class JFSFolder(object):
         self.sync()
         return r
 
+    def restore(self):
+        'Restore the folder'
+        if not self.deleted:
+            raise JFSError('Tried to restore a not deleted file')
+        url = 'https://www.jottacloud.com/rest/webrest/%s/action/restore' % self.jfs.username
+        data = {'paths[]': self.path.replace(u'https://www.jotta.no/jfs', ''),
+                'web': 'true',
+                'ts': int(time.time()),
+                'authToken': 0}
+        r = self.jfs.post(url, content=data)
+        return r
+
     def delete(self):
         'Delete this folder and return a deleted JFSFolder'
         url = '%s?dlDir=true' % self.path
         r = self.jfs.post(url)
         self.sync()
         return r
+
+    def hard_delete(self):
+        'Deletes without possibility to restore'
+        url = 'https://www.jottacloud.com/rest/webrest/%s/action/delete' % self.jfs.username
+        data = {'paths[]': self.path.replace(u'https://www.jotta.no/jfs', ''),
+                'web': 'true',
+                'ts': int(time.time()),
+                'authToken': 0}
+        r = self.jfs.post(url, content=data)
+        return r
+
 
     def rename(self, newpath):
         "Move folder to a new name, possibly a whole new path"
@@ -223,7 +272,7 @@ class JFSFolder(object):
         r = self.jfs.post(url, extra_headers={'Content-Type':'application/octet-stream'})
         return r
 
-    def up(self, fileobj_or_path, filename=None):
+    def up(self, fileobj_or_path, filename=None, upload_callback=None):
         'Upload a file to current folder and return the new JFSFile'
         if not ( hasattr(fileobj_or_path, 'read') and hasattr(fileobj_or_path, 'name') ):
             filename = os.path.basename(fileobj_or_path)
@@ -231,7 +280,8 @@ class JFSFolder(object):
         elif filename is None: # fileobj is file, but filename is None
             filename = os.path.basename(fileobj_or_path.name)
         logging.debug('.up %s ->  %s %s', repr(fileobj_or_path), repr(self.path), repr(filename))
-        r = self.jfs.up(posixpath.join(self.path, filename), fileobj_or_path)
+        r = self.jfs.up(posixpath.join(self.path, filename), fileobj_or_path,
+            upload_callback=upload_callback)
         self.sync()
         return r
 
@@ -382,9 +432,9 @@ class JFSFile(JFSIncompleteFile):
         self.jfs = jfs
         self.parentPath = parentpath
 
-    def stream(self, chunkSize=1024):
+    def stream(self, chunk_size=64*1024):
         'Returns a generator to iterate over the file contents'
-        return self.jfs.stream(url='%s?mode=bin' % self.path, chunkSize=chunkSize)
+        return self.jfs.stream(url='%s?mode=bin' % self.path, chunk_size=chunk_size)
 
     def read(self):
         'Get the file contents as string'
@@ -425,6 +475,28 @@ class JFSFile(JFSIncompleteFile):
                 'web':'true',
                 'ts':int(time.time()),
                 'authToken':0}
+        r = self.jfs.post(url, content=data)
+        return r
+
+    def restore(self):
+        'Restore the file'
+        if not self.deleted:
+            raise JFSError('Tried to restore a not deleted file')
+        url = 'https://www.jottacloud.com/rest/webrest/%s/action/restore' % self.jfs.username
+        data = {'paths[]': self.path.replace(u'https://www.jotta.no/jfs', ''),
+                'web': 'true',
+                'ts': int(time.time()),
+                'authToken': 0}
+        r = self.jfs.post(url, content=data)
+        return r
+
+    def hard_delete(self):
+        'Deletes without possibility to restore'
+        url = 'https://www.jottacloud.com/rest/webrest/%s/action/delete' % self.jfs.username
+        data = {'paths[]': self.path.replace(u'https://www.jotta.no/jfs', ''),
+                'web': 'true',
+                'ts': int(time.time()),
+                'authToken': 0}
         r = self.jfs.post(url, content=data)
         return r
 
@@ -672,21 +744,24 @@ class JFSenableSharing(object):
         'iterate over shared files and get their public URI'
         for f in self.sharing.files.iterchildren():
             yield (f.attrib['name'], f.attrib['uuid'],
-                'http://www.jottacloud.com/p/%s/%s' % (self.jfs.username, f.publicURI.text))
+                'https://www.jottacloud.com/p/%s/%s' % (self.jfs.username, f.publicURI.text))
 
 
 class JFS(object):
-    def __init__(self, username, password):
+    def __init__(self, auth=None):
         from requests.auth import HTTPBasicAuth
         self.apiversion = '2.2' # hard coded per october 2014
         self.session = requests.Session() # create a session for connection pooling, ssl keepalives and cookie jar
-        self.username = username
-        self.session.auth = HTTPBasicAuth(username, password)
+        self.session.stream = True
+        if not auth:
+            auth = get_auth_info()
+        self.username, password = auth
+        self.session.auth = HTTPBasicAuth(self.username, password)
         self.session.verify = certifi.where()
         self.session.headers =  {'User-Agent':'jottalib %s (https://github.com/havardgulldahl/jottalib)' % (__version__, ),
                                  'X-JottaAPIVersion': self.apiversion,
                                 }
-        self.rootpath = JFS_ROOT + username
+        self.rootpath = JFS_ROOT + self.username
         self.fs = self.get(self.rootpath)
 
     def request(self, url, extra_headers=None):
@@ -737,6 +812,8 @@ class JFS(object):
         elif o.tag == 'device': return JFSDevice(o, jfs=self, parentpath=parent)
         elif o.tag == 'folder': return JFSFolder(o, jfs=self, parentpath=parent)
         elif o.tag == 'mountPoint': return JFSMountPoint(o, jfs=self, parentpath=parent)
+        elif o.tag == 'restoredFiles': return JFSFile(o, jfs=self, parentpath=parent)
+        elif o.tag == 'deleteFiles': return JFSFile(o, jfs=self, parentpath=parent)
         elif o.tag == 'file':
             try:
                 if o.latestRevision.state == 'INCOMPLETE':
@@ -750,10 +827,10 @@ class JFS(object):
         elif o.tag == 'filedirlist': return JFSFileDirList(o, jfs=self, parentpath=parent)
         raise JFSError("invalid object: %s <- %s" % (repr(o), url_or_requests_response))
 
-    def stream(self, url, chunkSize=1024):
-        'Iterator to get remote content by chunkSize (bytes)'
+    def stream(self, url, chunk_size=64*1024):
+        'Iterator to get remote content by chunk_size (bytes)'
         r = self.request(url)
-        for chunk in r.iter_content(chunkSize):
+        for chunk in r.iter_content(chunk_size):
             yield chunk
 
     def post(self, url, content='', files=None, params=None, extra_headers={}, upload_callback=None):
@@ -822,15 +899,22 @@ class JFS(object):
 
         logging.debug('posting content (len %s, hash %s) to url %s', contentlen, md5hash, url)
         now = datetime.datetime.now().isoformat()
+        params = {'cphash': md5hash}
+        m = requests_toolbelt.MultipartEncoder({
+             'md5': ('', md5hash),
+             'modified': ('', now),
+             'created': ('', now),
+             'file': (os.path.basename(url), fileobject, 'application/octet-stream'),
+        })
         headers = {'JMd5':md5hash,
                    'JCreated': now,
                    'JModified': now,
                    'X-Jfs-DeviceName': 'Jotta',
                    'JSize': contentlen,
                    'jx_csid': '',
-                   'jx_lisence': ''
+                   'jx_lisence': '',
+                   'content-type': m.content_type,
                    }
-        params = {'cphash':md5hash,}
         fileobject.seek(0) # rewind read index for requests.post
         files = {'md5': ('', md5hash),
                  'modified': ('', now),

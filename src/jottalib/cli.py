@@ -1,0 +1,226 @@
+# -*- encoding: utf-8 -*-
+#
+# This file is part of jottafs.
+#
+# jottafs is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# jottafs is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with jottafs.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright 2011,2013,2014,2015 Håvard Gulldahl <havard@gulldahl.no>
+
+from __future__ import absolute_import, division, unicode_literals
+
+__author__ = 'havard@gulldahl.no'
+
+import argparse
+import httplib
+import humanize as _humanize
+import logging
+import os
+import posixpath
+import sys
+import time
+from clint.textui import progress
+from functools import partial
+
+from jottalib import JFS
+
+HAS_FUSE = False
+try:
+    import fuse # pylint: disable=unused-import
+    HAS_FUSE = True
+except ImportError:
+    pass
+
+ProgressBar = partial(progress.Bar, empty_char='○', filled_char='●')
+
+
+def fuse():
+    if HAS_FUSE:
+        from .fuse import fuse as real_fuse
+        real_fuse()
+    else:
+        message = ['jotta-fuse requires fusepy (pip install fusepy), install that and try again.']
+        if os.name == 'nt':
+            message.append('Note: jotta-fuse is not supported on Windows, but Cygwin might work.')
+        print(' '.join(message))
+        sys.exit(1)
+
+
+def get_jotta_device(jfs):
+    jottadev = None
+    for j in jfs.devices: # find Jotta/Shared folder
+        if j.name == 'Jotta':
+            jottadev = j
+    return jottadev
+
+
+def get_root_dir(jfs):
+    jottadev = get_jotta_device(jfs)
+    root_dir = jottadev.mountPoints['Sync']
+    return root_dir
+
+
+def parse_args_and_apply_logging_level(parser):
+    args = parser.parse_args()
+    logging.basicConfig(level=getattr(logging, args.log_level.upper()))
+    httplib.HTTPConnection.debuglevel = 1 if args.log_level == 'debug' else 0
+    return args
+
+
+def print_size(num, humanize=False):
+    if humanize:
+        return _humanize.naturalsize(num, gnu=True)
+    else:
+        return str(num)
+
+
+def upload():
+    parser = argparse.ArgumentParser(description='Upload a file to JottaCloud.')
+    parser.add_argument('localfile', help='The local file that you want to upload',
+                                     type=argparse.FileType('r'))
+    parser.add_argument('remote_dir', help='The remote directory to upload the file to',
+        nargs='?')
+    parser.add_argument('-l', '--log-level', help='Logging level. Default: %(default)s.',
+        choices=('debug', 'info', 'warning', 'error'), default='warning')
+    jfs = JFS.JFS()
+    args = parse_args_and_apply_logging_level(parser)
+    progress_bar = ProgressBar()
+    callback = lambda monitor, size: progress_bar.show(monitor.bytes_read, size)
+    root_folder = get_root_dir(jfs)
+    if args.remote_dir:
+        target_dir_path = posixpath.join(root_folder.path, args.remote_dir)
+        target_dir = jfs.getObject(target_dir_path)
+    else:
+        target_dir = root_folder
+    upload = target_dir.up(args.localfile, os.path.basename(args.localfile.name), upload_callback=callback)
+    print '%s uploaded successfully' % args.localfile.name
+
+
+def share():
+    parser = argparse.ArgumentParser(description='Share a file on JottaCloud and get the public URI.',
+                                     epilog='Note: This utility needs to find JOTTACLOUD_USERNAME'
+                                     ' and JOTTACLOUD_PASSWORD in the running environment.')
+    parser.add_argument('localfile', help='The local file that you want to share',
+                                     type=argparse.FileType('r'))
+    args = parser.parse_args()
+    jfs = JFS.JFS()
+    jottadev = get_jotta_device(jfs)
+    jottashare = jottadev.mountPoints['Shared']
+    upload = jottashare.up(args.localfile)  # upload file
+    public = upload.share() # share file
+    for (filename, uuid, publicURI) in public.sharedFiles():
+        print '%s is now available to the world at %s' % (filename, publicURI)
+
+
+def ls():
+    parser = argparse.ArgumentParser(description='List files in Jotta folder.', add_help=False)
+    parser.add_argument('-l', '--log-level', help='Logging level. Default: %(default)s.',
+        choices=('debug', 'info', 'warning', 'error'), default='warning')
+    parser.add_argument('-h', '--humanize', help='Print human-readable file sizes.',
+        action='store_true')
+    parser.add_argument('-a', '--all', help='Show all files, even deleted ones',
+        action='store_true')
+    parser.add_argument('item', nargs='?', help='The file or directory to list. Defaults to the '
+        'root dir')
+    parser.add_argument('-H', '--help', help='Print this help', action='help')
+    args = parse_args_and_apply_logging_level(parser)
+    jfs = JFS.JFS()
+    root_folder = get_root_dir(jfs)
+    if args.item:
+        item_path = posixpath.join(root_folder.path, args.item)
+        item = jfs.getObject(item_path)
+    else:
+        item = root_folder
+    if isinstance(item, JFS.JFSFolder):
+        files = [(
+            f.created,
+            print_size(f.size, humanize=args.humanize),
+            'D' if f.deleted else ' ',
+            f.name) for f in item.files() if not f.deleted or args.all]
+        folders = [(' '*25, '', 'D' if f.deleted else ' ', str(f.name)) for f in item.folders()]
+        widest_size = 0
+        for f in files:
+            if len(f[1]) > widest_size:
+                widest_size = len(f[1])
+        for item in sorted(files + folders, key=lambda t: t[3]):
+            if args.all:
+                print '%s %s %s %s' % (item[0], item[1].rjust(widest_size), item[2], item[3])
+            else:
+                print '%s %s %s' % (item[0], item[1].rjust(widest_size), item[3])
+    else:
+        print ' '.join([str(item.created), print_size(item.size, humanize=args.humanize), item.name])
+
+
+def download():
+    parser = argparse.ArgumentParser(description='Download a file from Jottacloud.')
+    parser.add_argument('remotefile', help='The path to the file that you want to download')
+    parser.add_argument('-l', '--log-level', help='Logging level. Default: %(default)s.',
+        choices=('debug', 'info', 'warning', 'error'), default='warning')
+    args = parse_args_and_apply_logging_level(parser)
+    jfs = JFS.JFS()
+    root_folder = get_root_dir(jfs)
+    path_to_object = posixpath.join(root_folder.path, args.remotefile)
+    remote_file = jfs.getObject(path_to_object)
+    total_size = remote_file.size
+    with open(remote_file.name, 'wb') as fh:
+        bytes_read = 0
+        with ProgressBar(expected_size=total_size) as bar:
+            for chunk_num, chunk in enumerate(remote_file.stream()):
+                fh.write(chunk)
+                bytes_read += len(chunk)
+                bar.show(bytes_read)
+    print('%s downloaded successfully' % args.remotefile)
+
+
+def mkdir():
+    parser = argparse.ArgumentParser(description='Create a new folder in Jottacloud.')
+    parser.add_argument('newdir', help='The path to the folder that you want to create')
+    parser.add_argument('-l', '--log-level', help='Logging level. Default: %(default)s.',
+        choices=('debug', 'info', 'warning', 'error'), default='warning')
+    args = parse_args_and_apply_logging_level(parser)
+    jfs = JFS.JFS()
+    root_folder = get_root_dir(jfs)
+    root_folder.mkdir(args.newdir)
+
+
+def rm():
+    parser = argparse.ArgumentParser(description='Delete an item from Jottacloud')
+    parser.add_argument('file', help='The path to the item that you want to delete')
+    parser.add_argument('-l', '--log-level', help='Logging level. Default: %(default)s.',
+        choices=('debug', 'info', 'warning', 'error'), default='warning')
+    parser.add_argument('-f', '--force', help='Completely deleted, no restore possiblity',
+        action='store_true')
+    args = parse_args_and_apply_logging_level(parser)
+    jfs = JFS.JFS()
+    root_dir = get_root_dir(jfs)
+    item_path = posixpath.join(root_dir.path, args.file)
+    item = jfs.getObject(item_path)
+    if args.force:
+        item.hard_delete()
+    else:
+        item.delete()
+    print '%s deleted' % args.file
+
+
+def restore():
+    parser = argparse.ArgumentParser(description='Restore a deleted item from Jottacloud')
+    parser.add_argument('file', help='The path to the item that you want to restore')
+    parser.add_argument('-l', '--log-level', help='Logging level. Default: %(default)s.',
+        choices=('debug', 'info', 'warning', 'error'), default='warning')
+    args = parse_args_and_apply_logging_level(parser)
+    jfs = JFS.JFS()
+    root_dir = get_root_dir(jfs)
+    item_path = posixpath.join(root_dir.path, args.file)
+    item = jfs.getObject(item_path)
+    item.restore()
+    print '%s restored' % args.file

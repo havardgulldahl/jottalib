@@ -24,7 +24,7 @@
 __author__ = 'havard@gulldahl.no'
 
 # importing stdlib
-import sys, os, pwd, stat, errno, netrc
+import sys, os, pwd, stat, errno
 import urllib, logging, datetime, argparse
 import time
 import itertools
@@ -67,12 +67,11 @@ def is_blacklisted(path):
 class JottaFuse(LoggingMixIn, Operations):
     '''
     A simple filesystem for JottaCloud.
-
     '''
 
 
-    def __init__(self, username, password, path='.'):
-        self.client = JFS.JFS(username, password)
+    def __init__(self, auth, path='.'):
+        self.client = JFS.JFS(auth)
         self.__newfiles = {} # a dict of stringio objects
         self.__newfolders = []
         self.ino = 0
@@ -406,15 +405,8 @@ if __name__ == '__main__':
         requests_log.propagate = True
         logging.basicConfig(level=logging.DEBUG)
 
-    try:
-        n = netrc.netrc()
-        username, account, password = n.authenticators('jottacloud') # read .netrc entry for 'machine jottacloud'
-    except:
-        username = os.environ['JOTTACLOUD_USERNAME']
-        password = os.environ['JOTTACLOUD_PASSWORD']
-
-    fuse = FUSE(JottaFuse(username, password), args.mountpoint, debug=args.debug_fuse,
+    auth = JFS.get_auth_info()
+    fuse = FUSE(JottaFuse(auth), args.mountpoint, debug=args.debug_fuse,
                 sync_read=True, foreground=args.debug, raw_fi=False,
                 fsname="JottaCloudFS", subtype="fuse")
-
 
