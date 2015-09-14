@@ -449,9 +449,7 @@ class TestJFSError:
     """
     def test_errors(self):
         with pytest.raises(JFS.JFSCredentialsError): # HTTP 401
-            os.environ['JOTTACLOUD_USERNAME'] = 'PYTEST'
-            JFS.JFS()
-            os.environ['JOTTACLOUD_USERNAME'] = jfs.username
+            JFS.JFS(auth=('PYTEST','PYTEST'))
         with pytest.raises(JFS.JFSNotFoundError): # HTTP 404
             jfs.get('/Jotta/Archive/FileNot.found')
         with pytest.raises(JFS.JFSRangeError): # HTTP 416
@@ -466,6 +464,5 @@ class TestJFSError:
 TODO
 class JFSFolder(object):
 class JFSIncompleteFile(ProtoFile):
-class JFSFile(JFSIncompleteFile):
 class JFSenableSharing(object):
 """
