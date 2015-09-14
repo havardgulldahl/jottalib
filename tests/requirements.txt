@@ -1,4 +1,4 @@
-# enumerating ALL dependencies, also extras, for both packages for easy testing
+# enumerating ALL dependencies, also extras, for both packages, for easy testing
 
 # jottalib
 
@@ -7,6 +7,7 @@ requests_toolbelt
 certifi==2015.04.28
 python-dateutil
 lxml
+humanize
 
 # jottacloudclient
 
