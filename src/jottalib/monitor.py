@@ -30,8 +30,8 @@ from watchdog.events import LoggingEventHandler, FileSystemEventHandler
 from clint.textui import progress, puts, colored
 
 from jottalib.JFS import JFS
-from jottacloudclient import jottacloud, __version__
-from readlnk import readlnk
+from jottalib import jottacloud, __version__
+from tools.readlnk import readlnk
 
 
 

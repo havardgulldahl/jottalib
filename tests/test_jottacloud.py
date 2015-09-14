@@ -30,8 +30,7 @@ import pytest # pip install pytest
 from xattr import xattr # pip install xattr
 
 # import jotta
-from jottalib import JFS, __version__
-from tools.jottacloudclient import jottacloud
+from jottalib import JFS, __version__, jottacloud
 
 
 jfs = JFS.JFS() # get username and password from environment or .netrc
