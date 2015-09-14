@@ -34,17 +34,7 @@ from jottalib import JFS, __version__
 from tools.jottacloudclient import jottacloud
 
 
-# we need an active login to test
-import netrc
-try:
-    n = netrc.netrc()
-    username, account, password = n.authenticators('jottacloud') # read .netrc entry for 'machine jottacloud'
-except Exception as e:
-    logging.exception(e)
-    username = os.environ['JOTTACLOUD_USERNAME']
-    password = os.environ['JOTTACLOUD_PASSWORD']
-
-jfs = JFS.JFS(username, password)
+jfs = JFS.JFS() # get username and password from environment or .netrc
 
 
 TESTFILEDATA="""
