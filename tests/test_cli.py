@@ -49,12 +49,13 @@ def test_get_root_dir():
     root = cli.get_root_dir(jfs)
     assert isinstance(root, JFS.JFSMountPoint)
 
-
 def test_ls():
     cli.ls()
     hack_sysargv(['--all'])
     cli.ls()
 
+def test_mkdir():
+    cli.mkdir(['mkdir', 'testmkdir'])
 
 
 
@@ -66,7 +67,6 @@ def test_ls():
 # def upload():
 # def share():
 # def download():
-# def mkdir():
 # def rm():
 # def restore():
 # def scanner():
