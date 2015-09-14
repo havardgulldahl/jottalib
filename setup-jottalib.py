@@ -20,7 +20,8 @@
 
 from setuptools import setup
 
-import os, sys
+import os
+import sys
 sys.path.insert(0, './src')
 
 from jottalib import __version__
@@ -44,18 +45,31 @@ setup(name='jottalib',
       url='https://github.com/havardgulldahl/jottalib',
       package_dir={'':'src'},
       packages=['jottalib', ],
-      #scripts=[],
       install_requires=['requests',
                         'requests_toolbelt',
                         #'requests_cache',
                         'certifi',
+                        'clint',
                         'python-dateutil',
+                        'humanize',
                         'lxml'],
       # see https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
-      extras_require = {
-        'Qt':  ['python-qt4',],
+      extras_require={
+          'Qt':  ['python-qt4',],
       },
-      classifiers = """
+      entry_points={
+          'console_scripts': [
+              'jotta-download = jottalib.cli:download',
+              'jotta-fuse = jottalib.cli:fuse',
+              'jotta-ls = jottalib.cli:ls',
+              'jotta-mkdir = jottalib.cli:mkdir',
+              'jotta-restore = jottalib.cli:restore',
+              'jotta-rm = jottalib.cli:rm',
+              'jotta-share = jottalib.cli:share',
+              'jotta-upload = jottalib.cli:upload',
+        ]
+      },
+      classifiers="""
 Intended Audience :: Developers
 License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)
 Operating System :: OS Independent
@@ -66,6 +80,4 @@ Topic :: System :: Archiving
 Topic :: System :: Archiving :: Backup
 Topic :: Utilities
 """.split('\n'),
-
      )
-

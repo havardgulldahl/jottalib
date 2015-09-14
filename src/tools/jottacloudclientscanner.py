@@ -24,7 +24,7 @@ Run it from crontab at an appropriate interval.
 # Copyright 2014-2015 Håvard Gulldahl <havard@gulldahl.no>
 
 #import included batteries
-import os, re, os.path, sys, logging, argparse, netrc
+import os, re, os.path, sys, logging, argparse
 import math, time
 
 #import pip modules
@@ -69,15 +69,7 @@ if __name__=='__main__':
     fh.setLevel(logging.ERROR)
     logging.getLogger('').addHandler(fh)
 
-    try:
-        n = netrc.netrc()
-        username, account, password = n.authenticators('jottacloud') # read .netrc entry for 'machine jottacloud'
-    except Exception as e:
-        logging.exception(e)
-        username = os.environ['JOTTACLOUD_USERNAME']
-        password = os.environ['JOTTACLOUD_PASSWORD']
-
-    jfs = JFS(username, password)
+    jfs = JFS()
 
     if not args.no_unicode: # use pretty characters to show progress
         progress.BAR_EMPTY_CHAR=u'○'
