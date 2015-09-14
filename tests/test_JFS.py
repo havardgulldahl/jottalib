@@ -417,12 +417,14 @@ class TestJFSFile:
         assert dev.mime == 'image/jpeg'
         assert dev.state == 'COMPLETED'
 
+    def test_image(self):
         #test image stuff
-        assert dev.is_image() == True
-        assert dev.thumb(size=JFS.JFSFile.BIGTHUMB) is not None
-        assert dev.thumb(size=JFS.JFSFile.XLTHUMB) is not None
-        assert dev.thumb(size=JFS.JFSFile.MEDIUMTHUMB) is not None
-        assert dev.thumb(size=JFS.JFSFile.SMALLTHUMB) is not None
+        img = jfs.get('/Jotta/Archive').up('test.jpg')
+        assert img.is_image() == True
+        assert img.thumb(size=JFS.JFSFile.BIGTHUMB) is not None
+        assert img.thumb(size=JFS.JFSFile.XLTHUMB) is not None
+        assert img.thumb(size=JFS.JFSFile.MEDIUMTHUMB) is not None
+        assert img.thumb(size=JFS.JFSFile.SMALLTHUMB) is not None
 
         #TODO: test file operations: .stream(), .rename(), .read(), .read_partial, .delete etc
         #TODO: test revisions
