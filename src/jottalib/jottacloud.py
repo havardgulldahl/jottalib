@@ -162,9 +162,12 @@ def setxattrhash(filename, md5hash):
     try:
         x = xattr(filename)
         x.set('user.jottalib.md5', md5hash)
-        #x.set('user.jottalib.timestamp', time.time())
+        x.set('user.jottalib.timestamp', str(os.path.getmtime(filename)))
         x.set('user.jottalib.filesize', str(os.path.getsize(filename)))
         return True
+    except IOError:
+        # no file system support
+        return False
     except Exception as e:
         logging.exception(e)
         #logging.debug('setxattr got exception %r', e)
@@ -174,8 +177,9 @@ def getxattrhash(filename):
     logging.debug('get xattr hash for %s', filename)
     try:
         x = xattr(filename)
-        if x.get('user.jottalib.filesize') != str(os.path.getsize(filename)):
+        if x.get('user.jottalib.filesize') != str(os.path.getsize(filename)) or x.get('user.jottalib.timestamp') != str(os.path.getmtime(filename)):
             x.remove('user.jottalib.filesize')
+            x.remove('user.jottalib.timestamp')
             x.remove('user.jottalib.md5')
             return None # this is not the file we have calculated md5 for
         return x.get('user.jottalib.md5')
