@@ -32,7 +32,10 @@ import time
 from clint.textui import progress
 from functools import partial
 
+# import our stuff
 from jottalib import JFS, __version__
+from .scanner import filescanner
+from .monitor import filemonitor
 
 HAS_FUSE = False
 try:
@@ -42,6 +45,39 @@ except ImportError:
     pass
 
 ProgressBar = partial(progress.Bar, empty_char='○', filled_char='●')
+
+
+## HELPER FUNCTIONS ##
+
+def get_jotta_device(jfs):
+    jottadev = None
+    for j in jfs.devices: # find Jotta/Shared folder
+        if j.name == 'Jotta':
+            jottadev = j
+    return jottadev
+
+
+def get_root_dir(jfs):
+    jottadev = get_jotta_device(jfs)
+    root_dir = jottadev.mountPoints['Sync']
+    return root_dir
+
+
+def parse_args_and_apply_logging_level(parser):
+    args = parser.parse_args()
+    logging.basicConfig(level=getattr(logging, args.log_level.upper()))
+    httplib.HTTPConnection.debuglevel = 1 if args.log_level == 'debug' else 0
+    return args
+
+
+def print_size(num, humanize=False):
+    if humanize:
+        return _humanize.naturalsize(num, gnu=True)
+    else:
+        return str(num)
+
+
+## UTILITIES, ONE PER FUNCTION ##
 
 
 def fuse():
@@ -81,36 +117,6 @@ def fuse():
     fuse = FUSE(JottaFuse(auth), args.mountpoint, debug=args.debug_fuse,
                 sync_read=True, foreground=args.debug, raw_fi=False,
                 fsname="JottaCloudFS", subtype="fuse")
-
-
-
-def get_jotta_device(jfs):
-    jottadev = None
-    for j in jfs.devices: # find Jotta/Shared folder
-        if j.name == 'Jotta':
-            jottadev = j
-    return jottadev
-
-
-def get_root_dir(jfs):
-    jottadev = get_jotta_device(jfs)
-    root_dir = jottadev.mountPoints['Sync']
-    return root_dir
-
-
-def parse_args_and_apply_logging_level(parser):
-    args = parser.parse_args()
-    logging.basicConfig(level=getattr(logging, args.log_level.upper()))
-    httplib.HTTPConnection.debuglevel = 1 if args.log_level == 'debug' else 0
-    return args
-
-
-def print_size(num, humanize=False):
-    if humanize:
-        return _humanize.naturalsize(num, gnu=True)
-    else:
-        return str(num)
-
 
 def upload():
     parser = argparse.ArgumentParser(description='Upload a file to JottaCloud.')
@@ -252,3 +258,60 @@ def restore():
     item = jfs.getObject(item_path)
     item.restore()
     print '%s restored' % args.file
+
+
+def scanner():
+    def is_dir(path):
+        if not os.path.isdir(path):
+            raise argparse.ArgumentTypeError('%s is not a valid directory' % path)
+        return path
+    parser = argparse.ArgumentParser(description=__doc__,
+                                    epilog="""The program expects to find an entry for "jottacloud.com" in your .netrc,
+                                    or JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.
+                                    This is not an official JottaCloud project.""")
+    parser.add_argument('--loglevel', help='Choose how much to put in the log. One of DEBUG, INFO, WARNING, ERROR', default=logging.ERROR)
+    parser.add_argument('--errorfile', help='A file to write errors to', default='./jottacloudclient.log')
+    parser.add_argument('--exclude', type=re.compile, action='append', help='Exclude paths matched by this pattern (can be repeated)')
+    parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument('--dry-run', action='store_true',
+                        help="don't actually do any uploads or deletes, just show what would be done")
+    parser.add_argument('topdir', type=is_dir, help='Path to local dir that needs syncing')
+    parser.add_argument('jottapath', help='The path at JottaCloud where the tree shall be synced (must exist)')
+    args = parser.parse_args()
+    logging.basicConfig(level=args.loglevel)
+    logging.captureWarnings(True)
+    fh = logging.FileHandler(args.errorfile)
+    fh.setLevel(logging.ERROR)
+    logging.getLogger('').addHandler(fh)
+
+    jfs = JFS()
+
+    filescanner(args.topdir, args.jottapath, jfs, args.exclude, args.dry_run)
+
+
+def monitor():
+    def is_dir(path):
+        if not os.path.isdir(path):
+            raise argparse.ArgumentTypeError('%s is not a valid directory' % path)
+        return path
+    parser = argparse.ArgumentParser(description=__doc__,
+                                    epilog="""The program expects to find an entry for "jottacloud.com" in your .netrc,
+                                    or JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.
+                                    This is not an official JottaCloud project.""")
+    parser.add_argument('--loglevel', type=int, help='Loglevel from 1 (only errors) to 9 (extremely chatty)', default=logging.WARNING)
+    parser.add_argument('--errorfile', help='A file to write errors to', default='./jottacloudclient.log')
+    parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument('--dry-run', action='store_true',
+                        help="don't actually do any uploads or deletes, just show what would be done")
+    parser.add_argument('topdir', type=is_dir, help='Path to local dir that needs syncing')
+    parser.add_argument('mode', help='Mode of operation: ARCHIVE, SYNC or SHARE. See README.md',
+                        choices=( 'archive', 'sync', 'share') )
+    args = parser.parse_args()
+    logging.basicConfig(level=args.loglevel)
+    fh = logging.FileHandler(args.errorfile)
+    fh.setLevel(logging.ERROR)
+    logging.getLogger('').addHandler(fh)
+
+    jfs = JFS()
+
+    filemonitor(args.topdir, args.mode, jfs)
