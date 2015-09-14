@@ -22,7 +22,8 @@
 __author__ = 'havard@gulldahl.no'
 
 # import standardlib
-import os, os.path, tempfile, time, math
+import os, os.path, tempfile, time, math, logging
+logging.captureWarnings(True)
 
 
 from clint.textui import progress, puts, colored
@@ -50,13 +51,13 @@ if __name__ == '__main__':
     import netrc
     try:
         n = netrc.netrc()
-        username, account, password = n.authenticators('jottacloud') # read .netrc entry for 'machine jottacloud'
+        username, account, password = n.authenticators('jottacloud.com') # read .netrc entry for 'machine jottacloud'
     except Exception as e:
         logging.exception(e)
         username = os.environ['JOTTACLOUD_USERNAME']
         password = os.environ['JOTTACLOUD_PASSWORD']
 
-    jfs = JFS.JFS(username, password)
+    jfs = JFS.JFS(auth=(username, password))
     lite = LiteJFS(username, password)
 
     filesize = 1024*10*10
