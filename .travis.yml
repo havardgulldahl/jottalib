@@ -4,8 +4,8 @@ language: python
 python:
 #  - "2.6"
   - "2.7"
-#  - "3.3"
-  - "3.4"
+  - "3.3"
+#  - "3.4"
 #  - "nightly"
   - "pypy"
 
@@ -25,10 +25,11 @@ notifications:
 
 # install dependencies
 before_install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq libfuse-dev pkg-config fuse user-mode-linux
-  - sudo mknod /dev/fuse c 10 229
-  - sudo chmod 666 /dev/fuse
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get update; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update; fi
+install:
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install -qq libfuse-dev pkg-config fuse user-mode-linux; sudo mknod /dev/fuse c 10 229; sudo chmod 666 /dev/fuse; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install osxfuse; sudo /bin/cp -RfX /usr/local/opt/osxfuse/Library/Filesystems/osxfusefs.fs /Library/Filesystems; sudo chmod +s /Library/Filesystems/osxfusefs.fs/Support/load_osxfusefs; sudo mknod /dev/fuse c 10 229; sudo chmod 666 /dev/fuse; fi
 install:
   - pip install -r tests/requirements.txt
 
@@ -36,4 +37,5 @@ install:
 script:
   - PYTHONPATH=$PYTHONPATH:./src py.test tests/
   # TODO: add fuse tests when travis suports it https://github.com/travis-ci/travis-ci/issues/3491
-  # - ./tests/fusetest.sh
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ./tests/test_uml_linux.sh ./tests/fusetest.sh; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo ./tests/fusetest.sh; fi 
