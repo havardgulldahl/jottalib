@@ -44,6 +44,13 @@ try:
 except ImportError:
     pass
 
+HAS_WATCHDOG = False # for monitor()
+try:
+    import watchdog
+    HAS_WATCHDOG = True
+except ImportError:
+    pass
+
 ProgressBar = partial(progress.Bar, empty_char='○', filled_char='●')
 
 
@@ -65,8 +72,9 @@ def get_root_dir(jfs):
 
 def parse_args_and_apply_logging_level(parser):
     args = parser.parse_args()
-    logging.basicConfig(level=getattr(logging, args.log_level.upper()))
-    httplib.HTTPConnection.debuglevel = 1 if args.log_level == 'debug' else 0
+    logging.basicConfig(level=getattr(logging, args.loglevel.upper()))
+    logging.captureWarnings(True)
+    httplib.HTTPConnection.debuglevel = 1 if args.loglevel == 'debug' else 0
     return args
 
 
@@ -124,7 +132,7 @@ def upload():
                                      type=argparse.FileType('r'))
     parser.add_argument('remote_dir', help='The remote directory to upload the file to',
         nargs='?')
-    parser.add_argument('-l', '--log-level', help='Logging level. Default: %(default)s.',
+    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
         choices=('debug', 'info', 'warning', 'error'), default='warning')
     jfs = JFS.JFS()
     args = parse_args_and_apply_logging_level(parser)
@@ -158,7 +166,7 @@ def share():
 
 def ls():
     parser = argparse.ArgumentParser(description='List files in Jotta folder.', add_help=False)
-    parser.add_argument('-l', '--log-level', help='Logging level. Default: %(default)s.',
+    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
         choices=('debug', 'info', 'warning', 'error'), default='warning')
     parser.add_argument('-h', '--humanize', help='Print human-readable file sizes.',
         action='store_true')
@@ -198,7 +206,7 @@ def ls():
 def download():
     parser = argparse.ArgumentParser(description='Download a file from Jottacloud.')
     parser.add_argument('remotefile', help='The path to the file that you want to download')
-    parser.add_argument('-l', '--log-level', help='Logging level. Default: %(default)s.',
+    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
         choices=('debug', 'info', 'warning', 'error'), default='warning')
     args = parse_args_and_apply_logging_level(parser)
     jfs = JFS.JFS()
@@ -219,7 +227,7 @@ def download():
 def mkdir():
     parser = argparse.ArgumentParser(description='Create a new folder in Jottacloud.')
     parser.add_argument('newdir', help='The path to the folder that you want to create')
-    parser.add_argument('-l', '--log-level', help='Logging level. Default: %(default)s.',
+    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
         choices=('debug', 'info', 'warning', 'error'), default='warning')
     args = parse_args_and_apply_logging_level(parser)
     jfs = JFS.JFS()
@@ -230,7 +238,7 @@ def mkdir():
 def rm():
     parser = argparse.ArgumentParser(description='Delete an item from Jottacloud')
     parser.add_argument('file', help='The path to the item that you want to delete')
-    parser.add_argument('-l', '--log-level', help='Logging level. Default: %(default)s.',
+    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
         choices=('debug', 'info', 'warning', 'error'), default='warning')
     parser.add_argument('-f', '--force', help='Completely deleted, no restore possiblity',
         action='store_true')
@@ -249,7 +257,7 @@ def rm():
 def restore():
     parser = argparse.ArgumentParser(description='Restore a deleted item from Jottacloud')
     parser.add_argument('file', help='The path to the item that you want to restore')
-    parser.add_argument('-l', '--log-level', help='Logging level. Default: %(default)s.',
+    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
         choices=('debug', 'info', 'warning', 'error'), default='warning')
     args = parse_args_and_apply_logging_level(parser)
     jfs = JFS.JFS()
@@ -269,7 +277,8 @@ def scanner():
                                     epilog="""The program expects to find an entry for "jottacloud.com" in your .netrc,
                                     or JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.
                                     This is not an official JottaCloud project.""")
-    parser.add_argument('--loglevel', help='Choose how much to put in the log. One of DEBUG, INFO, WARNING, ERROR', default=logging.ERROR)
+    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
+                        choices=('debug', 'info', 'warning', 'error'), default='warning')
     parser.add_argument('--errorfile', help='A file to write errors to', default='./jottacloudclient.log')
     parser.add_argument('--exclude', type=re.compile, action='append', help='Exclude paths matched by this pattern (can be repeated)')
     parser.add_argument('--version', action='version', version=__version__)
@@ -277,9 +286,7 @@ def scanner():
                         help="don't actually do any uploads or deletes, just show what would be done")
     parser.add_argument('topdir', type=is_dir, help='Path to local dir that needs syncing')
     parser.add_argument('jottapath', help='The path at JottaCloud where the tree shall be synced (must exist)')
-    args = parser.parse_args()
-    logging.basicConfig(level=args.loglevel)
-    logging.captureWarnings(True)
+    args = parse_args_and_apply_logging_level(parser)
     fh = logging.FileHandler(args.errorfile)
     fh.setLevel(logging.ERROR)
     logging.getLogger('').addHandler(fh)
@@ -290,6 +297,11 @@ def scanner():
 
 
 def monitor():
+    if not HAS_WATCHDOG:
+        message = ['jotta-monitor requires watchdog (pip install watchdog), install that and try again.']
+        print(' '.join(message))
+        sys.exit(1)
+
     def is_dir(path):
         if not os.path.isdir(path):
             raise argparse.ArgumentTypeError('%s is not a valid directory' % path)
@@ -298,7 +310,8 @@ def monitor():
                                     epilog="""The program expects to find an entry for "jottacloud.com" in your .netrc,
                                     or JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.
                                     This is not an official JottaCloud project.""")
-    parser.add_argument('--loglevel', type=int, help='Loglevel from 1 (only errors) to 9 (extremely chatty)', default=logging.WARNING)
+    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
+                        choices=('debug', 'info', 'warning', 'error'), default='warning')
     parser.add_argument('--errorfile', help='A file to write errors to', default='./jottacloudclient.log')
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('--dry-run', action='store_true',
@@ -306,8 +319,7 @@ def monitor():
     parser.add_argument('topdir', type=is_dir, help='Path to local dir that needs syncing')
     parser.add_argument('mode', help='Mode of operation: ARCHIVE, SYNC or SHARE. See README.md',
                         choices=( 'archive', 'sync', 'share') )
-    args = parser.parse_args()
-    logging.basicConfig(level=args.loglevel)
+    args = parse_args_and_apply_logging_level(parser)
     fh = logging.FileHandler(args.errorfile)
     fh.setLevel(logging.ERROR)
     logging.getLogger('').addHandler(fh)
