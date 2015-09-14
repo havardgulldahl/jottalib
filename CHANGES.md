@@ -1,5 +1,22 @@
 # Change Log
 
+## [0.4] - TBA
+
+### BREAKING CHANGES
+
+- Some modules and scripts have been renamed. We realise this might cause inconvenience for some, but it has been long time coming.
+    o `jottacloudclientscanner.py` and `jottacloudclientmonitor.py` are long gone. Their new names are `jotta-scanner` and `jottalib-monitor` once you install it.
+    o Developers: The modules are also renamed: `jottalib.scanner` and `jottalib.monitor` are your new friends.
+
+- `.netrc` parsing has changed. Update your entry to read **jottacloud.com**, instead of **jottacloud**
+
+### Changed
+
+- A lot of new tests added, and some small bugs caught and fixed.
+
+### Fixed
+
+
 ## [0.3.1] - 2015-08-26
 
 ### Changed
