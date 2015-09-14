@@ -21,13 +21,12 @@
 from setuptools import setup
 
 import os, sys
-sys.path.insert(0, './src/tools')
+sys.path.insert(0, './src')
 
-from jottacloudclient import __version__
+from jottalib import __version__
 
 try:
-    os.system('pandoc --from=markdown --to=rst --output=README.txt src/tools/README.jottacloudclient.md')
-    with open('README.txt') as f:
+    with open('../jottalib.wiki/Normal-use-cases.rest') as f:
         long_desc = f.read()
 except:
     long_desc = ''
@@ -42,12 +41,7 @@ setup(name='jottacloudclient',
       author=u'Håvard Gulldahl',
       author_email='havard@gulldahl.no',
       url='https://github.com/havardgulldahl/jottalib',
-      package_dir={'':'src/tools'},
-      packages=['jottacloudclient', ],
-      scripts=['src/tools/jottacloudclientmonitor.py',
-               'src/tools/jottacloudclientscanner.py',
-               'src/jottafuse.py',
-               'src/jottashare.py'],
+      package_dir={'':'src/jottalib'},
       install_requires=['jottalib>=%s' % __version__,
                         'clint',
                         ],
