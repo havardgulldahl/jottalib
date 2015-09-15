@@ -51,7 +51,9 @@ setup(name='jottalib',
                         'clint',
                         'python-dateutil',
                         'humanize',
-                        'lxml'],
+                        'lxml',
+                        'xattr',
+      ],
       # see https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
       extras_require={
           'Qt':  ['python-qt4',],
