@@ -47,16 +47,18 @@ setup(name='jottalib',
       packages=['jottalib', ],
       install_requires=['requests',
                         'requests_toolbelt',
-                        'certifi==2015.4.28',
+                        'certifi==2015.4.28', # TODO: remove pin
                         'clint',
                         'python-dateutil',
                         'humanize',
                         'lxml',
-                        'xattr',
       ],
       # see https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
       extras_require={
           'Qt':  ['python-qt4',],
+          'FUSE':  ['fusepy',],      # required for jotta-fuse
+          'monitor': ['watchdog',],  # required for jotta-monitor
+          'scanner': ['xattr',],     # optional for jotta-scanner
       },
       entry_points={
           'console_scripts': [
@@ -68,12 +70,19 @@ setup(name='jottalib',
               'jotta-rm = jottalib.cli:rm',
               'jotta-share = jottalib.cli:share',
               'jotta-upload = jottalib.cli:upload',
+              'jotta-scanner = jottalib.cli:scanner',
+              'jotta-monitor = jottalib.cli:monitor',
         ]
       },
       classifiers="""
 Intended Audience :: Developers
+Intended Audience :: End Users/Desktop
 License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)
 Operating System :: OS Independent
+Operating System :: Microsoft :: Windows
+Operating System :: POSIX
+Operating System :: POSIX :: Linux
+Operating System :: MacOS :: MacOS X
 Programming Language :: Python :: 2.7
 Programming Language :: Python :: Implementation :: CPython
 Programming Language :: Python :: Implementation :: PyPy
