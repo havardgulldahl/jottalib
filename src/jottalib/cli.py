@@ -35,7 +35,6 @@ from functools import partial
 # import our stuff
 from jottalib import JFS, __version__
 from .scanner import filescanner
-from .monitor import filemonitor
 
 HAS_FUSE = False
 try:
@@ -301,6 +300,9 @@ def monitor():
         message = ['jotta-monitor requires watchdog (pip install watchdog), install that and try again.']
         print(' '.join(message))
         sys.exit(1)
+
+    # Has watchdog, can safely import filemonitor
+    from .monitor import filemonitor
 
     def is_dir(path):
         if not os.path.isdir(path):
