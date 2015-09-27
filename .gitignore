@@ -2,7 +2,6 @@
 dist/
 *.sqlite
 MANIFEST
-README.txt
 bin/
 lib/
 share/
