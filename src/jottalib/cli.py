@@ -29,6 +29,7 @@ import os
 import posixpath
 import sys
 import time
+import re
 from clint.textui import progress
 from functools import partial
 
