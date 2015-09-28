@@ -37,7 +37,7 @@ logging.captureWarnings(True)
 
 # import jotta
 from jottalib import JFS, __version__
-from tools.mwt import Memoize
+from jottalib.contrib.mwt import Memoize
 
 # import dependenceis (get them with pip!)
 try:

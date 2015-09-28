@@ -55,9 +55,18 @@ def test_ls():
     cli.ls()
 
 def test_mkdir():
-    cli.mkdir(['mkdir', 'testmkdir'])
+    hack_sysargv(['mkdir', 'testmkdir'])
+    cli.mkdir()
 
 
+def test_monitor():
+    cli.monitor()
+
+def test_scanner():
+    cli.scanner()
+
+def test_fuse():
+    cli.fuse()
 
 # TODO:
 

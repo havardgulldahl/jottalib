@@ -31,7 +31,7 @@ from clint.textui import progress, puts, colored
 
 from jottalib.JFS import JFS
 from jottalib import jottacloud, __version__
-from tools.readlnk import readlnk
+from jottalib.contrib.readlnk import readlnk
 
 
 
