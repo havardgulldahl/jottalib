@@ -96,4 +96,4 @@ look!
 .. |Requirements Status| image:: https://requires.io/github/havardgulldahl/jottalib/requirements.svg?branch=master
    :target: https://requires.io/github/havardgulldahl/jottalib/requirements/?branch=master
 .. |Build status master branch| image:: https://travis-ci.org/havardgulldahl/jottalib.svg?branch=master
-   :target: https://travis-ci.org/havardgulldahl/jottalib.svg?branch=master
+   :target: https://travis-ci.org/havardgulldahl/jottalib
