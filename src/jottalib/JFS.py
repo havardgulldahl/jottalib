@@ -40,6 +40,8 @@ import certifi
 import lxml, lxml.objectify
 import dateutil, dateutil.parser # pip install python-dateutil
 
+log = logging.getLogger(__name__)
+
 #monkeypatch urllib3 param function to bypass bug in jottacloud servers
 from requests.packages import urllib3
 urllib3.fields.format_header_param_orig = urllib3.fields.format_header_param
@@ -204,7 +206,7 @@ class JFSFolder(object):
 
     def sync(self):
         'Update state of folder from Jottacloud server'
-        logging.info("syncing %s" % self.path)
+        log.info("syncing %s" % self.path)
         self.folder = self.jfs.get(self.path)
         self.synced = True
 
@@ -279,7 +281,7 @@ class JFSFolder(object):
             fileobj_or_path = open(fileobj_or_path, 'rb')
         elif filename is None: # fileobj is file, but filename is None
             filename = os.path.basename(fileobj_or_path.name)
-        logging.debug('.up %s ->  %s %s', repr(fileobj_or_path), repr(self.path), repr(filename))
+        log.debug('.up %s ->  %s %s', repr(fileobj_or_path), repr(self.path), repr(filename))
         r = self.jfs.up(posixpath.join(self.path, filename), fileobj_or_path,
             upload_callback=upload_callback)
         self.sync()
@@ -360,7 +362,7 @@ class JFSIncompleteFile(ProtoFile):
         md5 = calculate_md5(data)
         if md5 != self.md5:
             raise JFSError('''MD5 hashes don't match! Are you trying to resume with the wrong file?''')
-        logging.debug('Resuming %s from offset %s', self.path, self.size)
+        log.debug('Resuming %s from offset %s', self.path, self.size)
         return self.jfs.up(self.path, data, resume_offset=self.size)
 
     @property
@@ -651,7 +653,7 @@ class JFSDevice(object):
         """Get _all_ metadata for this device.
         Call this method if you have the lite/abbreviated device info from e.g. <user/>. """
         if isinstance(path, object) and hasattr(path, 'name'):
-            logging.debug("passed an object, use .'name' as path value")
+            log.debug("passed an object, use .'name' as path value")
             # passed an object, use .'name' as path value
             path = '/%s' % path.name
         c = self._jfs.get('%s%s' % (self.path, path or '/'))
@@ -769,7 +771,7 @@ class JFS(object):
         if not url.startswith('http'):
             # relative url
             url = self.rootpath + url
-        logging.debug("getting url: %s, extra_headers=%s", url, extra_headers)
+        log.debug("getting url: %s, extra_headers=%s", url, extra_headers)
         if extra_headers is None: extra_headers={}
         r = self.session.get(url, headers=extra_headers)
 
@@ -785,7 +787,7 @@ class JFS(object):
 #             f.write(r.content)
 
         if not r.ok:
-            logging.warning('HTTP GET failed: %s', r.text)
+            log.warning('HTTP GET failed: %s', r.text)
             o = lxml.objectify.fromstring(r.content)
             JFSError.raiseError(o, url)
         return r.content
@@ -839,7 +841,7 @@ class JFS(object):
             # relative url
             url = self.rootpath + url
 
-        logging.debug('posting content (len %s) to url %s', len(content) if content is not None else '?', url)
+        log.debug('posting content (len %s) to url %s', len(content) if content is not None else '?', url)
         headers = self.session.headers.copy()
         headers.update(**extra_headers)
 
@@ -856,7 +858,7 @@ class JFS(object):
             m = content
         r = self.session.post(url, data=m, params=params, headers=headers)
         if not r.ok:
-            logging.warning('HTTP POST failed: %s', r.text)
+            log.warning('HTTP POST failed: %s', r.text)
             raise JFSError(r.reason)
         return self.getObject(r) # return a JFS* class
 
@@ -897,7 +899,7 @@ class JFS(object):
         # Calculate file md5 hash
         md5hash = calculate_md5(fileobject)
 
-        logging.debug('posting content (len %s, hash %s) to url %s', contentlen, md5hash, url)
+        log.debug('posting content (len %s, hash %s) to url %s', contentlen, md5hash, url)
         now = datetime.datetime.now().isoformat()
         params = {'cphash': md5hash}
         m = requests_toolbelt.MultipartEncoder({

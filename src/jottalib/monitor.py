@@ -23,6 +23,8 @@
 
 import time, os, os.path, sys, logging, argparse, posixpath
 
+log = logging.getLogger(__name__)
+
 from watchdog.observers import Observer # pip install watchdog
 from watchdog.utils import platform
 from watchdog.events import LoggingEventHandler, FileSystemEventHandler
@@ -87,7 +89,7 @@ class ArchiveEventHandler(FileSystemEventHandler):
         src_path = event.src_path
         if event.is_directory:
             if not platform.is_darwin():
-                logging.info("event is a directory, safe to ignore")
+                log.info("event is a directory, safe to ignore")
                 return
             # OSX is behaving erratically and we need to paper over it.
             # the OS only reports every other file event,
@@ -98,7 +100,7 @@ class ArchiveEventHandler(FileSystemEventHandler):
                 src_path = max(files, key=os.path.getmtime)
             except (OSError, ValueError) as e: # broken symlink or directory empty
                 return
-        logging.info('Modified file detectd: %s', src_path)
+        log.info('Modified file detectd: %s', src_path)
         #
         # we're receiving events at least two times: on file open and on file close.
         # OSes might report even more
@@ -110,7 +112,7 @@ class ArchiveEventHandler(FileSystemEventHandler):
             open(src_path)   # win exclusively
             os.open(src_path, os.O_EXLOCK) # osx exclusively
         except IOError: # file is not finished
-            logging.info('File is not finished')
+            log.info('File is not finished')
             return
         except AttributeError: # no suuport for O_EXLOCK (only BSD)
             pass
@@ -119,7 +121,7 @@ class ArchiveEventHandler(FileSystemEventHandler):
     def on_created(self, event, dry_run=False, remove_uploaded=True):
         'Called when a file (or directory) is created. '
         super(ArchiveEventHandler, self).on_created(event)
-        logging.info("created: %s", event)
+        log.info("created: %s", event)
 
     def _new(self, src_path, dry_run=False, remove_uploaded=False):
             'Code to upload'
@@ -127,30 +129,30 @@ class ArchiveEventHandler(FileSystemEventHandler):
             if os.path.islink(src_path):
                 sourcefile = os.path.normpath(os.path.join(self.topdir, os.readlink(src_path)))
                 if not os.path.exists(sourcefile): # broken symlink
-                    logging.error("broken symlink %s->%s", src_path, sourcefile)
+                    log.error("broken symlink %s->%s", src_path, sourcefile)
                     raise IOError("broken symliknk %s->%s", src_path, sourcefile)
                 jottapath = self.get_jottapath(src_path, filename=os.path.basename(sourcefile))
             elif os.path.splitext(src_path)[1].lower() == '.lnk':
                 # windows .lnk
                 sourcefile = os.path.normpath(readlnk(src_path))
                 if not os.path.exists(sourcefile): # broken symlink
-                    logging.error("broken fat32lnk %s->%s", src_path, sourcefile)
+                    log.error("broken fat32lnk %s->%s", src_path, sourcefile)
                     raise IOError("broken fat32lnk %s->%s", src_path, sourcefile)
                 jottapath = self.get_jottapath(src_path, filename=os.path.basename(sourcefile))
             else:
                 sourcefile = src_path
                 if not os.path.exists(sourcefile): # file not exis
-                    logging.error("file does not exist: %s", sourcefile)
+                    log.error("file does not exist: %s", sourcefile)
                     raise IOError("file does not exist: %s", sourcefile)
                 jottapath = self.get_jottapath(src_path)
 
-            logging.info('Uploading file %s to %s', sourcefile, jottapath)
+            log.info('Uploading file %s to %s', sourcefile, jottapath)
             if not dry_run:
                 if not jottacloud.new(sourcefile, jottapath, self.jfs):
-                    logging.error('Uploading file %s failed', sourcefile)
+                    log.error('Uploading file %s failed', sourcefile)
                     raise
             if remove_uploaded:
-                logging.info('Removing file after upload: %s', src_path)
+                log.info('Removing file after upload: %s', src_path)
                 if not dry_run:
                     os.remove(src_path)
 
@@ -186,12 +188,12 @@ def humanizeFileSize(size):
 def filemonitor(topdir, mode, jfs):
     errors = {}
     def saferun(cmd, *args):
-        logging.debug('running %s with args %s', cmd, args)
+        log.debug('running %s with args %s', cmd, args)
         try:
             return apply(cmd, args)
         except Exception as e:
             puts(colored.red('Ouch. Something\'s wrong with "%s":' % args[0]))
-            logging.exception('SAFERUN: Got exception when processing %s', args)
+            log.exception('SAFERUN: Got exception when processing %s', args)
             errors.update( {args[0]:e} )
             return False
 

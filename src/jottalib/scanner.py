@@ -27,6 +27,8 @@ Run it from crontab at an appropriate interval.
 import os, re, os.path, sys, logging, argparse
 import math, time
 
+log = logging.getLogger(__name__)
+
 #import pip modules
 from clint.textui import progress, puts, colored
 
@@ -47,12 +49,12 @@ def filescanner(topdir, jottapath, jfs, errorfile, exclude=None, dry_run=False):
 
     errors = {}
     def saferun(cmd, *args):
-        logging.debug('running %s with args %s', cmd, args)
+        log.debug('running %s with args %s', cmd, args)
         try:
             return apply(cmd, args)
         except Exception as e:
             puts(colored.red('Ouch. Something\'s wrong with "%s":' % args[0]))
-            logging.exception('SAFERUN: Got exception when processing %s', args)
+            log.exception('SAFERUN: Got exception when processing %s', args)
             errors.update( {args[0]:e} )
             return False
 
@@ -66,9 +68,9 @@ def filescanner(topdir, jottapath, jfs, errorfile, exclude=None, dry_run=False):
                 _uploadedbytes = 0
                 for f in progress.bar(onlylocal, label="uploading %s new files: " % len(onlylocal)):
                     if os.path.islink(f.localpath):
-                        logging.debug("skipping symlink: %s", f)
+                        log.debug("skipping symlink: %s", f)
                         continue
-                    logging.debug("uploading new file: %s", f)
+                    log.debug("uploading new file: %s", f)
                     if not dry_run:
                         if saferun(jottacloud.new, f.localpath, f.jottapath, jfs) is not False:
                             _uploadedbytes += os.path.getsize(f.localpath)
@@ -79,13 +81,13 @@ def filescanner(topdir, jottapath, jfs, errorfile, exclude=None, dry_run=False):
             if len(onlyremote):
                 puts(colored.red("Deleting %s files from JottaCloud because they no longer exist locally " % len(onlyremote)))
                 for f in progress.bar(onlyremote, label="deleting JottaCloud file: "):
-                    logging.debug("deleting cloud file that has disappeared locally: %s", f)
+                    log.debug("deleting cloud file that has disappeared locally: %s", f)
                     if not dry_run:
                         if saferun(jottacloud.delete, f.jottapath, jfs) is not False:
                             _files += 1
             if len(bothplaces):
                 for f in progress.bar(bothplaces, label="comparing %s existing files: " % len(bothplaces)):
-                    logging.debug("checking whether file contents has changed: %s", f)
+                    log.debug("checking whether file contents has changed: %s", f)
                     if not dry_run:
                         if saferun(jottacloud.replace_if_changed, f.localpath, f.jottapath, jfs) is not False:
                             _files += 1

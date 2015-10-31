@@ -20,6 +20,8 @@
 
 import sys, os, os.path, posixpath, logging, collections
 
+log = logging.getLogger(__name__)
+
 from xattr import xattr # pip install xattr
 
 
@@ -34,13 +36,13 @@ SyncFile = collections.namedtuple('SyncFile', 'localpath, jottapath')
 
 def get_jottapath(localtopdir, dirpath, jottamountpoint):
     """Translate localtopdir to jottapath"""
-    logging.debug("get_jottapath %s %s %s", localtopdir, dirpath, jottamountpoint)
+    log.debug("get_jottapath %s %s %s", localtopdir, dirpath, jottamountpoint)
     return posixpath.normpath(posixpath.join(jottamountpoint, posixpath.basename(localtopdir),
                                          posixpath.relpath(dirpath, localtopdir)))
 
 def is_file(jottapath, JFS):
     """Check if a file exists on jottacloud"""
-    logging.debug("is_file %s", jottapath)
+    log.debug("is_file %s", jottapath)
     try:
         jf = JFS.getObject(jottapath)
     except JFSNotFoundError:
@@ -49,7 +51,7 @@ def is_file(jottapath, JFS):
 
 def filelist(jottapath, JFS):
     """Get a set() of files from a jottapath (a folder)"""
-    logging.debug("filelist %s", jottapath)
+    log.debug("filelist %s", jottapath)
     try:
         jf = JFS.getObject(jottapath)
     except JFSNotFoundError:
@@ -72,23 +74,23 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patter
             return False
         for p in exclude_patterns:
             if p.search(fpath):
-                logging.debug("%r excluded by pattern %r", fpath, p.pattern)
+                log.debug("%r excluded by pattern %r", fpath, p.pattern)
                 return True
         return False
     for dirpath, dirnames, filenames in os.walk(localtopdir, followlinks=followlinks):
         dirpath = dirpath.decode(sys.getfilesystemencoding())
-        logging.debug("compare walk: %s -> %s files ", dirpath, len(filenames))
+        log.debug("compare walk: %s -> %s files ", dirpath, len(filenames))
         localfiles = set([_decode_filename(f) for f in filenames if not excluded(dirpath, f)]) # these are on local disk
         jottapath = get_jottapath(localtopdir, dirpath, jottamountpoint) # translate to jottapath
-        logging.debug("compare jottapath: %s", jottapath)
+        log.debug("compare jottapath: %s", jottapath)
         cloudfiles = filelist(jottapath, JFS) # set(). these are on jottacloud
 
         def sf(f):
             """Create SyncFile tuple from filename"""
             return SyncFile(localpath=os.path.join(dirpath, f),
                             jottapath=posixpath.join(jottapath, f))
-        logging.debug("--cloudfiles: %s", cloudfiles)
-        logging.debug("--localfiles: %s", localfiles)
+        log.debug("--cloudfiles: %s", cloudfiles)
+        log.debug("--localfiles: %s", localfiles)
         onlylocal = [ sf(f) for f in localfiles.difference(cloudfiles)]
         onlyremote = [ sf(f) for f in cloudfiles.difference(localfiles)]
         bothplaces = [ sf(f) for f in localfiles.intersection(cloudfiles)]
@@ -125,10 +127,10 @@ def replace_if_changed(localfile, jottapath, JFS):
         with open(localfile) as lf:
             lf_hash = calculate_md5(lf) # (re)calculate it
     if type(jf) == JFSIncompleteFile:
-        logging.debug("Local file %s is incompletely uploaded, continue", localfile)
+        log.debug("Local file %s is incompletely uploaded, continue", localfile)
         return resume(localfile, jf, JFS)
     elif jf.md5 == lf_hash: # hashes are the same
-        logging.debug("hash match (%s), file contents haven't changed", lf_hash)
+        log.debug("hash match (%s), file contents haven't changed", lf_hash)
         setxattrhash(localfile, lf_hash)
         return jf         # return the version from jottaclouds
     else:
@@ -150,15 +152,15 @@ def mkdir(jottapath, JFS):
 def iter_tree(jottapath, JFS):
     """Get a tree of of files and folders. use as an iterator, you get something like os.walk"""
     filedirlist = JFS.getObject('%s?mode=list' % jottapath)
-    logging.debug("got tree: %s", filedirlist)
+    log.debug("got tree: %s", filedirlist)
     if not isinstance(filedirlist, JFSFileDirList):
         yield ( '', tuple(), tuple() )
     for folder in filedirlist.tree():
-        logging.debug(folder)
+        log.debug(folder)
         yield folder, tuple(folder.folders()), tuple(folder.files())
 
 def setxattrhash(filename, md5hash):
-    logging.debug('set xattr hash for %s', filename)
+    log.debug('set xattr hash for %s', filename)
     try:
         x = xattr(filename)
         x.set('user.jottalib.md5', md5hash)
@@ -169,12 +171,12 @@ def setxattrhash(filename, md5hash):
         # no file system support
         return False
     except Exception as e:
-        logging.exception(e)
-        #logging.debug('setxattr got exception %r', e)
+        log.exception(e)
+        #log.debug('setxattr got exception %r', e)
     return False
 
 def getxattrhash(filename):
-    logging.debug('get xattr hash for %s', filename)
+    log.debug('get xattr hash for %s', filename)
     try:
         x = xattr(filename)
         if x.get('user.jottalib.filesize') != str(os.path.getsize(filename)) or x.get('user.jottalib.timestamp') != str(os.path.getmtime(filename)):
@@ -184,6 +186,6 @@ def getxattrhash(filename):
             return None # this is not the file we have calculated md5 for
         return x.get('user.jottalib.md5')
     except Exception as e:
-        logging.debug('setxattr got exception %r', e)
+        log.debug('setxattr got exception %r', e)
         return None
 

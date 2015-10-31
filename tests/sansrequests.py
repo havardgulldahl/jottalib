@@ -69,7 +69,7 @@ class JFS(object):
         # Calculate file md5 hash
         contentlen, md5hash = calculate_hash(fileobject)
 
-        logging.debug('posting content (len %s, hash %s) to url %s', contentlen, md5hash, url)
+        log.debug('posting content (len %s, hash %s) to url %s', contentlen, md5hash, url)
         now = datetime.datetime.now().isoformat()
         headers = {'JMd5':md5hash,
                    'JCreated': now,
