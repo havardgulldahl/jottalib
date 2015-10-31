@@ -43,7 +43,7 @@ def humanizeFileSize(size):
     p = math.floor(math.log(size, 2)/10)
     return "%.3f%s" % (size/math.pow(1024,p),units[int(p)])
 
-def filescanner(topdir, jottapath, jfs, exclude=None, dry_run=False):
+def filescanner(topdir, jottapath, jfs, errorfile, exclude=None, dry_run=False):
 
     errors = {}
     def saferun(cmd, *args):
@@ -96,5 +96,5 @@ def filescanner(topdir, jottapath, jfs, exclude=None, dry_run=False):
         puts('Finished syncing %s files to JottaCloud, no errors. yay!' % _files)
     else:
         puts(('Finished syncing %s files, ' % _files )+
-             colored.red('with %s errors (read %s for details)' % (len(errors), args.errorfile, )))
+             colored.red('with %s errors (read %s for details)' % (len(errors), errorfile, )))
 

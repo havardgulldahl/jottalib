@@ -291,9 +291,9 @@ def scanner():
     fh.setLevel(logging.ERROR)
     logging.getLogger('').addHandler(fh)
 
-    jfs = JFS()
+    jfs = JFS.JFS()
 
-    filescanner(args.topdir, args.jottapath, jfs, args.exclude, args.dry_run)
+    filescanner(args.topdir, args.jottapath, jfs, args.errorfile, args.exclude, args.dry_run)
 
 
 def monitor():
