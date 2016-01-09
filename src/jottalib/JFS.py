@@ -697,6 +697,12 @@ class JFSDevice(object):
             # no files at all
             return [x for x in []]
 
+    def newmountpoint(self, name):
+        """Create a new mountpoint"""
+        url = '%s' % posixpath.join(self.path, name)
+        r = self._jfs.post(url, extra_headers={'content-type': 'application/x-www-form-urlencoded'})
+        return r
+
     @property
     def modified(self):
         'Return datetime.datetime'
