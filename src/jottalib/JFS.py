@@ -929,6 +929,16 @@ class JFS(object):
                  'file': (os.path.basename(url), fileobject, 'application/octet-stream')}
         return self.post(url, None, files=files, params=params, extra_headers=headers, upload_callback=upload_callback)
 
+    def newdevice(self, name, type):
+        """Create a new (backup) device on jottacloud. Types can be one of
+        ['workstation', 'imac', 'laptop', 'macbook', 'ipad', 'android', 'iphone', 'windows_phone']
+        """
+        # at least android client also includes a "cid" with is derived from the unique device id
+        # and encrypted with a public key in the apk.  The field appears to be optional
+        url = '%s' % posixpath.join(self.rootpath, name)
+        r = self.post(url, {'type': type})
+        return r
+
     # property overloading
     @property
     def devices(self):
