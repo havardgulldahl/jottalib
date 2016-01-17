@@ -223,9 +223,17 @@ class JFSFolder(object):
         if not self.synced:
             self.sync()
         try:
-            return [JFSFile(f, self.jfs, self.path) for f in self.folder.files.iterchildren()]
+            #return [JFSFile(f, self.jfs, self.path) for f in self.folder.files.iterchildren()]
+            for _f in self.folder.files.iterchildren():
+                if hasattr(_f, 'currentRevision'): # a normal file
+                    yield JFSFile(_f, self.jfs, self.path)
+                else:
+                    yield JFSIncompleteFile(_f, self.jfs, self.path)
+
         except AttributeError:
-            return [x for x in []]
+            while False:
+                yield None
+            #return [x for x in []]
 
     def folders(self):
         if not self.synced:
@@ -404,8 +412,8 @@ class JFSIncompleteFile(ProtoFile):
 
     @property
     def size(self):
-        'return int'
-        return int(self.f.latestRevision.size)
+        'incomplete files have no size'
+        return -1 #int(self.f.latestRevision.size)
 
 class JFSFile(JFSIncompleteFile):
     'OO interface to a file, for convenient access. Type less, do more.'

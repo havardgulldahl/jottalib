@@ -312,7 +312,7 @@ class TestJFSMountPoint:
         assert dev.path == jfs.rootpath + '/Jotta/Sync'
         assert dev.deleted == None
         assert dev.is_deleted() == False
-        assert all(isinstance(item, JFS.JFSFile) for item in dev.files())
+        assert all(isinstance(item, (JFS.JFSFile, JFS.JFSIncompleteFile)) for item in dev.files())
         assert all(isinstance(item, JFS.JFSFolder) for item in dev.folders())
         newf = dev.mkdir('testdir')
         assert isinstance(newf, JFS.JFSFolder)
