@@ -47,7 +47,7 @@ def test_get_root_dir():
     assert isinstance(root, JFS.JFSMountPoint)
 
 def test_ls():
-    cli.ls()
+    cli.ls([])
     cli.ls(['--all'])
 
 
