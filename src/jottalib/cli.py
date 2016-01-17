@@ -197,7 +197,7 @@ def ls(argv=None):
             print_size(f.size, humanize=args.humanize),
             'D' if f.deleted else ' ',
             f.name) for f in item.files() if not f.deleted or args.all]
-        folders = [(' '*25, '', 'D' if f.deleted else ' ', str(f.name)) for f in item.folders()]
+        folders = [(' '*25, '', 'D' if f.deleted else ' ', unicode(f.name)) for f in item.folders()]
         widest_size = 0
         for f in files:
             if len(f[1]) > widest_size:
