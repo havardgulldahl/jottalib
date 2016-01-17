@@ -53,7 +53,7 @@ if __name__ == '__main__':
         n = netrc.netrc()
         username, account, password = n.authenticators('jottacloud.com') # read .netrc entry for 'machine jottacloud'
     except Exception as e:
-        logging.exception(e)
+        log.exception(e)
         username = os.environ['JOTTACLOUD_USERNAME']
         password = os.environ['JOTTACLOUD_PASSWORD']
 

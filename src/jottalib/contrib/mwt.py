@@ -36,6 +36,8 @@
 import time
 import logging
 
+log = logging.getLogger(__name__)
+
 class MWT(object):
     """Memoize With Timeout"""
     _caches = {}
@@ -63,11 +65,11 @@ class MWT(object):
             key = (args, tuple(kw))
             try:
                 v = self.cache[key]
-                logging.debug("get object from cache: %s", key)
+                log.debug("get object from cache: %s", key)
                 if (time.time() - v[1]) > self.timeout:
                     raise KeyError
             except KeyError:
-                logging.debug("new object in cache: %s", key)
+                log.debug("new object in cache: %s", key)
                 v = self.cache[key] = f(*args,**kwargs),time.time()
             return v[0]
         func.func_name = f.func_name
@@ -87,7 +89,7 @@ class Memoize(MWT):
         for func in self._caches:
             cache = {}
             for key in self._caches[func].keys():
-                logging.debug("cache key %s for func %s", key, func)
+                log.debug("cache key %s for func %s", key, func)
                 if path in key[0]:
-                    logging.debug("del cache key %s", key)
+                    log.debug("del cache key %s", key)
                     del self._caches[func][key]

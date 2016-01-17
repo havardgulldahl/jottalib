@@ -34,6 +34,7 @@ except ImportError:
     from StringIO import StringIO
 
 logging.captureWarnings(True)
+log = logging.getLogger(__name__)
 
 # import jotta
 from jottalib import JFS, __version__
@@ -170,7 +171,7 @@ class JottaFuse(LoggingMixIn, Operations):
             _mode = stat.S_IFDIR | 0555 # these are special jottacloud dirs, make them read only
         else:
             if not f.tag in ('user', ):
-                logging.warning('Unknown jfs object: %s <-> "%s"' % (type(f), f.tag) )
+                log.warning('Unknown jfs object: %s <-> "%s"' % (type(f), f.tag) )
             _mode = stat.S_IFDIR | 0555
         return {
                 'st_atime': time.mktime(f.modified.timetuple()) if isinstance(f, JFS.JFSFile) else time.time(),
@@ -223,7 +224,7 @@ class JottaFuse(LoggingMixIn, Operations):
             # but jottacloud doesn't like that
             # so we make sure we stay within file size (f.size)
             end = min(offset+size, f.size)
-            logging.debug("f.readpartial(%s, %s) on file of size %s" % (offset, end, f.size))
+            log.debug("f.readpartial(%s, %s) on file of size %s" % (offset, end, f.size))
             return f.readpartial(offset, end)
 
     def readdir(self, path, fh):
@@ -313,7 +314,7 @@ class JottaFuse(LoggingMixIn, Operations):
 
         This is a handy shortcut for streaming uploads directly from disk, without reading the file
         into memory first"""
-        logging.info("***SYMLINK* %s (link) -> %s (existing)", linkname, existing_file)
+        log.info("***SYMLINK* %s (link) -> %s (existing)", linkname, existing_file)
         sourcepath = os.path.abspath(existing_file)
         if not os.path.exists(sourcepath): # broken symlink
             raise OSError(errno.ENOENT, '')
@@ -322,7 +323,7 @@ class JottaFuse(LoggingMixIn, Operations):
                 self.client.up(linkname, sourcefile)
                 return ESUCCESS
         except Exception as e:
-            logging.exception(e)
+            log.exception(e)
 
         raise OSError(errno.ENOENT, '')
 

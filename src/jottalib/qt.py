@@ -21,6 +21,8 @@
 import os.path
 import logging, itertools, tempfile
 
+logging.getLogger(__name__)
+
 # Part of jottalib.
 import jottalib.JFS as JFS
 
@@ -101,18 +103,18 @@ class JFSModel(QtGui.QStandardItemModel):
         self.uploadFile.connect(self.upload)
 
     def upload(self, localpath, remotefolder):
-        logging.debug('upload %s -> %s', localpath, remotefolder)
+        log.debug('upload %s -> %s', localpath, remotefolder)
         self.jfs.up(remotefolder, open(localpath, 'rb'))
 
     def populateChildNodes(self, idx):
-        logging.debug('populateChildNodes %s', idx)
+        log.debug('populateChildNodes %s', idx)
         if self.hasChildren(idx):
             self.itemFromIndex(idx).pullChildren()
 
     def hasChildren(self, idx):
         item = self.itemFromIndex(idx)
         # if item is not None:
-        #     logging.debug('hasChildren item: %s (%s)', item, unicode(item.text()))
+        #     log.debug('hasChildren item: %s (%s)', item, unicode(item.text()))
         if isinstance(item, JFSFileNode):
             return False
         return True
@@ -125,7 +127,7 @@ class JFSModel(QtGui.QStandardItemModel):
         item = self.itemFromIndex(idxes.pop())
         if item is None:
             return
-        logging.debug('mimeData item: %s (%s)', item, unicode(item.text()))
+        log.debug('mimeData item: %s (%s)', item, unicode(item.text()))
 
         md = jottaMimeData()
         data = item.obj.read()
@@ -151,11 +153,11 @@ class JFSModel(QtGui.QStandardItemModel):
         return QtCore.Qt.CopyAction
 
     def dropMimeData(self, mimedata, action, row, column, parent):
-        logging.debug("dropMimeData %s (parent %s)", action, parent)
-        logging.debug("dropped: %s", mimedata.formats())
+        log.debug("dropMimeData %s (parent %s)", action, parent)
+        log.debug("dropped: %s", mimedata.formats())
         if action == QtCore.Qt.CopyAction:
             # put this data on jottacloud
-            logging.debug("upload data")
+            log.debug("upload data")
 
             return True
         return False
