@@ -350,6 +350,6 @@ def monitor(argv=None):
     fh.setLevel(logging.ERROR)
     logging.getLogger('').addHandler(fh)
 
-    jfs = JFS()
+    jfs = JFS.JFS()
 
     filemonitor(args.topdir, args.mode, jfs)
