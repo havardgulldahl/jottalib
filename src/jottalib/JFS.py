@@ -253,7 +253,7 @@ class JFSFolder(object):
     def restore(self):
         'Restore the folder'
         if not self.deleted:
-            raise JFSError('Tried to restore a not deleted file')
+            raise JFSError('Tried to restore a not deleted folder')
         url = 'https://www.jottacloud.com/rest/webrest/%s/action/restore' % self.jfs.username
         data = {'paths[]': self.path.replace(JFS_ROOT, ''),
                 'web': 'true',
