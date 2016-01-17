@@ -1,3 +1,6 @@
+sudo: false
+# we want to use the container based setup
+
 language: python
 
 # what pythons to test
@@ -25,11 +28,11 @@ notifications:
 
 # install dependencies
 before_install:
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get update; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update; fi
+  #- if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get update; fi
+  #- if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update; fi
 install:
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install -qq libfuse-dev pkg-config fuse user-mode-linux; sudo mknod /dev/fuse c 10 229; sudo chmod 666 /dev/fuse; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install osxfuse; sudo /bin/cp -RfX /usr/local/opt/osxfuse/Library/Filesystems/osxfusefs.fs /Library/Filesystems; sudo chmod +s /Library/Filesystems/osxfusefs.fs/Support/load_osxfusefs; sudo mknod /dev/fuse c 10 229; sudo chmod 666 /dev/fuse; fi
+  #- if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install -qq libfuse-dev pkg-config fuse user-mode-linux; sudo mknod /dev/fuse c 10 229; sudo chmod 666 /dev/fuse; fi
+  #- if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install osxfuse; sudo /bin/cp -RfX /usr/local/opt/osxfuse/Library/Filesystems/osxfusefs.fs /Library/Filesystems; sudo chmod +s /Library/Filesystems/osxfusefs.fs/Support/load_osxfusefs; sudo mknod /dev/fuse c 10 229; sudo chmod 666 /dev/fuse; fi
 install:
   - pip install -r tests/requirements.txt
 
