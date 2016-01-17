@@ -29,7 +29,10 @@ from collections import namedtuple
 try:
     from cStringIO import StringIO
 except ImportError:
-    from StringIO import StringIO
+    try:
+        from StringIO import StringIO
+    except ImportError:
+        from io import StringIO
 
 # importing external dependencies (pip these, please!)
 import requests
@@ -51,6 +54,10 @@ urllib3.fields.format_header_param = mp
 JFS_ROOT='https://www.jotta.no/jfs/'
 
 # helper functions
+try:
+    unicode("we are python2")
+except NameError:
+    def unicode(s): return str(s)
 
 def get_auth_info():
     """ Get authentication details to jottacloud.
