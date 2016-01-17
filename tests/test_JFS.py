@@ -633,6 +633,11 @@ class TestJFSFolder:
         assert all(isinstance(item, JFS.JFSFile) for item in dev.files())
         assert all(isinstance(item, JFS.JFSFolder) for item in dev.folders())
 
+
+    @pytest.mark.xfail  # TODO: restore this when bug #74 is squashed
+    def test_delete_and_restore():
+        # testing jottacloud delete and restore
+        dev = jfs.getObject('/Jotta/Sync')
         newf = dev.mkdir('testdir')
         assert isinstance(newf, JFS.JFSFolder)
         oldf = newf.delete()
