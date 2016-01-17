@@ -49,29 +49,32 @@ def test_get_root_dir():
 def test_ls():
     cli.ls([])
     cli.ls(['--all'])
-
+    cli.ls(['--humanize'])
+    cli.ls(['--loglevel', 'info'])
 
 def test_mkdir():
+    with pytest.raises(SystemExit):
+        cli.mkdir([]) # argparse should raise systemexit without the mandatory arguments
     cli.mkdir(['testmkdir'])
-
+    cli.mkdir(['testmkdir', '--loglevel', 'info'])
 
 def test_monitor():
     with pytest.raises(SystemExit):
-        cli.monitor() # argparse should raise systemexit without the mandatory arguments
+        cli.monitor([]) # argparse should raise systemexit without the mandatory arguments
 
 
 def test_scanner():
     with pytest.raises(SystemExit):
-        cli.scanner() # argparse should raise systemexit without the mandatory arguments
+        cli.scanner([]) # argparse should raise systemexit without the mandatory arguments
 
-#def test_fuse():
-#    cli.fuse()
+def test_fuse():
+    with pytest.raises(SystemExit):
+        cli.fuse([]) # argparse should raise systemexit without the mandatory arguments
 
 # TODO:
 
 # def parse_args_and_apply_logging_level(parser):
 # def print_size(num, humanize=False):
-# def fuse():
 # def upload():
 # def share():
 # def download():
