@@ -37,5 +37,5 @@ install:
 script:
   - PYTHONPATH=$PYTHONPATH:./src py.test tests/
   # TODO: add fuse tests when travis suports it https://github.com/travis-ci/travis-ci/issues/3491
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ./tests/run_uml_command.sh ./tests/fusetest.sh; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo ./tests/fusetest.sh; fi 
+  #- if [ "$TRAVIS_OS_NAME" = "linux" ]; then ./tests/run_uml_command.sh ./tests/fusetest.sh; fi
+  #- if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo ./tests/fusetest.sh; fi 
