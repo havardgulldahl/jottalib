@@ -51,13 +51,13 @@ def mp(name, value):
 urllib3.fields.format_header_param = mp
 
 # some setup
-JFS_ROOT='https://www.jotta.no/jfs/'
+JFS_ROOT='https://www.jottacloud.com/jfs/'
 
 # helper functions
 try:
     unicode("we are python2")
 except NameError:
-    def unicode(s): return str(s)
+    def unicode(s): return str(s) # TODO: use six
 
 def get_auth_info():
     """ Get authentication details to jottacloud.
@@ -247,7 +247,7 @@ class JFSFolder(object):
         if not self.deleted:
             raise JFSError('Tried to restore a not deleted file')
         url = 'https://www.jottacloud.com/rest/webrest/%s/action/restore' % self.jfs.username
-        data = {'paths[]': self.path.replace(u'https://www.jotta.no/jfs', ''),
+        data = {'paths[]': self.path.replace(JFS_ROOT, ''),
                 'web': 'true',
                 'ts': int(time.time()),
                 'authToken': 0}
@@ -264,7 +264,7 @@ class JFSFolder(object):
     def hard_delete(self):
         'Deletes without possibility to restore'
         url = 'https://www.jottacloud.com/rest/webrest/%s/action/delete' % self.jfs.username
-        data = {'paths[]': self.path.replace(u'https://www.jotta.no/jfs', ''),
+        data = {'paths[]': self.path.replace(JFS_ROOT, ''),
                 'web': 'true',
                 'ts': int(time.time()),
                 'authToken': 0}
@@ -478,7 +478,7 @@ class JFSFile(JFSIncompleteFile):
     def share(self):
         'Enable public access at secret, share only uri, and return that uri'
         url = 'https://www.jottacloud.com/rest/webrest/%s/action/enableSharing' % self.jfs.username
-        data = {'paths[]':self.path.replace(u'https://www.jotta.no/jfs', ''),
+        data = {'paths[]':self.path.replace(JFS_ROOT, ''),
                 'web':'true',
                 'ts':int(time.time()),
                 'authToken':0}
@@ -490,7 +490,7 @@ class JFSFile(JFSIncompleteFile):
         if not self.deleted:
             raise JFSError('Tried to restore a not deleted file')
         url = 'https://www.jottacloud.com/rest/webrest/%s/action/restore' % self.jfs.username
-        data = {'paths[]': self.path.replace(u'https://www.jotta.no/jfs', ''),
+        data = {'paths[]': self.path.replace(JFS_ROOT, ''),
                 'web': 'true',
                 'ts': int(time.time()),
                 'authToken': 0}
@@ -500,7 +500,7 @@ class JFSFile(JFSIncompleteFile):
     def hard_delete(self):
         'Deletes without possibility to restore'
         url = 'https://www.jottacloud.com/rest/webrest/%s/action/delete' % self.jfs.username
-        data = {'paths[]': self.path.replace(u'https://www.jotta.no/jfs', ''),
+        data = {'paths[]': self.path.replace(JFS_ROOT, ''),
                 'web': 'true',
                 'ts': int(time.time()),
                 'authToken': 0}
@@ -813,7 +813,7 @@ class JFS(object):
             url = url_or_requests_response
             o = self.get(url)
 
-        parent = os.path.dirname(url).replace('up.jottacloud.com', 'www.jotta.no')
+        parent = os.path.dirname(url).replace('up.jottacloud.com', 'www.jottacloud.com')
         if o.tag == 'error':
             JFSError.raiseError(o, url)
         elif o.tag == 'device': return JFSDevice(o, jfs=self, parentpath=parent)
@@ -892,7 +892,7 @@ class JFS(object):
         Accept-Language: nb-NO,en,*
         Host: up.jottacloud.com
         """
-        url = path.replace('www.jotta.no', 'up.jottacloud.com')
+        url = path.replace('www.jottacloud.com', 'up.jottacloud.com')
         # Calculate file length
         fileobject.seek(0,2)
         contentlen = fileobject.tell()
