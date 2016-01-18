@@ -707,6 +707,12 @@ class JFSDevice(object):
             # no files at all
             return [x for x in []]
 
+    def new_mountpoint(self, name):
+        """Create a new mountpoint"""
+        url = '%s' % posixpath.join(self.path, name)
+        r = self._jfs.post(url, extra_headers={'content-type': 'application/x-www-form-urlencoded'})
+        return r
+
     @property
     def modified(self):
         'Return datetime.datetime'
@@ -938,6 +944,16 @@ class JFS(object):
                  'created': ('', now),
                  'file': (os.path.basename(url), fileobject, 'application/octet-stream')}
         return self.post(url, None, files=files, params=params, extra_headers=headers, upload_callback=upload_callback)
+
+    def new_device(self, name, type):
+        """Create a new (backup) device on jottacloud. Types can be one of
+        ['workstation', 'imac', 'laptop', 'macbook', 'ipad', 'android', 'iphone', 'windows_phone']
+        """
+        # at least android client also includes a "cid" with is derived from the unique device id
+        # and encrypted with a public key in the apk.  The field appears to be optional
+        url = '%s' % posixpath.join(self.rootpath, name)
+        r = self.post(url, {'type': type})
+        return r
 
     # property overloading
     @property
