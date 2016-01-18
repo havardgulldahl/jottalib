@@ -697,7 +697,7 @@ class JFSDevice(object):
             # no files at all
             return [x for x in []]
 
-    def newmountpoint(self, name):
+    def new_mountpoint(self, name):
         """Create a new mountpoint"""
         url = '%s' % posixpath.join(self.path, name)
         r = self._jfs.post(url, extra_headers={'content-type': 'application/x-www-form-urlencoded'})
@@ -935,7 +935,7 @@ class JFS(object):
                  'file': (os.path.basename(url), fileobject, 'application/octet-stream')}
         return self.post(url, None, files=files, params=params, extra_headers=headers, upload_callback=upload_callback)
 
-    def newdevice(self, name, type):
+    def new_device(self, name, type):
         """Create a new (backup) device on jottacloud. Types can be one of
         ['workstation', 'imac', 'laptop', 'macbook', 'ipad', 'android', 'iphone', 'windows_phone']
         """
