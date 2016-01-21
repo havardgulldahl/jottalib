@@ -112,7 +112,7 @@ class TestJFS:
 
     def test_up_and_delete(self):
         p = "/Jotta/Archive/testfile_up_and_delete.txt"
-        t = jfs.up(p, .StringIO(TESTFILEDATA))
+        t = jfs.up(p, StringIO(TESTFILEDATA))
         assert isinstance(t, JFS.JFSFile)
         d = t.delete()
         assert isinstance(d, JFS.JFSFile)
