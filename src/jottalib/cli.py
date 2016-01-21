@@ -149,7 +149,7 @@ def upload(argv=None):
     else:
         target_dir = root_folder
     upload = target_dir.up(args.localfile, os.path.basename(args.localfile.name), upload_callback=callback)
-    print '%s uploaded successfully' % args.localfile.name
+    print('%s uploaded successfully' % args.localfile.name)
 
 
 def share(argv=None):
@@ -167,7 +167,7 @@ def share(argv=None):
     upload = jottashare.up(args.localfile)  # upload file
     public = upload.share() # share file
     for (filename, uuid, publicURI) in public.sharedFiles():
-        print '%s is now available to the world at %s' % (filename, publicURI)
+        print('%s is now available to the world at %s' % (filename, publicURI))
 
 
 def ls(argv=None):
@@ -204,11 +204,11 @@ def ls(argv=None):
                 widest_size = len(f[1])
         for item in sorted(files + folders, key=lambda t: t[3]):
             if args.all:
-                print '%s %s %s %s' % (item[0], item[1].rjust(widest_size), item[2], item[3])
+                print('%s %s %s %s' % (item[0], item[1].rjust(widest_size), item[2], item[3]))
             else:
-                print '%s %s %s' % (item[0], item[1].rjust(widest_size), item[3])
+                print('%s %s %s' % (item[0], item[1].rjust(widest_size), item[3]))
     else:
-        print ' '.join([str(item.created), print_size(item.size, humanize=args.humanize), item.name])
+        print(' '.join([str(item.created), print_size(item.size, humanize=args.humanize), item.name]))
 
 
 def download(argv=None):
@@ -265,7 +265,7 @@ def rm(argv=None):
         item.hard_delete()
     else:
         item.delete()
-    print '%s deleted' % args.file
+    print('%s deleted' % args.file)
 
 
 def restore(argv=None):
@@ -281,7 +281,7 @@ def restore(argv=None):
     item_path = posixpath.join(root_dir.path, args.file)
     item = jfs.getObject(item_path)
     item.restore()
-    print '%s restored' % args.file
+    print('%s restored' % args.file)
 
 
 def scanner(argv=None):
