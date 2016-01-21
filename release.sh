@@ -48,6 +48,5 @@ echo "=======================";
 echo "Uploading docs to pypi";
 python setup.py upload_docs --upload-dir dist/docs/"$VERSION"/jottalib  || err "couldnt upload docs to pypi";
 echo "=======================";
-rm setup.py;
 echo "Enjoy your fresh $VERSION release!"
 

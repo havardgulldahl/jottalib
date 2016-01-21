@@ -73,8 +73,7 @@ setup(name='jottalib',
               'jotta-monitor = jottalib.cli:monitor',
         ]
       },
-      classifiers="""
-Intended Audience :: Developers
+      classifiers="""Intended Audience :: Developers
 Intended Audience :: End Users/Desktop
 License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)
 Operating System :: OS Independent
@@ -87,6 +86,5 @@ Programming Language :: Python :: Implementation :: CPython
 Programming Language :: Python :: Implementation :: PyPy
 Topic :: System :: Archiving
 Topic :: System :: Archiving :: Backup
-Topic :: Utilities
-""".split('\n'),
+Topic :: Utilities""".split('\n'),
      )
