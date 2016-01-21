@@ -24,8 +24,7 @@ tools, some different plugins as well as a FUSE implementation in here.
 Caveats
 -------
 
-This code has **alpha status**, it's **not production ready** and
-**don't trust it with your data**! It might not eat your cat, but it
+This code is **not production ready** and it might not eat your cat, but it
 might mangle your cat photos!
 
 Write support is reverse engineered and not based on official docs. Bugs
@@ -35,29 +34,31 @@ tracker! <https://github.com/havardgulldahl/jottalib/issues/>`__ )
 Installation
 ------------
 
-Note that we've separated the code into two packages:
+Note that we've separated the code into different variants:
 
 -  If you are a normal user, wanting to backup your stuff: get
-   ``jottacloudclient``
+   ``jottalib[scanner] and jottalib[monitor]``
 -  If you are a developer and want to add connectivity to JottaCloud.com
    to your project, get ``jottalib``
 
 Via pip
 ~~~~~~~
 
-The easiest way: ``pip install jottacloudclient`` or
-``pip install jottalib``.
+The easiest way: ``pip install jottalib[scanner]`` or ``pip install jottalib[monitor]``.
 
 Optional requirements
 ~~~~~~~~~~~~~~~~~~~~~
 
-These are extras you would install if you need it:
+These are all the extra variants you would install if you need it:
 
--  ``pip install jottacloudclient[FUSE]`` for a Fuse client (`read more
+-  ``pip install jottalib[FUSE]`` for a Fuse client (`read more
    about
    it <https://github.com/havardgulldahl/jottalib/wiki/Normal-use-cases#i-want-a-virtual-jottacloud-file-system>`__)
--  ``pip install jottacloudclient[monitor]`` for a tool to continuously
-   monitor a folder on your system (`read more about
+-  ``pip install jottalib[scanner]`` for a tool to scan through a whole file
+   folder on your system (`read more about
+   it <https://github.com/havardgulldahl/jottalib/wiki/Normal-use-cases#i-want-a-drop-folder-so-everything-i-put-there-is-stored-automatically>`__)
+-  ``pip install jottalib[monitor]`` for a tool to continuously monitor a
+   folder on your system (`read more about
    it <https://github.com/havardgulldahl/jottalib/wiki/Normal-use-cases#i-want-a-drop-folder-so-everything-i-put-there-is-stored-automatically>`__)
 -  ``pip install jottalib[Qt]`` for developers wanting to use the Qt
    models (`help is on the
