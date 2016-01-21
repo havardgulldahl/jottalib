@@ -29,17 +29,13 @@ py.test tests/
 tests/fusetest.sh
 
 
-confirm "Continue with release?" || exit 0;
+confirm "Continue with release of v$VERSION?" || exit 0;
 
 
 echo "RELEASE JOTTALIB AND JOTTACLOUDCLIENT VERSION $VERSION:"
 echo "=======================";
 printf "Uploading cheese to pypi";
-printf "... jottacloudclient";
-ln -sf setup-jottacloudclient.py setup.py;
-python setup.py sdist upload || err "jottacloudclient setup.py upload failed";
 printf "... jottalib ";
-ln -sf setup-jottalib.py setup.py;
 python setup.py sdist upload || err "jottalib setup.py upload failed";
 echo "=======================";
 echo "Creating git tag $VERSION and pushing it to git server";
