@@ -36,6 +36,7 @@ except ImportError:
 
 # importing external dependencies (pip these, please!)
 import requests
+from requests.utils import quote
 import netrc
 import requests_toolbelt
 import certifi
@@ -786,6 +787,30 @@ class JFS(object):
                                 }
         self.rootpath = JFS_ROOT + self.username
         self.fs = self.get(self.rootpath)
+   
+    def escapeUrl(self, url):
+        separators = [
+            '?dl=true',
+            '?mkDir=true',
+            '?dlDir=true',
+            '?mvDir=',
+            '?mv=',
+            '?mode=list',
+            '?mode=bin',
+            '?mode=thumb&ts='
+        ]
+        separator = separators[0]
+        for sep in separators:
+            if sep in url:
+                separator = sep
+                break
+
+        urlparts = url.rsplit(separator, 1)
+        if(len(urlparts) == 2):
+            url = quote(urlparts[0], safe=self.rootpath) + separator + urlparts[1]
+        else:
+            url = quote(urlparts[0], safe=self.rootpath)
+        return url
 
     def request(self, url, extra_headers=None):
         'Make a GET request for url, with or without caching'
@@ -815,6 +840,7 @@ class JFS(object):
 
     def get(self, url):
         'Make a GET request for url and return the response content as a generic lxml object'
+        url = self.escapeUrl(url)
         o = lxml.objectify.fromstring(self.raw(url))
         if o.tag == 'error':
             JFSError.raiseError(o, url)
@@ -877,6 +903,7 @@ class JFS(object):
             headers['content-type'] = m.content_type
         else:
             m = content
+        url = self.escapeUrl(url)
         r = self.session.post(url, data=m, params=params, headers=headers)
         if not r.ok:
             log.warning('HTTP POST failed: %s', r.text)
