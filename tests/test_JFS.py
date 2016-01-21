@@ -22,8 +22,13 @@
 __author__ = 'havard@gulldahl.no'
 
 # import standardlib
-import os, StringIO, logging, datetime
+import os, logging, datetime
 import tempfile, posixpath, urllib
+try:
+    from io import StringIO # py3
+except ImportError:
+    from cStringIO import StringIO  # py2
+
 
 # import dependencies
 import lxml

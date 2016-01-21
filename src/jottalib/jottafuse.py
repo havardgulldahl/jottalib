@@ -29,9 +29,9 @@ import urllib, logging, datetime, argparse
 import time
 import itertools
 try:
-    from cStringIO import StringIO
+    from cStringIO import StringIO # py2
 except ImportError:
-    from StringIO import StringIO
+    from io import StringIO # py3
 
 logging.captureWarnings(True)
 log = logging.getLogger(__name__)

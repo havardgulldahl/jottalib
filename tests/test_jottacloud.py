@@ -22,7 +22,11 @@
 __author__ = 'havard@gulldahl.no'
 
 # import standardlib
-import os, StringIO, logging, tempfile, random, hashlib
+import os, logging, tempfile, random, hashlib
+try:
+    from io import StringIO # py3
+except ImportError:
+    from cStringIO import StringIO  # py2
 
 # import py.test
 import pytest # pip install pytest
