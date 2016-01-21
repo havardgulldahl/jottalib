@@ -429,7 +429,6 @@ class TestJFSFile:
 
         folder = jfs.getObject('/Jotta/Archive')
         img = folder.up(JPEG)
-        print img.name
         assert img.is_image() == True
         assert img.thumb(size=JFS.JFSFile.BIGTHUMB) is not None
         assert img.thumb(size=JFS.JFSFile.XLTHUMB) is not None

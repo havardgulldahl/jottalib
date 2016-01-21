@@ -22,7 +22,10 @@ from __future__ import absolute_import, division, unicode_literals
 __author__ = 'havard@gulldahl.no'
 
 import argparse
-import httplib
+try:
+    import httplib # py2
+except ImportError:
+    import http.client as httlib
 import humanize as _humanize
 import logging
 import os
