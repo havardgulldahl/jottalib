@@ -112,7 +112,7 @@ class TestJFS:
 
     def test_up_and_delete(self):
         p = "/Jotta/Archive/testfile_up_and_delete.txt"
-        t = jfs.up(p, StringIO.StringIO(TESTFILEDATA))
+        t = jfs.up(p, .StringIO(TESTFILEDATA))
         assert isinstance(t, JFS.JFSFile)
         d = t.delete()
         assert isinstance(d, JFS.JFSFile)
@@ -120,7 +120,7 @@ class TestJFS:
 
     def test_up_and_read(self):
         p = "/Jotta/Archive/testfile_up_and_read.txt"
-        t = jfs.up(p, StringIO.StringIO(TESTFILEDATA))
+        t = jfs.up(p, StringIO(TESTFILEDATA))
         f = jfs.getObject(p)
         assert isinstance(f, JFS.JFSFile)
         assert f.read() == TESTFILEDATA
@@ -129,7 +129,7 @@ class TestJFS:
     def test_up_and_readpartial(self):
         import random
         p = "/Jotta/Archive/testfile_up_and_readpartial.txt"
-        t = jfs.up(p, StringIO.StringIO(TESTFILEDATA))
+        t = jfs.up(p, StringIO(TESTFILEDATA))
         f = jfs.getObject(p)
         # pick a number less than length of text
         start = random.randint(0, len(TESTFILEDATA))
@@ -140,7 +140,7 @@ class TestJFS:
 
     def test_stream(self):
         p = "/Jotta/Archive/testfile_up_and_stream.txt"
-        t = jfs.up(p, StringIO.StringIO(TESTFILEDATA))
+        t = jfs.up(p, StringIO(TESTFILEDATA))
         s = "".join( [ chunk for chunk in t.stream() ] )
         assert s == TESTFILEDATA
         t.delete()
@@ -468,7 +468,7 @@ class TestJFSError:
             jfs.get('/Jotta/Archive/FileNot.found')
         with pytest.raises(JFS.JFSRangeError): # HTTP 416
             p = "/Jotta/Archive/testfile_up_and_readpartial.txt"
-            t = jfs.up(p, StringIO.StringIO(TESTFILEDATA))
+            t = jfs.up(p, StringIO(TESTFILEDATA))
             f = jfs.getObject(p)
             f.readpartial(10, 3) # Range start index larger than end index;
             f.delete()
