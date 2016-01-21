@@ -1,6 +1,9 @@
 # Change Log
 
-## [0.4] - TBA
+## [0.5] - TBA
+
+
+## [0.4] - 2016-01-21
 
 ### BREAKING CHANGES
 
@@ -10,12 +13,27 @@
 
 - `.netrc` parsing has changed. Update your entry to read **jottacloud.com**, instead of **jottacloud**
 
+
 ### Changed
 
 - A lot of new tests added, and some small bugs caught and fixed.
 
-### Fixed
+### Bug fixes
 
+
+### Added
+
+- Consistent paths, by @mortenlj, see bug#39
+- jotta-scanner can keep checksums in `xattr` file attributes, if supported. This speeds up things.
+- New strategy to cache dir entries for `fuse`, see 3fe71b237db4ea45bedadc4784225c889cbf8e91
+- A lot of cli tools by @thusoy/ Tarjei Husøy.
+- Better logging messages by @forsberg  / Erik Forsberg
+- Beginning of proper py3 support, by @ttyridal / Torbjørn Tyridal
+- Methods to create mountpoints and devices, by @ttyridal
+- URLs are now properly escaped, see bug#25, by @cowai / Ari Selseng
+
+
+Thanks to all contributors!
 
 ## [0.3.1] - 2015-08-26
 
