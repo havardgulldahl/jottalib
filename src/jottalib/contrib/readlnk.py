@@ -4,7 +4,7 @@ import sys
 # .lnk parser by user Jared at StackOverflow http://stackoverflow.com/a/28952464
 # retrieved 2015-07-21 by havard@gulldahl.no
 # added .decode(sys.getfilesystemencoding()) to handle non-ascii targets
-# 
+#
 # Jared added the following comment to their code:
 # I know this is an older thread but I feel that there isn't much information on the method that uses the link specification as noted in the original question.
 #
@@ -24,7 +24,7 @@ def readlnk(path):
             lflags = struct.unpack('I', content[0x14:0x18])[0]
             position = 0x18
 
-            # if the HasLinkTargetIDList bit is set then skip the stored IDList 
+            # if the HasLinkTargetIDList bit is set then skip the stored IDList
             # structure and header
             if (lflags & 0x01) == 1:
                 position = struct.unpack('H', content[0x4C:0x4E])[0] + 0x4E
@@ -52,7 +52,6 @@ def readlnk(path):
 
     return target.decode(sys.getfilesystemencoding())
 
-    
+
 if __name__ == '__main__':
-    print readlnk(sys.argv[1])
-    
+    print(readlnk(sys.argv[1]))
