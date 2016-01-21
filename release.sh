@@ -23,10 +23,10 @@ function confirm {
 source bin/activate || err "couldnt activate virtualenv";
 VERSION=$(cat src/jottalib/__init__.py | cut -b14- | sed s/\'//) || err "couldnt get version";
 
-echo "RUNNING TESTS"
+echo "RUNNING TESTS FOR RELEASE v$VERSION"
 echo "=======================";
-py.test tests/
-tests/fusetest.sh
+PYTHONPATH=src py.test tests/ || err "Tests failed";
+tests/fusetest.sh || err "FUSE tests failed";
 
 
 confirm "Continue with release of v$VERSION?" || exit 0;
