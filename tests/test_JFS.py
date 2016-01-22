@@ -437,6 +437,14 @@ class TestJFSFile:
         #TODO: test file operations: .stream(), .rename(), .read(), .read_partial, .delete etc
         #TODO: test revisions
 
+    def test_unicode_contents(self):
+        data = six.StringIO(u'123abcæøå')
+        p = "/Jotta/Archive/testfile_up_and_readpartial.txt"
+        t = jfs.up(p, StringIO(data))
+        assert isinstance(JFSFile, t)
+        t.delete()
+
+
 class TestJFSFileDirList:
     'Tests for JFSFileDirList'
 
