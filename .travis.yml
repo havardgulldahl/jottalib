@@ -1,5 +1,5 @@
-sudo: false
-# we want to use the container based setup
+sudo: true
+# we dont want to use the container based setup because fuse isnt available there, so we set "sudo: true"
 
 language: python
 
