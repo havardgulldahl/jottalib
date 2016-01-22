@@ -26,13 +26,8 @@ from jottalib import __version__
 import sys, os, os.path, time
 import posixpath, logging, datetime, hashlib
 from collections import namedtuple
-try:
-    from cStringIO import StringIO
-except ImportError:
-    try:
-        from StringIO import StringIO
-    except ImportError:
-        from io import StringIO
+import six
+from six.moves import cStringIO as StringIO
 
 # importing external dependencies (pip these, please!)
 import requests
@@ -686,7 +681,7 @@ class JFSDevice(object):
         """Get an iterator of JFSFile() from the given mountPoint.
 
         "mountPoint" may be either an actual mountPoint element from JFSDevice.mountPoints{} or its .name. """
-        if isinstance(mountPoint, basestring):
+        if isinstance(mountPoint, six.string_types):
             # shortcut: pass a mountpoint name
             mountPoint = self.mountPoints[mountPoint]
         try:
@@ -699,7 +694,7 @@ class JFSDevice(object):
         """Get an iterator of JFSFolder() from the given mountPoint.
 
         "mountPoint" may be either an actual mountPoint element from JFSDevice.mountPoints{} or its .name. """
-        if isinstance(mountPoint, basestring):
+        if isinstance(mountPoint, six.string_types):
             # shortcut: pass a mountpoint name
             mountPoint = self.mountPoints[mountPoint]
         try:
