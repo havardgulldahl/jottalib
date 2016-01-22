@@ -94,8 +94,8 @@ def calculate_md5(fileobject, size=2**16):
     is larger than available memory"""
     fileobject.seek(0)
     md5 = hashlib.md5()
-    for data in iter(lambda: fileobject.read(size), b''):
-        md5.update(data)
+    for data in iter(lambda: fileobject.read(size), u''):
+        md5.update(data.encode('utf-8'))
     fileobject.seek(0) # rewind read head
     return md5.hexdigest()
 
@@ -787,7 +787,7 @@ class JFS(object):
                                 }
         self.rootpath = JFS_ROOT + self.username
         self.fs = self.get(self.rootpath)
-   
+
     def escapeUrl(self, url):
         separators = [
             '?dl=true',
