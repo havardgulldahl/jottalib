@@ -51,6 +51,7 @@ setup(name='jottalib',
                         'python-dateutil',
                         'humanize',
                         'lxml',
+                        'six',
       ],
       # see https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
       extras_require={
