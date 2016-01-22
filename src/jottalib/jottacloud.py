@@ -64,6 +64,17 @@ def filelist(jottapath, JFS):
         return False
     return set([f.name for f in jf.files() if not f.is_deleted()]) # Only return files that aren't deleted
 
+def folderlist(jottapath, JFS):
+    """Get a set() of folders from a jottapath (a folder)"""
+    logging.debug("folderlist %s", jottapath)
+    try:
+        jf = JFS.getObject(jottapath)
+    except JFSNotFoundError:
+        return set() # folder does not exist, so pretend it is an empty folder
+    if not isinstance(jf, JFSFolder):
+        return False
+    return set([f.name for f in jf.folders() if not f.is_deleted()]) # Only return files that aren't deleted
+
 def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patterns=None):
     """Make a tree of local files and folders and compare it with what's currently on JottaCloud.
 
@@ -85,9 +96,11 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patter
         dirpath = dirpath.decode(sys.getfilesystemencoding())
         log.debug("compare walk: %s -> %s files ", dirpath, len(filenames))
         localfiles = set([_decode_filename(f) for f in filenames if not excluded(dirpath, f)]) # these are on local disk
+        localfolders = set([_decode_filename(f) for f in dirnames if not excluded(dirpath, f)]) # these are on local disk
         jottapath = get_jottapath(localtopdir, dirpath, jottamountpoint) # translate to jottapath
         log.debug("compare jottapath: %s", jottapath)
         cloudfiles = filelist(jottapath, JFS) # set(). these are on jottacloud
+        cloudfolders = folderlist(jottapath, JFS)
 
         def sf(f):
             """Create SyncFile tuple from filename"""
@@ -95,10 +108,13 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patter
                             jottapath=posixpath.join(jottapath, f))
         log.debug("--cloudfiles: %s", cloudfiles)
         log.debug("--localfiles: %s", localfiles)
+        logging.debug("--cloudfolders: %s", cloudfolders)
+
         onlylocal = [ sf(f) for f in localfiles.difference(cloudfiles)]
         onlyremote = [ sf(f) for f in cloudfiles.difference(localfiles)]
         bothplaces = [ sf(f) for f in localfiles.intersection(cloudfiles)]
-        yield dirpath, onlylocal, onlyremote, bothplaces
+        onlyremotefolders = [ sf(f) for f in cloudfolders.difference(localfolders)]
+        yield dirpath, onlylocal, onlyremote, bothplaces, onlyremotefolders
 
 
 def _decode_filename(f):
@@ -141,6 +157,12 @@ def replace_if_changed(localfile, jottapath, JFS):
         setxattrhash(localfile, lf_hash)
         return new(localfile, jottapath, JFS)
 
+def deleteDir(jottapath, JFS):
+    """Remove folder from JottaCloud because it is no longer present on local disk.
+    Returns boolean"""
+    jf = JFS.post('%s?dlDir=true' % jottapath)
+    return jf.is_deleted()
+
 def delete(jottapath, JFS):
     """Remove file from JottaCloud because it is no longer present on local disk.
     Returns boolean"""
@@ -159,9 +181,8 @@ def iter_tree(jottapath, JFS):
     log.debug("got tree: %s", filedirlist)
     if not isinstance(filedirlist, JFSFileDirList):
         yield ( '', tuple(), tuple() )
-    for folder in filedirlist.tree():
-        log.debug(folder)
-        yield folder, tuple(folder.folders()), tuple(folder.files())
+    for path in filedirlist.tree:
+        yield path
 
 def setxattrhash(filename, md5hash):
     log.debug('set xattr hash for %s', filename)
@@ -198,4 +219,3 @@ def getxattrhash(filename):
     except Exception as e:
         log.debug('setxattr got exception %r', e)
         return None
-
