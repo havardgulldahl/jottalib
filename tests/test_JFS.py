@@ -139,7 +139,7 @@ class TestJFS:
     def test_stream(self):
         p = "/Jotta/Archive/testfile_up_and_stream.txt"
         t = jfs.up(p, six.BytesIO(TESTFILEDATA))
-        s = u"".join( [ chunk.decode('utf-8') for chunk in t.stream() ] )
+        s = b"".join( [ chunk for chunk in t.stream() ] )
         assert s == TESTFILEDATA
         t.delete()
 
