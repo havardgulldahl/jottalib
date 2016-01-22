@@ -78,7 +78,7 @@ def filescanner(topdir, jottapath, jfs, errorfile, exclude=None, dry_run=False, 
                 _end = time.time()
                 puts(colored.magenta("Network upload speed %s/sec" % ( humanizeFileSize( (_uploadedbytes / (_end-_start)) ) )))
 
-            if len(onlyremote) and prune_files:
+            if prune_files and len(onlyremote):
                 puts(colored.red("Deleting %s files from JottaCloud because they no longer exist locally " % len(onlyremote)))
                 for f in progress.bar(onlyremote, label="deleting JottaCloud file: "):
                     log.debug("deleting cloud file that has disappeared locally: %s", f)
@@ -91,7 +91,7 @@ def filescanner(topdir, jottapath, jfs, errorfile, exclude=None, dry_run=False, 
                     if not dry_run:
                         if saferun(jottacloud.replace_if_changed, f.localpath, f.jottapath, jfs) is not False:
                             _files += 1
-            if len(onlyremotefolders) and prune_folders:
+            if prune_folders and len(onlyremotefolders):
                 puts(colored.red("Deleting %s folders from JottaCloud because they no longer exist locally " % len(onlyremotefolders)))
                 for f in onlyremotefolders:
                     if not dry_run:
