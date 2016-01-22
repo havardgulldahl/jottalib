@@ -22,7 +22,11 @@ import sys, os, os.path, posixpath, logging, collections
 
 log = logging.getLogger(__name__)
 
-from xattr import xattr # pip install xattr
+try:
+    from xattr import xattr # pip install xattr
+    HAS_XATTR=True
+except ImportError: # no xattr installed, not critical because it is optional
+    HAS_XATTR=False
 
 
 import jottalib
@@ -161,6 +165,9 @@ def iter_tree(jottapath, JFS):
 
 def setxattrhash(filename, md5hash):
     log.debug('set xattr hash for %s', filename)
+    if not HAS_XATTR:
+        log.info("xattr not found. Installing it will speed up hash comparison: pip install xattr")
+        return False
     try:
         x = xattr(filename)
         x.set('user.jottalib.md5', md5hash)
@@ -177,6 +184,9 @@ def setxattrhash(filename, md5hash):
 
 def getxattrhash(filename):
     log.debug('get xattr hash for %s', filename)
+    if not HAS_XATTR:
+        log.info("xattr not found. Installing it will speed up hash comparison: pip install xattr")
+        return None
     try:
         x = xattr(filename)
         if x.get('user.jottalib.filesize') != str(os.path.getsize(filename)) or x.get('user.jottalib.timestamp') != str(os.path.getmtime(filename)):
