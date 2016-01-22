@@ -439,11 +439,10 @@ class TestJFSFile:
 
     def test_unicode_contents(self):
         data = six.StringIO(u'123abcæøå')
-        p = "/Jotta/Archive/testfile_up_and_readpartial.txt"
-        t = jfs.up(p, StringIO(data))
+        p = "/Jotta/Archive/testfile_unicode_contents.txt"
+        t = jfs.up(p, data)
         assert isinstance(JFSFile, t)
         t.delete()
-
 
 class TestJFSFileDirList:
     'Tests for JFSFileDirList'
@@ -472,7 +471,7 @@ class TestJFSError:
             jfs.get('/Jotta/Archive/FileNot.found')
         with pytest.raises(JFS.JFSRangeError): # HTTP 416
             p = "/Jotta/Archive/testfile_up_and_readpartial.txt"
-            t = jfs.up(p, StringIO(TESTFILEDATA))
+            t = jfs.up(p, six.BytesIO(TESTFILEDATA))
             f = jfs.getObject(p)
             f.readpartial(10, 3) # Range start index larger than end index;
             f.delete()
