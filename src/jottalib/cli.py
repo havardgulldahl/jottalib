@@ -116,8 +116,7 @@ def fuse(argv=None):
     parser.add_argument('mountpoint', type=is_dir, help='A path to an existing directory where you want your JottaCloud tree mounted')
     args = parser.parse_args(argv)
     if args.debug_http:
-        import httplib
-        httplib.HTTPConnection.debuglevel = 1
+        http_client.HTTPConnection.debuglevel = 1
     if args.debug:
         requests_log = logging.getLogger("requests.packages.urllib3")
         requests_log.setLevel(logging.DEBUG)
