@@ -24,10 +24,8 @@ __author__ = 'havard@gulldahl.no'
 # import standardlib
 import os, logging, datetime
 import tempfile, posixpath, urllib
-try:
-    from io import StringIO # py3
-except ImportError:
-    from cStringIO import StringIO  # py2
+import six
+from six.moves import cStringIO as StringIO
 
 
 # import dependencies
@@ -44,7 +42,7 @@ from jottalib import JFS, __version__
 jfs = JFS.JFS() # get username and password from environment or .netrc
 
 
-TESTFILEDATA=u"""
+TESTFILEDATA=b"""
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla est dolor, convallis fermentum sapien in, fringilla congue ligula. Fusce at justo ac felis vulputate laoreet vel at metus. Aenean justo lacus, porttitor dignissim imperdiet a, elementum cursus ligula. Vivamus eu est viverra, pretium arcu eget, imperdiet eros. Curabitur in bibendum."""
 
 
@@ -112,7 +110,7 @@ class TestJFS:
 
     def test_up_and_delete(self):
         p = "/Jotta/Archive/testfile_up_and_delete.txt"
-        t = jfs.up(p, StringIO(TESTFILEDATA))
+        t = jfs.up(p, six.BytesIO(TESTFILEDATA))
         assert isinstance(t, JFS.JFSFile)
         d = t.delete()
         assert isinstance(d, JFS.JFSFile)
@@ -120,27 +118,27 @@ class TestJFS:
 
     def test_up_and_read(self):
         p = "/Jotta/Archive/testfile_up_and_read.txt"
-        t = jfs.up(p, StringIO(TESTFILEDATA))
+        t = jfs.up(p, six.BytesIO(TESTFILEDATA))
         f = jfs.getObject(p)
         assert isinstance(f, JFS.JFSFile)
-        assert f.read().decode('utf-8') == TESTFILEDATA
+        assert f.read() == TESTFILEDATA
         f.delete()
 
     def test_up_and_readpartial(self):
         import random
         p = "/Jotta/Archive/testfile_up_and_readpartial.txt"
-        t = jfs.up(p, StringIO(TESTFILEDATA))
+        t = jfs.up(p, six.BytesIO(TESTFILEDATA))
         f = jfs.getObject(p)
         # pick a number less than length of text
         start = random.randint(0, len(TESTFILEDATA))
         # pick a number between start and length of text
         end = random.randint(0, len(TESTFILEDATA)-start) + start
-        assert f.readpartial(start, end).decode('utf-8') == TESTFILEDATA[start:end]
+        assert f.readpartial(start, end) == TESTFILEDATA[start:end]
         f.delete()
 
     def test_stream(self):
         p = "/Jotta/Archive/testfile_up_and_stream.txt"
-        t = jfs.up(p, StringIO(TESTFILEDATA))
+        t = jfs.up(p, six.BytesIO(TESTFILEDATA))
         s = u"".join( [ chunk.decode('utf-8') for chunk in t.stream() ] )
         assert s == TESTFILEDATA
         t.delete()
