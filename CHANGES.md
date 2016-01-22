@@ -20,6 +20,7 @@
 
 ### Bug fixes
 
+- URLs are now properly escaped, see bug#25, by @cowai / Ari Selseng
 
 ### Added
 
@@ -30,7 +31,7 @@
 - Better logging messages by @forsberg  / Erik Forsberg
 - Beginning of proper py3 support, by @ttyridal / Torbjørn Tyridal
 - Methods to create mountpoints and devices, by @ttyridal
-- URLs are now properly escaped, see bug#25, by @cowai / Ari Selseng
+- Add support for exclude patterns, see #44 by @mortenlj
 
 
 Thanks to all contributors!
