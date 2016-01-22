@@ -22,10 +22,8 @@ from __future__ import absolute_import, division, unicode_literals
 __author__ = 'havard@gulldahl.no'
 
 import argparse
-try:
-    import httplib # py2
-except ImportError:
-    import http.client as httlib
+import six
+from six.moves import http_client
 import humanize as _humanize
 import logging
 import os
@@ -77,7 +75,7 @@ def parse_args_and_apply_logging_level(parser, argv):
     args = parser.parse_args(argv)
     logging.basicConfig(level=getattr(logging, args.loglevel.upper()))
     logging.captureWarnings(True)
-    httplib.HTTPConnection.debuglevel = 1 if args.loglevel == 'debug' else 0
+    http_client.HTTPConnection.debuglevel = 1 if args.loglevel == 'debug' else 0
     return args
 
 
