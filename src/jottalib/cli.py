@@ -195,18 +195,18 @@ def ls(argv=None):
         files = [(
             f.created,
             print_size(f.size, humanize=args.humanize),
-            'D' if f.deleted else ' ',
+            u'D' if f.deleted else u' ',
             f.name) for f in item.files() if not f.deleted or args.all]
-        folders = [(' '*25, '', 'D' if f.deleted else ' ', unicode(f.name)) for f in item.folders()]
+        folders = [(u' '*25, u'', u'D' if f.deleted else u' ', f.name) for f in item.folders()]
         widest_size = 0
         for f in files:
             if len(f[1]) > widest_size:
                 widest_size = len(f[1])
         for item in sorted(files + folders, key=lambda t: t[3]):
             if args.all:
-                print('%s %s %s %s' % (item[0], item[1].rjust(widest_size), item[2], item[3]))
+                print(u'%s %s %s %s' % (item[0], item[1].rjust(widest_size), item[2], item[3]))
             else:
-                print('%s %s %s' % (item[0], item[1].rjust(widest_size), item[3]))
+                print(u'%s %s %s' % (item[0], item[1].rjust(widest_size), item[3]))
     else:
         print(' '.join([str(item.created), print_size(item.size, humanize=args.humanize), item.name]))
 
