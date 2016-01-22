@@ -94,7 +94,7 @@ def filescanner(topdir, jottapath, jfs, errorfile, exclude=None, dry_run=False, 
             if len(onlyremotefolders) and prune_folders:
                 puts(colored.red("Deleting %s folders from JottaCloud because they no longer exist locally " % len(onlyremotefolders)))
                 for f in onlyremotefolders:
-                    if not args.dry_run:
+                    if not dry_run:
                         if saferun(jottacloud.deleteDir, f.jottapath, jfs) is not False:
                             logging.debug("Deleted remote folder %s", f.jottapath)
     except KeyboardInterrupt:
