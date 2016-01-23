@@ -3,6 +3,13 @@
 ## [0.5] - TBA
 
 
+## [0.4.1] - 2016-01-23
+
+### Bug fixes
+
+- Fix Unicode error in md5 hash routine, see #79. Thanks @malinkb for the reports.
+
+
 ## [0.4] - 2016-01-21
 
 ### BREAKING CHANGES
