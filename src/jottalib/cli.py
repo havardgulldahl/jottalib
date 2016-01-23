@@ -285,6 +285,7 @@ def restore(argv=None):
 
 
 def scanner(argv=None):
+
     if argv is None:
         argv = sys.argv[1:]
 
@@ -301,19 +302,29 @@ def scanner(argv=None):
                         choices=('debug', 'info', 'warning', 'error'), default='warning')
     parser.add_argument('--errorfile', help='A file to write errors to', default='./jottacloudclient.log')
     parser.add_argument('--exclude', type=re.compile, action='append', help='Exclude paths matched by this pattern (can be repeated)')
+    parser.add_argument('--prune-files', dest='prune_files',
+                        help='Delete files that does not exist locally', action='store_true')
+    parser.add_argument('--prune-folders', dest='prune_folders',
+                        help='Delete folders that does not exist locally', action='store_true')
+    parser.add_argument('--prune-all', dest='prune_all',
+                        help='Combines --prune-files  and --prune-folders', action='store_true')
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('--dry-run', action='store_true',
                         help="don't actually do any uploads or deletes, just show what would be done")
     parser.add_argument('topdir', type=is_dir, help='Path to local dir that needs syncing')
     parser.add_argument('jottapath', help='The path at JottaCloud where the tree shall be synced (must exist)')
     args = parse_args_and_apply_logging_level(parser, argv)
+    if args.prune_all:
+        args.prune_files = True
+        args.prune_folders = True
+
     fh = logging.FileHandler(args.errorfile)
     fh.setLevel(logging.ERROR)
     logging.getLogger('').addHandler(fh)
 
     jfs = JFS.JFS()
 
-    filescanner(args.topdir, args.jottapath, jfs, args.errorfile, args.exclude, args.dry_run)
+    filescanner(args.topdir, args.jottapath, jfs, args.errorfile, args.exclude, args.dry_run, args.prune_files, args.prune_folders)
 
 
 def monitor(argv=None):

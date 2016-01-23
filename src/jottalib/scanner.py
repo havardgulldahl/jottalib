@@ -45,7 +45,7 @@ def humanizeFileSize(size):
     p = math.floor(math.log(size, 2)/10)
     return "%.3f%s" % (size/math.pow(1024,p),units[int(p)])
 
-def filescanner(topdir, jottapath, jfs, errorfile, exclude=None, dry_run=False):
+def filescanner(topdir, jottapath, jfs, errorfile, exclude=None, dry_run=False, prune_files=True, prune_folders=True ):
 
     errors = {}
     def saferun(cmd, *args):
@@ -61,7 +61,7 @@ def filescanner(topdir, jottapath, jfs, errorfile, exclude=None, dry_run=False):
     _files = 0
 
     try:
-        for dirpath, onlylocal, onlyremote, bothplaces in jottacloud.compare(topdir, jottapath, jfs, exclude_patterns=exclude):
+        for dirpath, onlylocal, onlyremote, bothplaces, onlyremotefolders in jottacloud.compare(topdir, jottapath, jfs, exclude_patterns=exclude):
             puts(colored.green("Entering dir: %s" % dirpath))
             if len(onlylocal):
                 _start = time.time()
@@ -78,7 +78,7 @@ def filescanner(topdir, jottapath, jfs, errorfile, exclude=None, dry_run=False):
                 _end = time.time()
                 puts(colored.magenta("Network upload speed %s/sec" % ( humanizeFileSize( (_uploadedbytes / (_end-_start)) ) )))
 
-            if len(onlyremote):
+            if prune_files and len(onlyremote):
                 puts(colored.red("Deleting %s files from JottaCloud because they no longer exist locally " % len(onlyremote)))
                 for f in progress.bar(onlyremote, label="deleting JottaCloud file: "):
                     log.debug("deleting cloud file that has disappeared locally: %s", f)
@@ -91,6 +91,12 @@ def filescanner(topdir, jottapath, jfs, errorfile, exclude=None, dry_run=False):
                     if not dry_run:
                         if saferun(jottacloud.replace_if_changed, f.localpath, f.jottapath, jfs) is not False:
                             _files += 1
+            if prune_folders and len(onlyremotefolders):
+                puts(colored.red("Deleting %s folders from JottaCloud because they no longer exist locally " % len(onlyremotefolders)))
+                for f in onlyremotefolders:
+                    if not dry_run:
+                        if saferun(jottacloud.deleteDir, f.jottapath, jfs) is not False:
+                            logging.debug("Deleted remote folder %s", f.jottapath)
     except KeyboardInterrupt:
         # Ctrl-c pressed, cleaning up
         pass
@@ -99,4 +105,3 @@ def filescanner(topdir, jottapath, jfs, errorfile, exclude=None, dry_run=False):
     else:
         puts(('Finished syncing %s files, ' % _files )+
              colored.red('with %s errors (read %s for details)' % (len(errors), errorfile, )))
-
