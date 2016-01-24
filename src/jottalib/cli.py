@@ -191,13 +191,15 @@ def ls(argv=None):
         item = jfs.getObject(item_path)
     else:
         item = root_folder
+    timestamp_width = 25
     if isinstance(item, JFS.JFSFolder):
         files = [(
             f.created,
             print_size(f.size, humanize=args.humanize) if f.size else u'',
             u'D' if f.deleted else u'I' if f.state == 'INCOMPLETE' else u' ',
             f.name) for f in item.files() if not f.deleted and f.state != 'INCOMPLETE' or args.all]
-        folders = [(u' '*25, u'', u'D' if f.deleted else u' ', f.name) for f in item.folders()]
+        folders = [(u' '*timestamp_width, u'', u'D' if f.deleted else u' ', str(f.name))
+                   for f in item.folders()]
         widest_size = 0
         for f in files:
             if len(f[1]) > widest_size:
