@@ -93,11 +93,11 @@ class JottaCloudBackend(duplicity.backend.Backend):
         log.Debug( 'jottacloud.put(%s,%s): %s'%(source_path.name, remote_filename, resp))
 
     def _get(self, remote_filename, local_path, raise_errors=False):
-        to_file = open( local_path.name, 'wb' )
-        f = self.client.getObject(posixpath.join(self.folder.path, remote_filename))
-        log.Debug('jottacloud.get(%s,%s): %s'%(remote_filename,local_path.name, f))
-        to_file.write(f.read())
-        to_file.close()
+        remote_file = self.client.getObject(posixpath.join(self.folder.path, remote_filename))
+        log.Debug('jottacloud.get(%s,%s): %s' % (remote_filename, local_path.name, remote_file))
+        with open(local_path.name, 'wb') as to_file:
+            for chunk in remote_file.stream():
+                to_file.write(chunk)
 
     def _list(self, raise_errors=False):
         log.Debug('jottacloud.list raise e %s'%(raise_errors))
