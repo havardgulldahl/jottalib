@@ -22,8 +22,6 @@
 # Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 # stdlib
-import os
-import os.path
 import posixpath
 import locale
 import logging
@@ -31,7 +29,7 @@ import logging
 # import duplicity stuff # version 0.6
 import duplicity.backend
 from duplicity import log
-from duplicity.errors import *
+from duplicity.errors import BackendException
 
 def get_jotta_device(jfs):
     jottadev = None
@@ -79,7 +77,6 @@ class JottaCloudBackend(duplicity.backend.Backend):
         try:
             from jottalib import JFS
         except ImportError:
-            raise
             raise BackendException('JottaCloud backend requires jottalib'
                                    ' (see https://pypi.python.org/pypi/jottalib).')
 
@@ -90,58 +87,48 @@ class JottaCloudBackend(duplicity.backend.Backend):
         # Ensure jottalib and duplicity log to the same handlers
         set_jottalib_log_handlers(log._logger.handlers)
 
+        # Will fetch jottacloud auth from environment or .netrc
         self.client = JFS.JFS()
-        root_dir = get_root_dir(self.client)
 
-        # Fetch destination folder entry (and create hierarchy if required).
-        path = posixpath.join(root_dir.path, parsed_url.path.lstrip('/'))
+        self.folder = self.get_or_create_directory(parsed_url.path.lstrip('/'))
+
+
+    def get_or_create_directory(self, directory_name):
+        from jottalib.JFS import JFSNotFoundError
+        root_directory = get_root_dir(self.client)
+        full_path = posixpath.join(root_directory.path, directory_name)
         try:
-        #    self.folder = root_dir#self.client.getObject('%s/duplicity' % parsed_url.path.lstrip('//'))
-            self.folder = self.client.getObject(path)
-        except JFS.JFSNotFoundError:
-            try:
-                self.folder = root_dir.mkdir(parsed_url.path.lstrip('/'))
-            except:
-                raise
-                raise BackendException("Error while creating destination folder 'Backup')")
-        except:
-            raise
+            return self.client.getObject(full_path)
+        except JFSNotFoundError:
+            return root_directory.mkdir(directory_name)
 
-    def _put(self, source_path, remote_filename=None, raise_errors=False):
-        """Transfer source_path to remote_filename"""
-        # Default remote file name.
-        if not remote_filename:
-            remote_filename = os.path.basename(source_path.get_filename())
 
+    def _put(self, source_path, remote_filename):
         resp = self.folder.up(source_path.open(), remote_filename)
-        log.Debug( 'jottacloud.put(%s,%s): %s'%(source_path.name, remote_filename, resp))
+        log.Debug('jottacloud.put(%s,%s): %s' % (source_path.name, remote_filename, resp))
 
-    def _get(self, remote_filename, local_path, raise_errors=False):
+
+    def _get(self, remote_filename, local_path):
         remote_file = self.client.getObject(posixpath.join(self.folder.path, remote_filename))
         log.Debug('jottacloud.get(%s,%s): %s' % (remote_filename, local_path.name, remote_file))
         with open(local_path.name, 'wb') as to_file:
             for chunk in remote_file.stream():
                 to_file.write(chunk)
 
-    def _list(self, raise_errors=False):
-        log.Debug('jottacloud.list raise e %s'%(raise_errors))
-        log.Debug('jottacloud.list: %s'%(self.folder.files()))
+
+    def _list(self):
         encoding = locale.getdefaultlocale()[1]
         if encoding is None:
             encoding = 'LATIN1'
         return list([f.name.encode(encoding) for f in self.folder.files()
                      if not f.is_deleted() and f.state != 'INCOMPLETE'])
 
-    def _delete(self, filename, raise_errors=False):
-        log.Debug('jottacloud.delete: %s'%filename)
-        remote_name = os.path.join(self.folder.path, filename)
-        #first, get file object
-        f = self.client.getObject(remote_name)
-        log.Debug('jottacloud.delete deleting: %s (%s)'%(f, type(f)))
-        # now, delete it
-        resp = f.delete()
-        log.Debug('jottacloud.delete(%s): %s'%(remote_name,resp))
-        self.folder.sync()
+
+    def _delete(self, filename):
+        remote_path = posixpath.join(self.folder.path, filename)
+        remote_file = self.client.getObject(remote_path)
+        log.Debug('jottacloud.delete deleting: %s (%s)' % (remote_file, type(remote_file)))
+        remote_file.delete()
 
 
 duplicity.backend.register_backend("jotta", JottaCloudBackend)
