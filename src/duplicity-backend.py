@@ -22,9 +22,10 @@
 # Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 # stdlib
-import os, os.path, posixpath
-import string
-import urllib, locale
+import os
+import os.path
+import posixpath
+import locale
 
 # import duplicity stuff # version 0.6
 import duplicity.backend
