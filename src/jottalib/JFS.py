@@ -410,8 +410,14 @@ class JFSIncompleteFile(ProtoFile):
 
     @property
     def size(self):
-        'incomplete files have no size'
-        return -1 #int(self.f.latestRevision.size)
+        """Bytes uploaded of the file so far.
+
+        Note that we only have the file size if the file was requested directly,
+        not if it's part of a folder listing.
+        """
+        if hasattr(self.f.latestRevision, 'size'):
+            return int(self.f.latestRevision.size)
+        return None
 
 class JFSFile(JFSIncompleteFile):
     'OO interface to a file, for convenient access. Type less, do more.'

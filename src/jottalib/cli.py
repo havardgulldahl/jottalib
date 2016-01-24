@@ -194,7 +194,7 @@ def ls(argv=None):
     if isinstance(item, JFS.JFSFolder):
         files = [(
             f.created,
-            print_size(f.size, humanize=args.humanize),
+            print_size(f.size, humanize=args.humanize) if f.size else u'',
             u'D' if f.deleted else u' ',
             f.name) for f in item.files() if not f.deleted or args.all]
         folders = [(u' '*25, u'', u'D' if f.deleted else u' ', f.name) for f in item.folders()]
