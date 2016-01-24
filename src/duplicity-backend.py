@@ -105,7 +105,8 @@ class JottaCloudBackend(duplicity.backend.Backend):
         encoding = locale.getdefaultlocale()[1]
         if encoding is None:
             encoding = 'LATIN1'
-        return list([f.name.encode(encoding) for f in self.folder.files() if not f.is_deleted()])
+        return list([f.name.encode(encoding) for f in self.folder.files()
+                     if not f.is_deleted() and f.state != 'INCOMPLETE'])
 
     def _delete(self, filename, raise_errors=False):
         log.Debug('jottacloud.delete: %s'%filename)
