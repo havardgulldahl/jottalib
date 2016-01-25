@@ -178,8 +178,8 @@ def ls(argv=None):
         choices=('debug', 'info', 'warning', 'error'), default='warning')
     parser.add_argument('-h', '--humanize', help='Print human-readable file sizes.',
         action='store_true')
-    parser.add_argument('-a', '--all', help='Show all files, even deleted ones',
-        action='store_true')
+    parser.add_argument('-a', '--all', action='store_true',
+        help='Include deleted and incomplete files (otherwise ignored)')
     parser.add_argument('item', nargs='?', help='The file or directory to list. Defaults to the '
         'root dir')
     parser.add_argument('-H', '--help', help='Print this help', action='help')
@@ -191,13 +191,15 @@ def ls(argv=None):
         item = jfs.getObject(item_path)
     else:
         item = root_folder
+    timestamp_width = 25
     if isinstance(item, JFS.JFSFolder):
         files = [(
             f.created,
-            print_size(f.size, humanize=args.humanize),
-            u'D' if f.deleted else u' ',
-            f.name) for f in item.files() if not f.deleted or args.all]
-        folders = [(u' '*25, u'', u'D' if f.deleted else u' ', f.name) for f in item.folders()]
+            print_size(f.size, humanize=args.humanize) if f.size else u'',
+            u'D' if f.deleted else u'I' if f.state == 'INCOMPLETE' else u' ',
+            f.name) for f in item.files() if not f.deleted and f.state != 'INCOMPLETE' or args.all]
+        folders = [(u' '*timestamp_width, u'', u'D' if f.deleted else u' ', str(f.name))
+                   for f in item.folders()]
         widest_size = 0
         for f in files:
             if len(f[1]) > widest_size:
