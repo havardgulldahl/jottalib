@@ -26,6 +26,7 @@ import os
 import os.path
 import posixpath
 import locale
+import logging
 
 # import duplicity stuff # version 0.6
 import duplicity.backend
@@ -46,6 +47,28 @@ def get_root_dir(jfs):
     return root_dir
 
 
+def set_jottalib_logging_level(log_level):
+    logger = logging.getLogger('jottalib')
+    logger.setLevel(getattr(logging, log_level))
+
+
+def set_jottalib_log_handlers(handlers):
+    logger = logging.getLogger('jottalib')
+    for handler in handlers:
+        logger.addHandler(handler)
+
+
+def get_duplicity_log_level():
+    """ Get the current duplicity log level as a stdlib-compatible logging level"""
+    duplicity_log_level = log.LevelName(log.getverbosity())
+
+    # notice is a duplicity-specific logging level not supported by stdlib
+    if duplicity_log_level == 'NOTICE':
+        duplicity_log_level = 'INFO'
+
+    return duplicity_log_level
+
+
 class JottaCloudBackend(duplicity.backend.Backend):
     """Connect to remote store using JottaCloud API"""
 
@@ -59,6 +82,13 @@ class JottaCloudBackend(duplicity.backend.Backend):
             raise
             raise BackendException('JottaCloud backend requires jottalib'
                                    ' (see https://pypi.python.org/pypi/jottalib).')
+
+        # Set jottalib loggers to the same verbosity as duplicity
+        duplicity_log_level = get_duplicity_log_level()
+        set_jottalib_logging_level(duplicity_log_level)
+
+        # Ensure jottalib and duplicity log to the same handlers
+        set_jottalib_log_handlers(log._logger.handlers)
 
         # Setup client instance.
         _pass = os.environ.get('JOTTACLOUD_PASSWORD', None)
