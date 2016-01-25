@@ -199,7 +199,7 @@ def ls(argv=None):
             u'D' if f.deleted else u'I' if f.state == 'INCOMPLETE' else u' ',
             f.name) for f in item.files() if not f.deleted and f.state != 'INCOMPLETE' or args.all]
         folders = [(u' '*timestamp_width, u'', u'D' if f.deleted else u' ', str(f.name))
-                   for f in item.folders()]
+                   for f in item.folders() if not f.deleted or args.all]
         widest_size = 0
         for f in files:
             if len(f[1]) > widest_size:
