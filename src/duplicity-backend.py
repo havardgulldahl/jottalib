@@ -131,4 +131,18 @@ class JottaCloudBackend(duplicity.backend.Backend):
         remote_file.delete()
 
 
+    def _query(self, filename):
+        """Get size of filename"""
+        log.Info('Querying size of %s' % filename)
+        from jottalib.JFS import JFSNotFoundError, JFSIncompleteFile
+        remote_path = posixpath.join(self.folder.path, filename)
+        try:
+            remote_file = self.client.getObject(remote_path)
+        except JFSNotFoundError:
+            return {'size': -1}
+        return {
+            'size': remote_file.size,
+        }
+
+
 duplicity.backend.register_backend("jotta", JottaCloudBackend)
