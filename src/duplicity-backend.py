@@ -90,13 +90,7 @@ class JottaCloudBackend(duplicity.backend.Backend):
         # Ensure jottalib and duplicity log to the same handlers
         set_jottalib_log_handlers(log._logger.handlers)
 
-        # Setup client instance.
-        _pass = os.environ.get('JOTTACLOUD_PASSWORD', None)
-        if _pass is None:
-            _pass = self.get_password()
-        username = parsed_url.username or os.environ.get('JOTTACLOUD_USERNAME')
-        self.client = JFS.JFS(auth=(username, _pass))
-        #self.client.http_client.debug = False
+        self.client = JFS.JFS()
         root_dir = get_root_dir(self.client)
 
         # Fetch destination folder entry (and create hierarchy if required).
