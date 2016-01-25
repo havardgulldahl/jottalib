@@ -834,7 +834,6 @@ class JFS(object):
 #             f.write(r.content)
 
         if not r.ok:
-            log.warning('HTTP GET failed: %s', r.text)
             o = lxml.objectify.fromstring(r.content)
             JFSError.raiseError(o, url)
         return r.content
