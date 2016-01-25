@@ -70,7 +70,7 @@ class JottaCloudBackend(duplicity.backend.Backend):
         root_dir = get_root_dir(self.client)
 
         # Fetch destination folder entry (and create hierarchy if required).
-        path = posixpath.join([root_dir.path, parsed_url.path.lstrip('/')])
+        path = posixpath.join(root_dir.path, parsed_url.path.lstrip('/'))
         try:
         #    self.folder = root_dir#self.client.getObject('%s/duplicity' % parsed_url.path.lstrip('//'))
             self.folder = self.client.getObject(path)
