@@ -8,9 +8,9 @@ python:
 #  - "2.6"
   - "2.7"
   - "3.3"
-#  - "3.4"
+  - "3.4"
 #  - "nightly"
-  - "pypy"
+#  - "pypy"
 
 # dont test feature branches
 branches:
