@@ -2,7 +2,7 @@ JOTTALIB
 ========
 
 |Join the chat at https://gitter.im/havardgulldahl/jottalib|
-|Requirements Status| |Build status master branch|
+|Requirements Status| |Build status master branch| |pypi version| |pypi downloads| |coverage|
 
 This is a rich, pythonic interface to the Jottacloud backup/cloud
 storage service. The service itself exposes a nice and simple HTTP REST
@@ -98,3 +98,12 @@ look!
    :target: https://requires.io/github/havardgulldahl/jottalib/requirements/?branch=master
 .. |Build status master branch| image:: https://travis-ci.org/havardgulldahl/jottalib.svg?branch=master
    :target: https://travis-ci.org/havardgulldahl/jottalib
+.. |pypi version| image:: https://img.shields.io/pypi/v/jottalib.svg?style=flat
+    :target: https://pypi.python.org/pypi/jottalib/
+    :alt: Latest PyPI version
+.. |pypi downloads| image:: https://img.shields.io/pypi/dm/jottalib.svg?style=flat
+    :target: https://pypi.python.org/pypi/jottalib/
+    :alt: Number of PyPI downloads
+.. |coverage| image:: https://img.shields.io/coveralls/havardgulldahl/jottalib/master.svg?style=flat
+   :target: https://coveralls.io/r/havardgulldahl/mopidy_plex
+   :alt: Test coverage
