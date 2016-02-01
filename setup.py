@@ -43,7 +43,7 @@ setup(name='jottalib',
       author_email='havard@gulldahl.no',
       url='https://github.com/havardgulldahl/jottalib',
       package_dir={'':'src'},
-      packages=['jottalib', ],
+      packages=['jottalib', 'jottalib.contrib'],
       install_requires=['requests',
                         'requests_toolbelt',
                         'certifi==2015.4.28', # TODO: remove pin
