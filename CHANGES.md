@@ -2,6 +2,11 @@
 
 ## [0.5] - TBA
 
+## [0.4.2] - 2016-01-23
+
+### Bug fixes
+
+- Fix bug in installation script that left out `jottalib.contrib`.
 
 ## [0.4.1] - 2016-01-23
 
@@ -9,6 +14,11 @@
 
 - Fix Unicode error in md5 hash routine, see #79. Thanks @malinkb for the reports.
 
+### Changed
+
+- jotta-scanner: The default behaviour is now to never delete remote files, unless explicitly told so
+                 by way of one of the new flags `--prune-files`, `--prune-folders` or `--prune-all`
+                 See discussion in https://github.com/havardgulldahl/jottalib/pull/80. By @cowai.
 
 ## [0.4] - 2016-01-21
 
