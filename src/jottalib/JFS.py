@@ -287,14 +287,18 @@ class JFSFolder(object):
 
     def up(self, fileobj_or_path, filename=None, upload_callback=None):
         'Upload a file to current folder and return the new JFSFile'
+        close_on_done = False
         if not ( hasattr(fileobj_or_path, 'read') and hasattr(fileobj_or_path, 'name') ):
             filename = os.path.basename(fileobj_or_path)
             fileobj_or_path = open(fileobj_or_path, 'rb')
+            close_on_done = True
         elif filename is None: # fileobj is file, but filename is None
             filename = os.path.basename(fileobj_or_path.name)
         log.debug('.up %s ->  %s %s', repr(fileobj_or_path), repr(self.path), repr(filename))
         r = self.jfs.up(posixpath.join(self.path, filename), fileobj_or_path,
             upload_callback=upload_callback)
+        if close_on_done:
+            fileobj_or_path.close()
         self.sync()
         return r
 
@@ -788,6 +792,9 @@ class JFS(object):
                                 }
         self.rootpath = JFS_ROOT + self.username
         self.fs = self.get(self.rootpath)
+
+    def close(self):
+        self.session.close()
 
     def escapeUrl(self, url):
         separators = [
