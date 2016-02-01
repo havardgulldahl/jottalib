@@ -13,6 +13,7 @@
 ### Bug fixes
 
 - Fix Unicode error in md5 hash routine, see #79. Thanks @malinkb for the reports.
+- Don't fail if `xattr` is not installed 
 
 ### Changed
 
