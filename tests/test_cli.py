@@ -33,30 +33,62 @@ from jottalib import JFS, __version__, cli
 TESTFILEDATA=u"""
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla est dolor, convallis fermentum sapien in, fringilla congue ligula. Fusce at justo ac felis vulputate laoreet vel at metus. Aenean justo lacus, porttitor dignissim imperdiet a, elementum cursus ligula. Vivamus eu est viverra, pretium arcu eget, imperdiet eros. Curabitur in bibendum."""
 
-
+jfs = JFS.JFS()
+dev = cli.get_jotta_device(jfs)
+root = cli.get_root_dir(jfs)
 
 def test_get_jotta_device():
-    jfs = JFS.JFS()
-    dev = cli.get_jotta_device(jfs)
     assert isinstance(dev, JFS.JFSDevice)
     assert dev.name == 'Jotta'
 
 def test_get_root_dir():
-    jfs = JFS.JFS()
-    root = cli.get_root_dir(jfs)
     assert isinstance(root, JFS.JFSMountPoint)
 
 def test_ls():
-    cli.ls([])
-    cli.ls(['--all'])
-    cli.ls(['--humanize'])
-    cli.ls(['--loglevel', 'info'])
+    assert cli.ls([])
+    assert cli.ls(['--all'])
+    assert cli.ls(['--humanize'])
+    assert cli.ls(['--loglevel', 'info'])
 
 def test_mkdir():
     with pytest.raises(SystemExit):
         cli.mkdir([]) # argparse should raise systemexit without the mandatory arguments
-    cli.mkdir(['testmkdir'])
-    cli.mkdir(['testmkdir', '--loglevel', 'info'])
+    assert cli.mkdir(['testmkdir'])
+    d = jfs.getObject('/Jotta/Sync/testmkdir')
+    assert isinstance(d, JFS.JFSFolder)
+    assert d.is_deleted == False
+
+def test_upload():
+    with pytest.raises(SystemExit):
+        cli.upload([]) # argparse should raise systemexit without the mandatory arguments
+    f, filename = tempfile.mkstemp(suffix='.txt', prefix='test_upload-')
+    f.write(TESTFILEDATA)
+    f.close()
+    assert cli.upload([filename, '.'])
+    fi = jfs.getObject('/Jotta/Sync/%s' % os.path.basename(filename))
+    assert isinstance(fi, JFS.JFSFile)
+    assert d.is_deleted() == False
+    fi.delete()
+
+def test_rm():
+    with pytest.raises(SystemExit):
+        cli.rm([]) # argparse should raise systemexit without the mandatory arguments
+    assert cli.rm(['testmkdir'])
+    d = jfs.getObject('/Jotta/Sync/testmkdir')
+    assert isinstance(d, JFS.JFSFolder)
+    assert d.is_deleted() == True
+
+
+def test_restore():
+    with pytest.raises(SystemExit):
+        cli.rm([]) # argparse should raise systemexit without the mandatory arguments
+    assert cli.mkdir(['testmkdir'])
+    assert cli.rm(['testmkdir'])
+    assert cli.restore(['testmkdir'])
+    d = jfs.getObject('/Jotta/Sync/testmkdir')
+    assert isinstance(d, JFS.JFSFolder)
+    assert d.is_deleted() == False
+
 
 def test_monitor():
     with pytest.raises(SystemExit):
