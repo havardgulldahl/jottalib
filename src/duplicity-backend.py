@@ -103,12 +103,12 @@ class JottaCloudBackend(duplicity.backend.Backend):
             return root_directory.mkdir(directory_name)
 
 
-    def _put(self, source_path, remote_filename):
+    def put(self, source_path, remote_filename):
         resp = self.folder.up(source_path.open(), remote_filename)
         log.Debug('jottacloud.put(%s,%s): %s' % (source_path.name, remote_filename, resp))
 
 
-    def _get(self, remote_filename, local_path):
+    def get(self, remote_filename, local_path):
         remote_file = self.client.getObject(posixpath.join(self.folder.path, remote_filename))
         log.Debug('jottacloud.get(%s,%s): %s' % (remote_filename, local_path.name, remote_file))
         with open(local_path.name, 'wb') as to_file:
@@ -116,7 +116,7 @@ class JottaCloudBackend(duplicity.backend.Backend):
                 to_file.write(chunk)
 
 
-    def _list(self):
+    def list(self):
         encoding = locale.getdefaultlocale()[1]
         if encoding is None:
             encoding = 'LATIN1'
@@ -124,14 +124,14 @@ class JottaCloudBackend(duplicity.backend.Backend):
                      if not f.is_deleted() and f.state != 'INCOMPLETE'])
 
 
-    def _delete(self, filename):
+    def delete(self, filename):
         remote_path = posixpath.join(self.folder.path, filename)
         remote_file = self.client.getObject(remote_path)
         log.Debug('jottacloud.delete deleting: %s (%s)' % (remote_file, type(remote_file)))
         remote_file.delete()
 
 
-    def _query(self, filename):
+    def query(self, filename):
         """Get size of filename"""
         log.Info('Querying size of %s' % filename)
         from jottalib.JFS import JFSNotFoundError, JFSIncompleteFile
