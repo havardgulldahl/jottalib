@@ -41,7 +41,7 @@ def get_jotta_device(jfs):
 
 def get_root_dir(jfs):
     jottadev = get_jotta_device(jfs)
-    root_dir = jottadev.mountPoints['Sync']
+    root_dir = jottadev.mountPoints['Archive']
     return root_dir
 
 
