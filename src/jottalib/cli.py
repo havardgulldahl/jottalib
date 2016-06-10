@@ -326,6 +326,7 @@ def scanner(argv=None):
 
     jfs = JFS.JFS()
 
+    logging.info('args: topdir %r, jottapath %r', args.topdir, args.jottapath)
     filescanner(args.topdir, args.jottapath, jfs, args.errorfile, args.exclude, args.dry_run, args.prune_files, args.prune_folders)
 
 

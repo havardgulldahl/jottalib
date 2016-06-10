@@ -16,18 +16,19 @@
 # You should have received a copy of the GNU General Public License
 # along with jottabox.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright 2014 Håvard Gulldahl <havard@gulldahl.no>
+# Copyright 2014-2016 Håvard Gulldahl <havard@gulldahl.no>
 
 import sys, os, os.path, posixpath, logging, collections
 
 log = logging.getLogger(__name__)
 
+import chardet # get this module: pip install chardet
+
 try:
-    from xattr import xattr # pip install xattr
+    from xattr import xattr # get this module: pip install xattr
     HAS_XATTR=True
 except ImportError: # no xattr installed, not critical because it is optional
     HAS_XATTR=False
-
 
 import jottalib
 from jottalib.JFS import JFSNotFoundError, \
@@ -35,18 +36,23 @@ from jottalib.JFS import JFSNotFoundError, \
                          calculate_md5
 
 
+#A namedtuple to keep a link between a local path and its online counterpart
+#localpath will be a byte string with utf8 code points
+#jottapath will be a unicode string
 SyncFile = collections.namedtuple('SyncFile', 'localpath, jottapath')
 
 
 def get_jottapath(localtopdir, dirpath, jottamountpoint):
     """Translate localtopdir to jottapath"""
-    log.debug("get_jottapath %s %s %s", localtopdir, dirpath, jottamountpoint)
-    return posixpath.normpath(posixpath.join(jottamountpoint, posixpath.basename(localtopdir),
-                                         posixpath.relpath(dirpath, localtopdir)))
+    log.debug("get_jottapath %r %r %r", localtopdir, dirpath, jottamountpoint)
+    normpath =  posixpath.normpath(posixpath.join(jottamountpoint, posixpath.basename(localtopdir),
+                                   posixpath.relpath(dirpath, localtopdir)))
+    return normpath.decode(sys.getfilesystemencoding())
+
 
 def is_file(jottapath, JFS):
     """Check if a file exists on jottacloud"""
-    log.debug("is_file %s", jottapath)
+    log.debug("is_file %r", jottapath)
     try:
         jf = JFS.getObject(jottapath)
     except JFSNotFoundError:
@@ -55,7 +61,7 @@ def is_file(jottapath, JFS):
 
 def filelist(jottapath, JFS):
     """Get a set() of files from a jottapath (a folder)"""
-    log.debug("filelist %s", jottapath)
+    log.debug("filelist %r", jottapath)
     try:
         jf = JFS.getObject(jottapath)
     except JFSNotFoundError:
@@ -66,7 +72,7 @@ def filelist(jottapath, JFS):
 
 def folderlist(jottapath, JFS):
     """Get a set() of folders from a jottapath (a folder)"""
-    logging.debug("folderlist %s", jottapath)
+    logging.debug("folderlist %r", jottapath)
     try:
         jf = JFS.getObject(jottapath)
     except JFSNotFoundError:
@@ -78,13 +84,15 @@ def folderlist(jottapath, JFS):
 def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patterns=None):
     """Make a tree of local files and folders and compare it with what's currently on JottaCloud.
 
-    For each folder, yields three set()s:
-        onlylocal, # files that only exist locally, i.e. newly added files that don't exist online,
-        onlyremote, # files that only exist in the JottaCloud, i.e. deleted locally
-        bothplaces # files that exist both locally and remotely
+    For each folder, yields:
+        dirpath, # byte string, full path
+        onlylocal, # set(), files that only exist locally, i.e. newly added files that don't exist online,
+        onlyremote, # set(), files that only exist in the JottaCloud, i.e. deleted locally
+        bothplaces # set(), files that exist both locally and remotely
+        onlyremotefolders, # set(), folders that only exist in the JottaCloud, i.e. deleted locally
     """
-    def excluded(dirpath, fname):
-        fpath = os.path.join(dirpath, _decode_filename(fname))
+    def excluded(unicodepath, fname):
+        fpath = os.path.join(unicodepath, _decode_filename_to_unicode(fname))
         if exclude_patterns is None:
             return False
         for p in exclude_patterns:
@@ -93,22 +101,29 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patter
                 return True
         return False
     for dirpath, dirnames, filenames in os.walk(localtopdir, followlinks=followlinks):
-        dirpath = dirpath.decode(sys.getfilesystemencoding())
-        log.debug("compare walk: %s -> %s files ", dirpath, len(filenames))
-        localfiles = set([_decode_filename(f) for f in filenames if not excluded(dirpath, f)]) # these are on local disk
-        localfolders = set([_decode_filename(f) for f in dirnames if not excluded(dirpath, f)]) # these are on local disk
+        #dirpath = dirpath#.decode(sys.getfilesystemencoding())
+        unicodepath = _decode_filename_to_unicode(dirpath)
+        log.debug("compare walk: %s -> %s files ", unicodepath, len(filenames))
+        #localfiles = set([_decode_filename(f) for f in filenames if not excluded(dirpath, f)]) # these are on local disk
+        #localfolders = set([_decode_filename(f) for f in dirnames if not excluded(dirpath, f)]) # these are on local disk
+        localfiles = set([f for f in filenames if not excluded(unicodepath, f)]) # these are on local disk
+        localfolders = set([f for f in dirnames if not excluded(unicodepath, f)]) # these are on local disk
         jottapath = get_jottapath(localtopdir, dirpath, jottamountpoint) # translate to jottapath
         log.debug("compare jottapath: %s", jottapath)
         cloudfiles = filelist(jottapath, JFS) # set(). these are on jottacloud
         cloudfolders = folderlist(jottapath, JFS)
 
         def sf(f):
-            """Create SyncFile tuple from filename"""
-            return SyncFile(localpath=os.path.join(dirpath, f),
-                            jottapath=posixpath.join(jottapath, f))
+            """Create and return a SyncFile tuple from filename.
+            
+            localpath will be a byte string with utf8 code points
+            jottapath will be a unicode string"""
+            log.debug('Create SyncFile from %s', repr(f))
+            return SyncFile(localpath=os.path.join(dirpath, _encode_filename_to_filesystem(f)),
+                            jottapath=posixpath.join(_decode_filename_to_unicode(jottapath), _decode_filename_to_unicode(f)))
         log.debug("--cloudfiles: %s", cloudfiles)
         log.debug("--localfiles: %s", localfiles)
-        logging.debug("--cloudfolders: %s", cloudfolders)
+        log.debug("--cloudfolders: %s", cloudfolders)
 
         onlylocal = [ sf(f) for f in localfiles.difference(cloudfiles)]
         onlyremote = [ sf(f) for f in cloudfiles.difference(localfiles)]
@@ -117,9 +132,40 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patter
         yield dirpath, onlylocal, onlyremote, bothplaces, onlyremotefolders
 
 
-def _decode_filename(f):
-    return f.decode(sys.getfilesystemencoding())
+def _decode_filename_to_unicode(f):
+    '''Get bytestring filename and return unicode.
+    First, try to decode from default file system encoding
+    If that fails, use ``chardet`` module to guess encoding.
+    As a last resort, try to decode as latin1.
 
+    If the argument already is unicode, return as is'''
+
+    log.debug('_decode_filename_to_unicode(%s)', repr(f))
+    if isinstance(f, unicode): 
+        return f
+    try:
+        return f.decode(sys.getfilesystemencoding())
+    except UnicodeDecodeError:
+        charguess = chardet.detect(f)
+        log.debug("chardet filename: %s -> %s", repr(f), charguess)
+        if charguess['encoding'] is not None:
+            try: 
+                return f.decode(charguess['encoding'])
+            except UnicodeDecodeError:
+                pass
+
+        return f.decode('latin1')
+
+def _encode_filename_to_filesystem(f):
+    '''Get a unicode filename and return bytestring, encoded to file system default.
+
+    If the argument already is a bytestring, return as is'''
+    if isinstance(f, str):
+        return f
+    try:
+        return f.encode(sys.getfilesystemencoding())
+    except UnicodeEncodeError:
+        raise
 
 def new(localfile, jottapath, JFS):
     """Upload a new file from local disk (doesn't exist on JottaCloud).

@@ -198,6 +198,7 @@ class JFSFolder(object):
 
     @property
     def path(self):
+        log.debug('path: %r + %r', self.parentPath, self.name)
         return '%s/%s' % (self.parentPath, self.name)
 
     @property
@@ -209,7 +210,7 @@ class JFSFolder(object):
 
     def sync(self):
         'Update state of folder from Jottacloud server'
-        log.info("syncing %s" % self.path)
+        log.info("syncing %r" % self.path)
         self.folder = self.jfs.get(self.path)
         self.synced = True
 
@@ -797,6 +798,8 @@ class JFS(object):
         self.session.close()
 
     def escapeUrl(self, url):
+        if isinstance(url, unicode):
+            url = url.encode('utf-8') # urls have to be bytestrings
         separators = [
             '?dl=true',
             '?mkDir=true',
@@ -955,17 +958,22 @@ class JFS(object):
         md5hash = calculate_md5(fileobject)
 
         log.debug('posting content (len %s, hash %s) to url %s', contentlen, md5hash, url)
-        now = datetime.datetime.now().isoformat()
+        try:
+            mtime = os.path.getmtime(fileobject.name)
+            timestamp = datetime.datetime.fromtimestamp(mtime).isoformat()
+        except Exception as e:
+            log.exception('Problems getting mtime from fileobjet: %r', e)
+            timestamp = datetime.datetime.now().isoformat()
         params = {'cphash': md5hash}
         m = requests_toolbelt.MultipartEncoder({
              'md5': ('', md5hash),
-             'modified': ('', now),
-             'created': ('', now),
+             'modified': ('', timestamp),
+             'created': ('', timestamp),
              'file': (os.path.basename(url), fileobject, 'application/octet-stream'),
         })
         headers = {'JMd5':md5hash,
-                   'JCreated': now,
-                   'JModified': now,
+                   'JCreated': timestamp,
+                   'JModified': timestamp,
                    'X-Jfs-DeviceName': 'Jotta',
                    'JSize': contentlen,
                    'jx_csid': '',
@@ -974,8 +982,8 @@ class JFS(object):
                    }
         fileobject.seek(0) # rewind read index for requests.post
         files = {'md5': ('', md5hash),
-                 'modified': ('', now),
-                 'created': ('', now),
+                 'modified': ('', timestamp),
+                 'created': ('', timestamp),
                  'file': (os.path.basename(url), fileobject, 'application/octet-stream')}
         return self.post(url, None, files=files, params=params, extra_headers=headers, upload_callback=upload_callback)
 
