@@ -194,7 +194,9 @@ class JFSFolder(object):
 
     @property
     def name(self):
-        return unicode(self.folder.attrib['name']) if self.folder.attrib.has_key('name') else unicode(self.folder.name)
+        if self.folder.attrib.has_key('name'):
+            return unicode(self.folder.attrib['name'], 'utf-8') 
+        return unicode(self.folder.name, 'utf-8')
 
     @property
     def path(self):
