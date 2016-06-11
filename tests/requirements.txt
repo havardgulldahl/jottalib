@@ -4,7 +4,7 @@
 
 requests
 requests_toolbelt
-certifi==2015.04.28
+certifi
 python-dateutil
 lxml
 humanize
