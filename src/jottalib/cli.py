@@ -168,6 +168,7 @@ def share(argv=None):
     public = upload.share() # share file
     for (filename, uuid, publicURI) in public.sharedFiles():
         print('%s is now available to the world at %s' % (filename, publicURI))
+    return True # TODO: check return value of command
 
 
 def ls(argv=None):
@@ -211,6 +212,7 @@ def ls(argv=None):
                 print(u'%s %s %s' % (item[0], item[1].rjust(widest_size), item[3]))
     else:
         print(' '.join([str(item.created), print_size(item.size, humanize=args.humanize), item.name]))
+    return True # TODO: check return value of command
 
 
 def download(argv=None):
@@ -234,6 +236,7 @@ def download(argv=None):
                 bytes_read += len(chunk)
                 bar.show(bytes_read)
     print('%s downloaded successfully' % args.remotefile)
+    return True # TODO: check/set return value
 
 
 def mkdir(argv=None):
@@ -247,6 +250,7 @@ def mkdir(argv=None):
     jfs = JFS.JFS()
     root_folder = get_root_dir(jfs)
     root_folder.mkdir(args.newdir)
+    return True #  TODO: check return value of mkdir
 
 
 def rm(argv=None):
@@ -268,6 +272,7 @@ def rm(argv=None):
     else:
         item.delete()
     print('%s deleted' % args.file)
+    return True # TODO: check return value of command
 
 
 def restore(argv=None):
@@ -284,6 +289,7 @@ def restore(argv=None):
     item = jfs.getObject(item_path)
     item.restore()
     print('%s restored' % args.file)
+    return True # TODO: check return value of command
 
 
 def scanner(argv=None):
