@@ -56,6 +56,13 @@ try:
     unicode("we are python2")
 except NameError:
     def unicode(s): return str(s) # TODO: use six
+##
+# A note regarding the use of unicode() to convert string values from XML object nodes (lxml.objectify)
+#
+# you are always safe to convert objectify.StringElements to native Python unicode objects using unicode()
+# - https://mailman-mail5.webfaction.com/pipermail/lxml/2011-February/005885.html
+#
+
 
 def get_auth_info():
     """ Get authentication details to jottacloud.
@@ -195,8 +202,8 @@ class JFSFolder(object):
     @property
     def name(self):
         if self.folder.attrib.has_key('name'):
-            return unicode(self.folder.attrib['name'], 'utf-8') 
-        return unicode(self.folder.name, 'utf-8')
+            return unicode(self.folder.attrib['name'])
+        return unicode(self.folder.name)
 
     @property
     def path(self):
@@ -361,7 +368,7 @@ class ProtoFile(object):
 
     @property
     def path(self):
-        return '%s/%s' % (self.parentPath, self.name)
+        return posixpath.join(self.parentPath, self.name)
 
 
 class JFSIncompleteFile(ProtoFile):
@@ -729,7 +736,7 @@ class JFSDevice(object):
 
     def new_mountpoint(self, name):
         """Create a new mountpoint"""
-        url = '%s' % posixpath.join(self.path, name)
+        url = posixpath.join(self.path, name)
         r = self._jfs.post(url, extra_headers={'content-type': 'application/x-www-form-urlencoded'})
         return r
 
@@ -757,7 +764,7 @@ class JFSDevice(object):
 
     @property
     def sid(self):
-        return str(self.dev.sid)
+        return unicode(self.dev.sid)
 
 class JFSenableSharing(object):
     'wrap enableSharing element in a python class'
@@ -1006,7 +1013,7 @@ class JFS(object):
         """
         # at least android client also includes a "cid" with is derived from the unique device id
         # and encrypted with a public key in the apk.  The field appears to be optional
-        url = '%s' % posixpath.join(self.rootpath, name)
+        url = posixpath.join(self.rootpath, name)
         r = self.post(url, {'type': type})
         return r
 

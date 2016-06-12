@@ -115,7 +115,7 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patter
 
         def sf(f):
             """Create and return a SyncFile tuple from filename.
-            
+
             localpath will be a byte string with utf8 code points
             jottapath will be a unicode string"""
             log.debug('Create SyncFile from %s', repr(f))
@@ -136,25 +136,25 @@ def _decode_filename_to_unicode(f):
     '''Get bytestring filename and return unicode.
     First, try to decode from default file system encoding
     If that fails, use ``chardet`` module to guess encoding.
-    As a last resort, try to decode as latin1.
+    As a last resort, try to decode as utf-8.
 
     If the argument already is unicode, return as is'''
 
     log.debug('_decode_filename_to_unicode(%s)', repr(f))
-    if isinstance(f, unicode): 
+    if isinstance(f, unicode):
         return f
     try:
         return f.decode(sys.getfilesystemencoding())
     except UnicodeDecodeError:
         charguess = chardet.detect(f)
-        log.debug("chardet filename: %s -> %s", repr(f), charguess)
+        log.debug("chardet filename: %r -> %r", f, charguess)
         if charguess['encoding'] is not None:
-            try: 
+            try:
                 return f.decode(charguess['encoding'])
             except UnicodeDecodeError:
                 pass
 
-        return f.decode('latin1')
+        return f.decode('utf-8')
 
 def _encode_filename_to_filesystem(f):
     '''Get a unicode filename and return bytestring, encoded to file system default.
