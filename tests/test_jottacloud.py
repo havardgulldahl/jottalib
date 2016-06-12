@@ -66,21 +66,77 @@ class TestXattr:
 
 
 def test_get_jottapath(tmpdir):
+    # def get_jottapath(localtopdir, dirpath, jottamountpoint):
     topdir = tmpdir.mkdir("topdir")
     subdir = topdir.mkdir("subdir1").mkdir("subdir2")
     jottapath = jottacloud.get_jottapath(str(topdir), str(subdir), "/TEST_ROOT")
     assert jottapath == "/TEST_ROOT/topdir/subdir1/subdir2"
 
+
+def test_new():
+    # def new(localfile, jottapath, JFS):
+    _localfile = u'tests/crazyfilenames/easy.ascii.txt'
+    _jottapath = u'/Jotta/Archive/TEST/test_new_ascii_filename.txt'
+    _new = jottacloud.new(_localfile, _jottapath, jfs)
+    assert isinstance(_new, JFS.JFSFile)
+    _new.delete()
+    _localfile2 = u'tests/crazyfilenames/blåbær.utf8.txt'
+    _jottapath2 = u'/Jotta/Archive/TEST/test_new_blåbær_utf8_filename.txt'
+    _new2 = jottacloud.new(_localfile2, _jottapath2, jfs)
+    assert isinstance(_new2, JFS.JFSFile)
+    assert _new2.path.endswith(_jottapath2)
+    _new2.delete()
+
+
+def test_is_file():
+    # def is_file(jottapath, JFS):
+    _localfile = u'tests/crazyfilenames/easy.ascii.txt'
+    _jottapath = u'/Jotta/Archive/TEST/test_is_file.txt'
+    _new = jottacloud.new(_localfile, _jottapath, jfs)
+    assert jottacloud.is_file(_jottapath, jfs)
+    _new.delete()
+
+
+def test_delete():
+    # def delete(jottapath, JFS):
+    _localfile = u'tests/crazyfilenames/easy.ascii.txt'
+    _jottapath = u'/Jotta/Archive/TEST/test_delete.txt'
+    _new = jottacloud.new(_localfile, _jottapath, jfs)
+    _del = _new.delete()
+    assert _del.is_deleted
+
+def test_replace_if_changed():
+    # def replace_if_changed(localfile, jottapath, JFS):
+    # first test non-existing jottapath
+    # it should raise a not found JFSNotFoundError
+    _localfile = u'tests/crazyfilenames/easy.ascii.txt'
+    rndm = random.randint(0, 1000)
+    with pytest.raises(JFS.JFSNotFoundError):
+        assert jottacloud.replace_if_changed(_localfile,
+                                             '/Jotta/Archive/test_replace_if_changed_nonexisting-%i.txt' % rndm,
+                                             jfs)
+    # now, put some data there and uplaod
+    _localfile = tempfile.NamedTemporaryFile() # auto close, auto delete on out of scope
+    _localfilepath = _localfile.name
+    _localfile.write(1*TESTFILEDATA)
+    _localfile.flush()
+    _localfile.seek(0)
+    _jottapath = u'/Jotta/Archive/TEST/test_replace_if_changed.txt'
+    assert jottacloud.new(_localfilepath, _jottapath, jfs)
+    # lastly, edit data, and see if it is automatically reuploaded
+    newdata = 2*TESTFILEDATA
+    _localfile.write(newdata)
+    _localfile.flush()
+    jottacloud.replace_if_changed(_localfilepath, _jottapath, jfs)
+    cloudobj = jfs.getObject(_jottapath)
+    assert cloudobj.read() == newdata
+    _del = cloudobj.delete()
+
+
 # TODO:
-# def get_jottapath(localtopdir, dirpath, jottamountpoint):
-# def is_file(jottapath, JFS):
 # def filelist(jottapath, JFS):
 # def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patterns=None):
-# def _decode_filename(f):
-# def new(localfile, jottapath, JFS):
 # def resume(localfile, jottafile, JFS):
-# def replace_if_changed(localfile, jottapath, JFS):
-# def delete(jottapath, JFS):
 # def mkdir(jottapath, JFS):
 # def iter_tree(jottapath, JFS):
 
