@@ -440,12 +440,12 @@ class TestJFSFile:
         #TODO: test file operations: .stream(), .rename(), .read(), .read_partial, .delete etc
         #TODO: test revisions
 
-    @pytest.mark.xfail # TODO: figure out the best API for writing unicode strings
+    #@pytest.mark.xfail # TODO: figure out the best API for writing unicode strings
     def test_unicode_contents(self):
         data = six.StringIO(u'123abcæøå')
         p = "/Jotta/Archive/testfile_unicode_contents.txt"
         t = jfs.up(p, data)
-        assert isinstance(JFSFile, t)
+        assert isinstance(t, JFSFile)
         t.delete()
 
 class TestJFSFileDirList:

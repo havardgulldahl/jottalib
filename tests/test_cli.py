@@ -56,16 +56,13 @@ def test_mkdir():
     assert cli.mkdir(['testmkdir'])
     d = jfs.getObject('/Jotta/Sync/testmkdir')
     assert isinstance(d, JFS.JFSFolder)
-    assert d.is_deleted == False
+    assert d.is_deleted() == False
 
 def test_upload():
     with pytest.raises(SystemExit):
         cli.upload([]) # argparse should raise systemexit without the mandatory arguments
-    fd, filename = tempfile.mkstemp(suffix='.txt', prefix='test_upload-', text=True)
-    f = os.fdopen(fd)
-    f.write(TESTFILEDATA)
-    f.close()
-    os.close(fd)
+    filename = tempfile.NamedTemporaryFile(suffix='.txt', prefix='test_upload-', text=True)
+    filename.write(TESTFILEDATA)
     assert cli.upload([filename, '.'])
     fi = jfs.getObject('/Jotta/Sync/%s' % os.path.basename(filename))
     assert isinstance(fi, JFS.JFSFile)
