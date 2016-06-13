@@ -103,7 +103,7 @@ def test_delete():
     _jottapath = u'/Jotta/Archive/TEST/test_delete.txt'
     _new = jottacloud.new(_localfile, _jottapath, jfs)
     _del = _new.delete()
-    assert _del.is_deleted
+    assert _del.is_deleted() == True
 
 def test_replace_if_changed():
     # def replace_if_changed(localfile, jottapath, JFS):
