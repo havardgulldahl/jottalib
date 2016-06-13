@@ -188,11 +188,16 @@ def ls(argv=None):
     jfs = JFS.JFS()
     root_folder = get_root_dir(jfs)
     if args.item:
-        item_path = posixpath.join(root_folder.path, args.item)
+        if args.item.startswith('//'):
+            # break out of root_folder
+            item_path = posixpath.join(jfs.rootpath, args.item[1:])
+        else:
+            item_path = posixpath.join(root_folder.path, args.item)
         item = jfs.getObject(item_path)
     else:
         item = root_folder
     timestamp_width = 25
+    logging.debug('about to ls %r', item)
     if isinstance(item, JFS.JFSFolder):
         files = [(
             f.created,
