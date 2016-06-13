@@ -61,7 +61,7 @@ def test_mkdir():
 def test_upload():
     with pytest.raises(SystemExit):
         cli.upload([]) # argparse should raise systemexit without the mandatory arguments
-    filename = tempfile.NamedTemporaryFile(suffix='.txt', prefix='test_upload-', text=True)
+    filename = tempfile.NamedTemporaryFile(suffix='.txt', prefix='test_upload-')
     filename.write(TESTFILEDATA)
     assert cli.upload([filename, '.'])
     fi = jfs.getObject('/Jotta/Sync/%s' % os.path.basename(filename))
