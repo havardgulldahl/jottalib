@@ -297,6 +297,34 @@ def restore(argv=None):
     return True # TODO: check return value of command
 
 
+
+def cat(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    parser = argparse.ArgumentParser(description='Display contents of a file from Jottacloud')
+    parser.add_argument('file', help='The path to the file that you want to show')
+    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
+        choices=('debug', 'info', 'warning', 'error'), default='warning')
+    args = parse_args_and_apply_logging_level(parser, argv)
+    jfs = JFS.JFS()
+    if args.file.startswith('//'):
+        # break out of root_folder
+        item_path = posixpath.join(jfs.rootpath, args.file[1:])
+    else:
+        root_dir = get_root_dir(jfs)
+        item_path = posixpath.join(root_dir.path, args.file)
+    item = jfs.getObject(item_path)
+    if not isinstance(item, JFS.JFSFile):
+        print("%r is not a file (it's a %s), so we can't show it" % (args.file, type(item)))
+        sys.exit(1)
+    s = ''
+    for chunk in item.stream():
+        print(chunk.encode(sys.getdefaultencoding()))
+        s = s + chunk
+    return s
+
+
+
 def scanner(argv=None):
 
     if argv is None:

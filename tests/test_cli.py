@@ -24,6 +24,8 @@ __author__ = 'havard@gulldahl.no'
 # import standardlib
 import os, sys, logging, tempfile, random, hashlib
 
+from six import StringIO
+
 # import py.test
 import pytest # pip install pytest
 
@@ -76,6 +78,16 @@ def test_rm():
     d = jfs.getObject('/Jotta/Sync/testmkdir')
     assert isinstance(d, JFS.JFSFolder)
     assert d.is_deleted() == True
+
+def test_cat():
+    with pytest.raises(SystemExit):
+        cli.cat([]) # argparse should raise systemexit without the mandatory arguments
+    testcontents = u'12345test'
+    testpath = '/Jotta/Archive/Test/test.txt'
+    d = jfs.up(testpath, StringIO(testcontents))
+    assert isinstance(d, JFS.JFSFile)
+    assert cli.cat(['/%s' % testpath,]) == testcontents
+
 
 
 def test_restore():

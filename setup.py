@@ -73,6 +73,7 @@ setup(name='jottalib',
               'jotta-upload = jottalib.cli:upload',
               'jotta-scanner = jottalib.cli:scanner',
               'jotta-monitor = jottalib.cli:monitor',
+              'jotta-cat = jottalib.cli:cat',
         ]
       },
       classifiers="""Intended Audience :: Developers
