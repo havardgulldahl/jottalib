@@ -445,7 +445,7 @@ class TestJFSFile:
         data = six.StringIO(u'123abcæøå')
         p = "/Jotta/Archive/testfile_unicode_contents.txt"
         t = jfs.up(p, data)
-        assert isinstance(t, JFSFile)
+        assert isinstance(t, JFS.JFSFile)
         t.delete()
 
 class TestJFSFileDirList:
