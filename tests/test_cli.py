@@ -65,7 +65,7 @@ def test_upload():
         cli.upload([]) # argparse should raise systemexit without the mandatory arguments
     filename = tempfile.NamedTemporaryFile(suffix='.txt', prefix='test_upload-')
     filename.write(TESTFILEDATA)
-    assert cli.upload([filename, '.'])
+    assert cli.upload([filename.name, '.'])
     fi = jfs.getObject('/Jotta/Sync/%s' % os.path.basename(filename))
     assert isinstance(fi, JFS.JFSFile)
     assert d.is_deleted() == False
