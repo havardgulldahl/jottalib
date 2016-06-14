@@ -116,7 +116,7 @@ class ArchiveEventHandler(FileSystemEventHandler):
             return
         except AttributeError: # no suuport for O_EXLOCK (only BSD)
             pass
-        return self._new(src_path, remove_uploaded)
+        return self._new(src_path, dry_run, remove_uploaded)
 
     def on_created(self, event, dry_run=False, remove_uploaded=True):
         'Called when a file (or directory) is created. '
