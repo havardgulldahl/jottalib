@@ -158,14 +158,17 @@ def share(argv=None):
     parser = argparse.ArgumentParser(description='Share a file on JottaCloud and get the public URI.',
                                      epilog='Note: This utility needs to find JOTTACLOUD_USERNAME'
                                      ' and JOTTACLOUD_PASSWORD in the running environment.')
+    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
+        choices=('debug', 'info', 'warning', 'error'), default='warning')
     parser.add_argument('localfile', help='The local file that you want to share',
                                      type=argparse.FileType('r'))
-    args = parser.parse_args(argv)
+    args = parse_args_and_apply_logging_level(parser, argv)
     jfs = JFS.JFS()
     jottadev = get_jotta_device(jfs)
     jottashare = jottadev.mountPoints['Shared']
     upload = jottashare.up(args.localfile)  # upload file
     public = upload.share() # share file
+    logging.debug('Shared %r and got: %r (%s)', args.localfile, public, dir(public))
     for (filename, uuid, publicURI) in public.sharedFiles():
         print('%s is now available to the world at %s' % (filename, publicURI))
     return True # TODO: check return value of command
