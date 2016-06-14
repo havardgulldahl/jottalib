@@ -97,6 +97,8 @@ def calculate_md5(fileobject, size=2**16):
     fileobject.seek(0)
     md5 = hashlib.md5()
     for data in iter(lambda: fileobject.read(size), b''):
+        if isinstance(data, unicode):
+            data = data.encode('utf-8') # md5 needs a byte string
         md5.update(data)
     fileobject.seek(0) # rewind read head
     return md5.hexdigest()
