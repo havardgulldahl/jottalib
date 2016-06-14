@@ -262,8 +262,22 @@ class JFSFolder(object):
 
     def restore(self):
         'Restore the folder'
+        #
+        #
+        # As of 2016-06-15, Jottacloud.com has changed their restore api
+        # To restore, this is what's done
+        #
+        # HTTP POST to https://www.jottacloud.com/web/restore/trash/list
+        # Data:
+        #     hash:undefined
+        #     files:@0025d37be5329a18eece18dd93f793509e8_dGVzdF9kZWxldGUudHh0
+        #
+        # where `files` is a comma separated list, and each item is constructed thus:
+        #  @<uuid of path>_<base64 encoded file name>
+        #
         if not self.deleted:
             raise JFSError('Tried to restore a not deleted folder')
+        raise NotImplemented
         url = 'https://www.jottacloud.com/rest/webrest/%s/action/restore' % self.jfs.username
         data = {'paths[]': self.path.replace(JFS_ROOT, ''),
                 'web': 'true',
@@ -540,7 +554,7 @@ class JFSFile(JFSIncompleteFile):
         # https://www.jottacloud.com/web/share/backup/list/002c7707c2b27604dc4670660961a33a648/@YmzDpWLDpnIudXRmOC50eHQ=?t=1465934084756
         #
         #
-        raise NotImplemented('Jottacloud has changed the sharing API. Sharing is disabled for this version of jottalib')
+        raise NotImplemented('Jottacloud has changed the sharing API. Please use jottacloud.com in a browser, for now.')
         url = 'https://www.jottacloud.com/rest/webrest/%s/action/enableSharing' % self.jfs.username
         data = {'paths[]':self.path.replace(JFS_ROOT, ''),
                 'web':'true',
@@ -551,8 +565,22 @@ class JFSFile(JFSIncompleteFile):
 
     def restore(self):
         'Restore the file'
+        #
+        #
+        # As of 2016-06-15, Jottacloud.com has changed their restore api
+        # To restore, this is what's done
+        #
+        # HTTP POST to https://www.jottacloud.com/web/restore/trash/list
+        # Data:
+        #     hash:undefined
+        #     files:@0025d37be5329a18eece18dd93f793509e8_dGVzdF9kZWxldGUudHh0
+        #
+        # where `files` is a comma separated list, and each item is constructed thus:
+        #  @<uuid of path>_<base64 encoded file name>
+        #
         if not self.deleted:
             raise JFSError('Tried to restore a not deleted file')
+        raise NotImplemented('Jottacloud has changed the restore API. Please use jottacloud.com in a browser, for now.') #  TODO: figure out how to solve this
         url = 'https://www.jottacloud.com/rest/webrest/%s/action/restore' % self.jfs.username
         data = {'paths[]': self.path.replace(JFS_ROOT, ''),
                 'web': 'true',
