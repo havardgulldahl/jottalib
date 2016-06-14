@@ -514,6 +514,17 @@ class JFSFile(JFSIncompleteFile):
 
     def share(self):
         'Enable public access at secret, share only uri, and return that uri'
+        # This is what jottacloud.com does
+        # HTTP GET to
+        #
+        # https://www.jottacloud.com/web/share/{sync,backup,archive}/list/[folder uuid]/@[base64-encodded basename]?t=[timestamp]
+        #
+        # e.g.
+        # https://www.jottacloud.com/web/share/backup/list/002c7707c2b27604dc4670660961a33a648/@YmzDpWLDpnIudXRmOC50eHQ=?t=1465934084756
+        # https://www.jottacloud.com/web/share/backup/list/002c7707c2b27604dc4670660961a33a648/@YmzDpWLDpnIudXRmOC50eHQ=?t=1465934084756
+        #
+        #
+        raise NotImplemented('Jottacloud has changed the sharing API. Sharing is disabled for this version of jottalib')
         url = 'https://www.jottacloud.com/rest/webrest/%s/action/enableSharing' % self.jfs.username
         data = {'paths[]':self.path.replace(JFS_ROOT, ''),
                 'web':'true',
