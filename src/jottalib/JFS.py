@@ -336,7 +336,7 @@ class ProtoFile(object):
     STATE_ADDED = 'ADDED'
     STATE_INCOMPLETE = 'INCOMPLETE' # -> JFSIncompleteFile
     STATE_PROCESSING = 'PROCESSING'
-    STATE_CORRUPT = 'CORRUPT'
+    STATE_CORRUPT = 'CORRUPT' # -> JFSCorruptFile
 
     def __init__(self, fileobject, jfs, parentpath): # fileobject from lxml.objectify
         self.f = fileobject
@@ -371,35 +371,19 @@ class ProtoFile(object):
         return posixpath.join(self.parentPath, self.name)
 
 
-class JFSIncompleteFile(ProtoFile):
-    'OO interface to an incomplete file.'
-    """<file name="iii.m4v" uuid="e8f268ac-d081-4d4f-bfb1-77149b2bd51d" time="2015-05-29-T18:11:56Z" host="dn-091.site-000.jotta.no">
-  <path xml:space="preserve">/havardgulldahl/Jotta/Sync</path>
-  <abspath xml:space="preserve">/havardgulldahl/Jotta/Sync</abspath>
-  <latestRevision>
-    <number>1</number>
-    <state>INCOMPLETE</state>
-    <created>2014-05-22-T22:13:52Z</created>
-    <modified>2014-05-19-T13:37:14Z</modified>
-    <mime>video/mp4</mime>
-    <mstyle>VIDEO_MP4</mstyle>
-    <size>100483008</size> <!-- THIS IS THE SIZE OF WHAT'S BEEN TRANSFERED THIS FAR. havardgulldahl -->
-    <md5>4d7cdab5256b72d17075ec388e467e99</md5>
-    <updated>2015-05-29-T18:07:56Z</updated>
-  </latestRevision>
-</file>
-</file>"""
-
-    def resume(self, data):
-        'Resume uploading an incomplete file, after a previous upload was interrupted. Returns new file object'
-        if not hasattr(data, 'read'):
-            data = StringIO(data)
-        #check if what we're asked to upload is actually the right file
-        md5 = calculate_md5(data)
-        if md5 != self.md5:
-            raise JFSError('''MD5 hashes don't match! Are you trying to resume with the wrong file?''')
-        log.debug('Resuming %s from offset %s', self.path, self.size)
-        return self.jfs.up(self.path, data, resume_offset=self.size)
+class JFSCorruptFile(ProtoFile):
+    'OO interface to a corrupt file.'
+    """
+ 18     <revision>
+ 19       <number>3</number>
+ 20       <state>CORRUPT</state>
+ 21       <created>2016-06-14-T19:09:47Z</created>
+ 22       <modified>2016-06-14-T19:09:47Z</modified>
+ 23       <mime>text/plain</mime>
+ 24       <mstyle>text/plain</mstyle>
+ 25       <md5>2ed82c2b9a78f3fce85b19592fc94581</md5>
+ 26       <updated>2016-06-14-T19:09:48Z</updated>
+ 27     </revision>"""
 
     @property
     def revisionNumber(self):
@@ -432,6 +416,36 @@ class JFSIncompleteFile(ProtoFile):
     @property
     def state(self):
         return unicode(self.f.latestRevision.state)
+
+class JFSIncompleteFile(JFSCorruptFile):
+    'OO interface to an incomplete file. Like JFSCorruptFile, but adds a .size property and a .resume() method.'
+    """<file name="iii.m4v" uuid="e8f268ac-d081-4d4f-bfb1-77149b2bd51d" time="2015-05-29-T18:11:56Z" host="dn-091.site-000.jotta.no">
+  <path xml:space="preserve">/havardgulldahl/Jotta/Sync</path>
+  <abspath xml:space="preserve">/havardgulldahl/Jotta/Sync</abspath>
+  <latestRevision>
+    <number>1</number>
+    <state>INCOMPLETE</state>
+    <created>2014-05-22-T22:13:52Z</created>
+    <modified>2014-05-19-T13:37:14Z</modified>
+    <mime>video/mp4</mime>
+    <mstyle>VIDEO_MP4</mstyle>
+    <size>100483008</size> <!-- THIS IS THE SIZE OF WHAT'S BEEN TRANSFERED THIS FAR. havardgulldahl -->
+    <md5>4d7cdab5256b72d17075ec388e467e99</md5>
+    <updated>2015-05-29-T18:07:56Z</updated>
+  </latestRevision>
+</file>
+</file>"""
+
+    def resume(self, data):
+        'Resume uploading an incomplete file, after a previous upload was interrupted. Returns new file object'
+        if not hasattr(data, 'read'):
+            data = StringIO(data)
+        #check if what we're asked to upload is actually the right file
+        md5 = calculate_md5(data)
+        if md5 != self.md5:
+            raise JFSError('''MD5 hashes don't match! Are you trying to resume with the wrong file?''')
+        log.debug('Resuming %s from offset %s', self.path, self.size)
+        return self.jfs.up(self.path, data, resume_offset=self.size)
 
     @property
     def size(self):
@@ -908,6 +922,8 @@ class JFS(object):
             try:
                 if o.latestRevision.state == 'INCOMPLETE':
                     return JFSIncompleteFile(o, jfs=self, parentpath=parent)
+                elif o.latestRevision.state == 'CORRUPT':
+                    return JFSCorruptFile(o, jfs=self, parentpath=parent)
             except AttributeError:
                 return JFSFile(o, jfs=self, parentpath=parent)
         elif o.tag == 'enableSharing': return JFSenableSharing(o, jfs=self)
