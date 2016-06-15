@@ -191,6 +191,14 @@ class TestJFS:
             assert jfs_f.path == clean_room_path
             jfs_f.delete()
 
+    def test_latest_files(self):
+        # ensure we can get latest files, and that they look "sane"
+        assert len(list(jfs.getLatest(files=0))) == 0
+        assert len(list(jfs.getLatest(files=1))) == 1
+        for f in jfs.getLatest(files=20):
+            assert isinstance(f, (JFS.JFSFile, JFS.JFSIncompleteFile, JFS.JFSCorruptFile))
+
+
 class TestJFSDevice:
 
     def test_xml(self):
@@ -440,7 +448,6 @@ class TestJFSFile:
         #TODO: test file operations: .stream(), .rename(), .read(), .read_partial, .delete etc
         #TODO: test revisions
 
-    #@pytest.mark.xfail # TODO: figure out the best API for writing unicode strings
     def test_unicode_contents(self):
         data = six.StringIO(u'123abcæøå')
         p = "/Jotta/Archive/testfile_unicode_contents.txt"

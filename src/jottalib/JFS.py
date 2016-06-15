@@ -1011,6 +1011,15 @@ class JFS(object):
         elif o.tag == 'filedirlist': return JFSFileDirList(o, jfs=self, parentpath=parent)
         raise JFSError("invalid object: %s <- %s" % (repr(o), url_or_requests_response))
 
+    def getLatest(self, files=10, sort=None):
+        'Yield a list of the n latest files, optionally sorted by `sort`.'
+        url = posixpath.join(self.rootpath,
+                             '/Jotta/Latest?sort=updated&max=%i&web=true' % files)
+        result = self.getObject(url)
+        for _f in result.files():
+            yield _f
+
+
     def stream(self, url, chunk_size=64*1024):
         'Iterator to get remote content by chunk_size (bytes)'
         r = self.request(url)
