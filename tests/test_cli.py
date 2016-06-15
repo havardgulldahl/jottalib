@@ -65,8 +65,8 @@ def test_upload():
         cli.upload([]) # argparse should raise systemexit without the mandatory arguments
     filename = tempfile.NamedTemporaryFile(suffix='.txt', prefix='test_upload-')
     filename.write(TESTFILEDATA)
-    assert cli.upload([filename.name, '.'])
-    fi = jfs.getObject('/Jotta/Sync/%s' % os.path.basename(filename))
+    assert cli.upload([filename.name, '//Jotta/Archive'])
+    fi = jfs.getObject('/Jotta/Archive/%s' % os.path.basename(filename))
     assert isinstance(fi, JFS.JFSFile)
     assert d.is_deleted() == False
     fi.delete()
@@ -89,7 +89,7 @@ def test_cat():
     assert cli.cat(['/%s' % testpath,]) == testcontents
 
 
-
+@pytest.mark.xfail(raises=NotImplementedError)
 def test_restore():
     with pytest.raises(SystemExit):
         cli.rm([]) # argparse should raise systemexit without the mandatory arguments
@@ -122,6 +122,5 @@ def test_fuse():
 # def share():
 # def download():
 # def rm():
-# def restore():
 # def scanner():
 # def monitor():
