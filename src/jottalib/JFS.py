@@ -353,6 +353,17 @@ class ProtoFile(object):
     STATE_INCOMPLETE = 'INCOMPLETE' # -> JFSIncompleteFile
     STATE_PROCESSING = 'PROCESSING'
     STATE_CORRUPT = 'CORRUPT' # -> JFSCorruptFile
+    @staticmethod
+    def factory(fileobject, jfs, parentpath): # fileobject from lxml.objectify
+        'Class method to get the correct file class instatiated'
+        if hasattr(fileobject, 'currentRevision'): # a normal file
+            return JFSFile(fileobject, jfs, parentpath)
+        elif str(fileobject.latestRevision.state) == ProtoFile.STATE_INCOMPLETE:
+            return JFSIncompleteFile(fileobject, jfs, parentpath)
+        elif str(fileobject.latestRevision.state) == ProtoFile.STATE_CORRUPT:
+            return JFSCorruptFile(fileobject, jfs, parentpath)
+        else:
+            raise NotImplementedError('No JFS*File support for state %r. Please file a bug!' % fileobject.latestRevision.state)
 
     def __init__(self, fileobject, jfs, parentpath): # fileobject from lxml.objectify
         self.f = fileobject
@@ -985,13 +996,14 @@ class JFS(object):
         elif o.tag == 'restoredFiles': return JFSFile(o, jfs=self, parentpath=parent)
         elif o.tag == 'deleteFiles': return JFSFile(o, jfs=self, parentpath=parent)
         elif o.tag == 'file':
-            try:
-                if o.latestRevision.state == 'INCOMPLETE':
-                    return JFSIncompleteFile(o, jfs=self, parentpath=parent)
-                elif o.latestRevision.state == 'CORRUPT':
-                    return JFSCorruptFile(o, jfs=self, parentpath=parent)
-            except AttributeError:
-                return JFSFile(o, jfs=self, parentpath=parent)
+            return ProtoFile.factory(o, jfs=self, parentpath=parent)
+#             try:
+#                 if o.latestRevision.state == 'INCOMPLETE':
+#                     return JFSIncompleteFile(o, jfs=self, parentpath=parent)
+#                 elif o.latestRevision.state == 'CORRUPT':
+#                     return JFSCorruptFile(o, jfs=self, parentpath=parent)
+#             except AttributeError:
+#                 return JFSFile(o, jfs=self, parentpath=parent)
         elif o.tag == 'enableSharing': return JFSenableSharing(o, jfs=self)
         elif o.tag == 'user':
             self.fs = o
