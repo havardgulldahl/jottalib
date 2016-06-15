@@ -851,6 +851,42 @@ class JFSenableSharing(object):
             yield (f.attrib['name'], f.attrib['uuid'],
                 'https://www.jottacloud.com/p/%s/%s' % (self.jfs.username, f.publicURI.text))
 
+class JFSsearchresult(object):
+    'wrap searchresult element in a python class'
+    """<searchresult  time="2016-06-14-T22:53:43Z" host="dn-098">
+  <files>
+    <file name="testfile_up_and_readpartial.txt" uuid="f2d204a3-c0fd-4138-86c7-76b12f03a5a6">
+    <path xml:space="preserve">/**/Jotta/Archive</path>
+    <abspath xml:space="preserve">/**/Jotta/Archive</abspath>
+    <currentRevision>
+    <number>461</number>
+    <state>COMPLETED</state>
+    <created>2016-06-14-T22:53:26Z</created>
+    <modified>2016-06-14-T22:53:26Z</modified>
+    <mime>text/plain</mime>
+    <mstyle>text/plain</mstyle>
+    <size>347</size>
+    <md5>0c963adda33466d565d6f3395490eaee</md5>
+    <updated>2016-06-14-T22:53:26Z</updated>
+    </currentRevision>
+    </file>
+  </files>
+</enableSharing>"""
+    def __init__(self, searchresult, jfs): # deviceobject from lxml.objectify
+        self.searchresult = searchresult
+        self.jfs = jfs
+
+    @property
+    def size(self):
+        'Return datetime of search time stamp'
+        return dateutil.parser.parse(str(self.searchresult.attrib['time']))
+
+    def files(self):
+        'iterate over found files'
+        for _f in self.searchresult.files.iterchildren():
+            yield ProtoFile.factory(_f, jfs=self.jfs, parentpath=str(_f.abspath))
+
+
 
 class JFS(object):
     def __init__(self, auth=None):
