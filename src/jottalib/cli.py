@@ -150,6 +150,7 @@ def upload(argv=None):
         target_dir = root_folder
     upload = target_dir.up(args.localfile, os.path.basename(args.localfile.name), upload_callback=callback)
     print('%s uploaded successfully' % args.localfile.name)
+    return True # TODO: check return value
 
 
 def share(argv=None):
