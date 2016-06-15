@@ -277,7 +277,7 @@ class JFSFolder(object):
         #
         if not self.deleted:
             raise JFSError('Tried to restore a not deleted folder')
-        raise NotImplemented
+        raise NotImplementedError
         url = 'https://www.jottacloud.com/rest/webrest/%s/action/restore' % self.jfs.username
         data = {'paths[]': self.path.replace(JFS_ROOT, ''),
                 'web': 'true',
@@ -554,7 +554,7 @@ class JFSFile(JFSIncompleteFile):
         # https://www.jottacloud.com/web/share/backup/list/002c7707c2b27604dc4670660961a33a648/@YmzDpWLDpnIudXRmOC50eHQ=?t=1465934084756
         #
         #
-        raise NotImplemented('Jottacloud has changed the sharing API. Please use jottacloud.com in a browser, for now.')
+        raise NotImplementedError('Jottacloud has changed the sharing API. Please use jottacloud.com in a browser, for now.')
         url = 'https://www.jottacloud.com/rest/webrest/%s/action/enableSharing' % self.jfs.username
         data = {'paths[]':self.path.replace(JFS_ROOT, ''),
                 'web':'true',
@@ -580,7 +580,7 @@ class JFSFile(JFSIncompleteFile):
         #
         if not self.deleted:
             raise JFSError('Tried to restore a not deleted file')
-        raise NotImplemented('Jottacloud has changed the restore API. Please use jottacloud.com in a browser, for now.') #  TODO: figure out how to solve this
+        raise NotImplementedError('Jottacloud has changed the restore API. Please use jottacloud.com in a browser, for now.') #  TODO: figure out how to solve this
         url = 'https://www.jottacloud.com/rest/webrest/%s/action/restore' % self.jfs.username
         data = {'paths[]': self.path.replace(JFS_ROOT, ''),
                 'web': 'true',
