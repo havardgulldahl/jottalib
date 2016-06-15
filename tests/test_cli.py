@@ -66,9 +66,8 @@ def test_upload():
     filename = tempfile.NamedTemporaryFile(suffix='.txt', prefix='test_upload-')
     filename.write(TESTFILEDATA)
     assert cli.upload([filename.name, '//Jotta/Archive'])
-    fi = jfs.getObject('/Jotta/Archive/%s' % os.path.basename(filename))
+    fi = jfs.getObject('/Jotta/Archive/%s' % os.path.basename(filename.name))
     assert isinstance(fi, JFS.JFSFile)
-    assert d.is_deleted() == False
     fi.delete()
 
 def test_rm():
