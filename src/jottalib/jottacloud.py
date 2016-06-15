@@ -153,8 +153,20 @@ def _decode_filename_to_unicode(f):
                 return f.decode(charguess['encoding'])
             except UnicodeDecodeError:
                 pass
-
-        return f.decode('utf-8')
+        log.warning('Cannot understand decoding of this filename: %r (guessed %r, but was wrong)',
+                    f, charguess)
+        log.debug('Trying utf-8 to decode %r', f)
+        try:
+            return f.decode('utf-8')
+        except UnicodeDecodeError:
+            pass
+        log.debug('Trying latin1 to decode %r', f)
+        try:
+            return f.decode('latin1')
+        except UnicodeDecodeError:
+            log.warning('Exhausted all options. Decoding %r to safe ascii', f)
+            return f.decode('ascii', errors='ignore')
+            
 
 def _encode_filename_to_filesystem(f):
     '''Get a unicode filename and return bytestring, encoded to file system default.
