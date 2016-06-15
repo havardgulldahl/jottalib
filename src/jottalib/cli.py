@@ -70,7 +70,6 @@ def get_root_dir(jfs):
     root_dir = jottadev.mountPoints['Sync']
     return root_dir
 
-
 def parse_args_and_apply_logging_level(parser, argv):
     args = parser.parse_args(argv)
     logging.basicConfig(level=getattr(logging, args.loglevel.upper()))
@@ -84,6 +83,11 @@ def print_size(num, humanize=False):
         return _humanize.naturalsize(num, gnu=True)
     else:
         return str(num)
+
+def commandline_text(bytestring):
+    'Convert bytestring from command line to unicode, using default file system encoding'
+    unicode_string = bytestring.decode(sys.getfilesystemencoding())
+    return unicode_string
 
 
 ## UTILITIES, ONE PER FUNCTION ##
@@ -104,7 +108,7 @@ def fuse(argv=None):
     def is_dir(path):
         if not os.path.isdir(path):
             raise argparse.ArgumentTypeError('%s is not a valid directory' % path)
-        return path
+        return path.decode(sys.getfilesystemencoding())
     parser = argparse.ArgumentParser(description=__doc__,
                                      epilog="""The program expects to find an entry for "jottacloud.com" in your .netrc,
                                      or JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.
@@ -135,7 +139,7 @@ def upload(argv=None):
     parser.add_argument('localfile', help='The local file that you want to upload',
                                      type=argparse.FileType('r'))
     parser.add_argument('remote_dir', help='The remote directory to upload the file to',
-        nargs='?')
+        nargs='?', type=commandline_text)
     parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
         choices=('debug', 'info', 'warning', 'error'), default='warning')
     jfs = JFS.JFS()
@@ -186,7 +190,7 @@ def ls(argv=None):
     parser.add_argument('-a', '--all', action='store_true',
         help='Include deleted and incomplete files (otherwise ignored)')
     parser.add_argument('item', nargs='?', help='The file or directory to list. Defaults to the '
-        'root dir')
+        'root dir', type=commandline_text)
     parser.add_argument('-H', '--help', help='Print this help', action='help')
     args = parse_args_and_apply_logging_level(parser, argv)
     jfs = JFS.JFS()
@@ -328,7 +332,6 @@ def cat(argv=None):
     return s
 
 
-
 def scanner(argv=None):
 
     if argv is None:
@@ -337,7 +340,7 @@ def scanner(argv=None):
     def is_dir(path):
         if not os.path.isdir(path):
             raise argparse.ArgumentTypeError('%s is not a valid directory' % path)
-        return path
+        return path.decode(sys.getfilesystemencoding())
 
     parser = argparse.ArgumentParser(description=__doc__,
                                     epilog="""The program expects to find an entry for "jottacloud.com" in your .netrc,
@@ -345,7 +348,7 @@ def scanner(argv=None):
                                     This is not an official JottaCloud project.""")
     parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
                         choices=('debug', 'info', 'warning', 'error'), default='warning')
-    parser.add_argument('--errorfile', help='A file to write errors to', default='./jottacloudclient.log')
+    parser.add_argument('--errorfile', type=commandline_text, help='A file to write errors to', default='./jottacloudclient.log')
     parser.add_argument('--exclude', type=re.compile, action='append', help='Exclude paths matched by this pattern (can be repeated)')
     parser.add_argument('--prune-files', dest='prune_files',
                         help='Delete files that does not exist locally', action='store_true')
@@ -357,7 +360,7 @@ def scanner(argv=None):
     parser.add_argument('--dry-run', action='store_true',
                         help="don't actually do any uploads or deletes, just show what would be done")
     parser.add_argument('topdir', type=is_dir, help='Path to local dir that needs syncing')
-    parser.add_argument('jottapath', help='The path at JottaCloud where the tree shall be synced (must exist)')
+    parser.add_argument('jottapath', type=commandline_text, help='The path at JottaCloud where the tree shall be synced (must exist)')
     args = parse_args_and_apply_logging_level(parser, argv)
     if args.prune_all:
         args.prune_files = True
@@ -388,7 +391,7 @@ def monitor(argv=None):
     def is_dir(path):
         if not os.path.isdir(path):
             raise argparse.ArgumentTypeError('%s is not a valid directory' % path)
-        return path
+        return path.decode(sys.getfilesystemencoding())
     parser = argparse.ArgumentParser(description=__doc__,
                                     epilog="""The program expects to find an entry for "jottacloud.com" in your .netrc,
                                     or JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.
@@ -400,7 +403,7 @@ def monitor(argv=None):
     parser.add_argument('--dry-run', action='store_true',
                         help="don't actually do any uploads or deletes, just show what would be done")
     parser.add_argument('topdir', type=is_dir, help='Path to local dir that needs syncing')
-    parser.add_argument('mode', help='Mode of operation: ARCHIVE, SYNC or SHARE. See README.md',
+    parser.add_argument('mode', type=commandline_text, help='Mode of operation: ARCHIVE, SYNC or SHARE. See README.md',
                         choices=( 'archive', 'sync', 'share') )
     args = parse_args_and_apply_logging_level(parser, argv)
     fh = logging.FileHandler(args.errorfile)
