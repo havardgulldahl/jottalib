@@ -232,13 +232,13 @@ class JFSFile(object):
         self.jfs.up(self.path, data)
 
     def writepartial(self, data, offset):
-        return NotImplementedError
+        #raise NotImplementedError
         # TODO: figure out whether adding data to an existing file actually works
         # It seems like the API only supports resuming previous uploads, not arbitrary additions
         md5hash = hashlib.md5(data).hexdigest()
         url = self.path.replace('www.jotta.no', 'up.jottacloud.com')
         now = datetime.datetime.now().isoformat()
-        headers = {'JMd5':md5hash,
+        headers = {#'JMd5':md5hash,
                    'JCreated': now,
                    'JModified': now,
                    'X-Jfs-DeviceName': 'Jotta',
@@ -249,8 +249,8 @@ class JFSFile(object):
                    # TODO: fix the computation of the denominator above. It seems it should be
                    # the total length of data + content-transfer envelope
                    }
-        params = {'cphash':md5hash,}
-        files = {'md5': ('', md5hash),
+        params = {}#'cphash':md5hash,}
+        files = {#'md5': ('', md5hash),
                  'modified': ('', now),
                  'created': ('', now),
                  'file': (self.name, data, 'application/octet-stream', {'Content-Transfer-Encoding':'binary'})}
@@ -648,10 +648,11 @@ class JFS(object):
             md5.update(chunk)
             contentsize += len(chunk)
         md5hash = md5.hexdigest()
+        contentsize = contentsize*1000
         fileobject.seek(0) # rewind read head
         url = path.replace('www.jotta.no', 'up.jottacloud.com')
         now = datetime.datetime.now().isoformat()
-        headers = {'JMd5':md5hash,
+        headers = {#'JMd5':md5hash,
                    'JCreated': now,
                    'JModified': now,
                    'X-Jfs-DeviceName': 'Jotta',
@@ -659,14 +660,20 @@ class JFS(object):
                    'jx_csid': '',
                    'jx_lisence': ''
                    }
-        params = {'cphash':md5hash,}
+        params = {}#'cphash':md5hash,}
         partialchunksize = 1024*1024*5#*512
         #TODO: check if file is incomplete, and continue, if resume=True
-        offset=0
+        if resume is False:
+            offset=0
+        else:
+            #figure out existing file size
+            y  = self.getObject(path)
+            offset = y.size
+
         for i, chunk in enumerate(iter(lambda: fileobject.read(partialchunksize), b'')): #loop thru content
             chunksize = len(chunk)
             logging.debug('posting chunk %s (len %s, offset %s, hash %s)', i, chunksize, offset, md5hash)
-            files = {'md5': ('', md5hash),
+            files = {#'md5': ('', md5hash),
                      'modified': ('', now),
                      'created': ('', now),
                      'file': (os.path.basename(url), chunk, 'application/octet-stream', {'Content-Transfer-Encoding':'binary'})}
@@ -722,7 +729,7 @@ if __name__=='__main__':
     import netrc
     try:
         n = netrc.netrc()
-        username, account, password = n.authenticators('jottacloud') # read .netrc entry for 'machine jottacloud'
+        username, account, password = n.authenticators('jottacloud.com') # read .netrc entry for 'machine jottacloud'
     except Exception as e:
         logging.exception(e)
         username = os.environ['JOTTACLOUD_USERNAME']
@@ -740,8 +747,10 @@ if __name__=='__main__':
 #     except IndexError:
 #         _filename = '/tmp/test.pdf'
 #     r = jottasync.up(_filename)
-    f = jfs.up('/Jotta/Sync/runtest.txt', StringIO('12345'))
+    p = '/Jotta/Sync/runtest.txt'
+    f = jfs.up(p, StringIO('12345'))
+    logging.info(xdump(f.f))
     print f.readpartial(2,4)
-    f.writepartial('6789', 5)
+    f2 = jfs.up(p, StringIO('6789'), resume=True)
+    logging.info(xdump(f.f))
     print f.read()
-    print f.readpartial(1,6)
