@@ -2,6 +2,42 @@
 
 ## [0.5] - TBA
 
+### Regressions
+
+Jottacloud has *changed the web API*, unfortunately this has dire effects on our
+the parts of `jottalib` that relies on the web method. The following methods are now
+raising `NotImplementedError`.
+
+
+- `JFS.restore()`
+- `JFS.share()`
+
+
+Investigations to update to the new API are underway. ***Help and patches are welcome.***
+
+
+### Bug fixes
+
+- All code paths concerning the handling of bytestrings/unicode conversions are reviewed and we are doing things the right way now, eliminating a lot of encoding bugs.
+- Never fail on file name encoding surprises. Fall back to decoding to ascii and drop curious characters.
+- Remove pinning on `certifi`, see #96.
+- Update monitor.py, to pass along `dry_run` argument to `_new`, see #106. Thanks for the fix, @nuth!!
+- Don't assume non strings have .name member. See issue #100. Thank you, @thusoy
+
+### Changed
+
+- Update duplicity backend, as per #108. Default mount point for backups is now `Jotta/Archive`. Thanks, @jkaberg!
+- Add logging option to `jotta-share`, see #94. Thanks for the suggestion, @jnylen!
+- Better support for incomplete files in ls, see #82. Thank you for the code, @thusoy
+- Add `jotta-cat` for easy viewing of files.
+- Add new method to get a list of the last changed files: `JFS.getLatest()`. See #51
+- Set Jottacloud timestamp to mtime of the file we are uploading.
+- Add `JFS.JFSCorruptFile` class, for - you guessed it - corrupt files
+- Add `JFS.JFSsearchresult` class, to wrap search results
+- Add dependency on chardet, to be more smart when encountering unknown file name encodings
+- Add some code to bridge our way to python3 compability
+
+
 ## [0.4.2] - 2016-01-23
 
 ### Bug fixes
