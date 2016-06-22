@@ -4,8 +4,8 @@
 
 ### Regressions
 
-Jottacloud has *changed the web API*, unfortunately this has dire effects on our
-the parts of `jottalib` that relies on the web method. The following methods are now
+Jottacloud has *changed the web API*, unfortunately this has dire effects for
+the parts of our code that relies on web methods. The following `jottalib` methods are now
 raising `NotImplementedError`.
 
 
