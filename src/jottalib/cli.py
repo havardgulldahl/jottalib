@@ -52,7 +52,12 @@ try:
 except ImportError:
     pass
 
-ProgressBar = partial(progress.Bar, empty_char='○', filled_char='●')
+if sys.platform != "win32":
+    # change progress indicators to something that looks nice
+    #TODO: rather detect utf-8 support in the terminal
+    ProgressBar = partial(progress.Bar, empty_char=u'○', filled_char=u'●')
+else:
+    ProgressBar = partial(progress.Bar)
 
 
 ## HELPER FUNCTIONS ##

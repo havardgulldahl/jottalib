@@ -37,6 +37,14 @@ from jottalib.JFS import JFS
 from . import jottacloud, __version__
 
 
+if sys.platform != "win32":
+    # change progress indicators to something that looks nice
+    #TODO: rather detect utf-8 support in the terminal
+    #TODO: change this when https://github.com/kennethreitz/clint/pull/151 is merged
+    progress.BAR_EMPTY_CHAR =u'○'
+    progress.BAR_FILLED_CHAR=u'●'
+
+
 def humanizeFileSize(size):
     size = abs(size)
     if (size==0):
