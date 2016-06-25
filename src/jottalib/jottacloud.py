@@ -41,13 +41,23 @@ from jottalib.JFS import JFSNotFoundError, \
 #jottapath will be a unicode string
 SyncFile = collections.namedtuple('SyncFile', 'localpath, jottapath')
 
+def sf(f, dirpath, jottapath):
+    """Create and return a SyncFile tuple from filename.
+
+            localpath will be a byte string with utf8 code points
+            jottapath will be a unicode string"""
+    log.debug('Create SyncFile from %s', repr(f))
+    log.debug('Got encoded filename %r, joining with dirpath %r', _encode_filename_to_filesystem(f), dirpath)
+    return SyncFile(localpath=os.path.join(dirpath, _encode_filename_to_filesystem(f)),
+                  jottapath=posixpath.join(_decode_filename_to_unicode(jottapath), _decode_filename_to_unicode(f)))
+
 
 def get_jottapath(localtopdir, dirpath, jottamountpoint):
-    """Translate localtopdir to jottapath"""
+    """Translate localtopdir to jottapath. Returns unicode string"""
     log.debug("get_jottapath %r %r %r", localtopdir, dirpath, jottamountpoint)
     normpath =  posixpath.normpath(posixpath.join(jottamountpoint, posixpath.basename(localtopdir),
                                    posixpath.relpath(dirpath, localtopdir)))
-    return normpath.decode(sys.getfilesystemencoding())
+    return _decode_filename_to_unicode(normpath)
 
 
 def is_file(jottapath, JFS):
@@ -101,34 +111,32 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patter
                 return True
         return False
     for dirpath, dirnames, filenames in os.walk(localtopdir, followlinks=followlinks):
-        #dirpath = dirpath#.decode(sys.getfilesystemencoding())
+        # to keep things explicit, and avoid encoding/decoding issues,
+        # keep a bytestring AND a unicode variant of dirpath
+        dirpath = _encode_filename_to_filesystem(dirpath)
         unicodepath = _decode_filename_to_unicode(dirpath)
-        log.debug("compare walk: %s -> %s files ", unicodepath, len(filenames))
-        #localfiles = set([_decode_filename(f) for f in filenames if not excluded(dirpath, f)]) # these are on local disk
-        #localfolders = set([_decode_filename(f) for f in dirnames if not excluded(dirpath, f)]) # these are on local disk
+        log.debug("compare walk: %r -> %s files ", unicodepath, len(filenames))
+
+        # create set()s of local files and folders
+        # paths will be unicode strings
         localfiles = set([f for f in filenames if not excluded(unicodepath, f)]) # these are on local disk
         localfolders = set([f for f in dirnames if not excluded(unicodepath, f)]) # these are on local disk
-        jottapath = get_jottapath(localtopdir, dirpath, jottamountpoint) # translate to jottapath
-        log.debug("compare jottapath: %s", jottapath)
+        jottapath = get_jottapath(localtopdir, unicodepath, jottamountpoint) # translate to jottapath
+        log.debug("compare jottapath: %r", jottapath)
+
+        # create set()s of remote files and folders
+        # paths will be unicode strings
         cloudfiles = filelist(jottapath, JFS) # set(). these are on jottacloud
         cloudfolders = folderlist(jottapath, JFS)
 
-        def sf(f):
-            """Create and return a SyncFile tuple from filename.
+        log.debug("--cloudfiles: %r", cloudfiles)
+        log.debug("--localfiles: %r", localfiles)
+        log.debug("--cloudfolders: %r", cloudfolders)
 
-            localpath will be a byte string with utf8 code points
-            jottapath will be a unicode string"""
-            log.debug('Create SyncFile from %s', repr(f))
-            return SyncFile(localpath=os.path.join(dirpath, _encode_filename_to_filesystem(f)),
-                            jottapath=posixpath.join(_decode_filename_to_unicode(jottapath), _decode_filename_to_unicode(f)))
-        log.debug("--cloudfiles: %s", cloudfiles)
-        log.debug("--localfiles: %s", localfiles)
-        log.debug("--cloudfolders: %s", cloudfolders)
-
-        onlylocal = [ sf(f) for f in localfiles.difference(cloudfiles)]
-        onlyremote = [ sf(f) for f in cloudfiles.difference(localfiles)]
-        bothplaces = [ sf(f) for f in localfiles.intersection(cloudfiles)]
-        onlyremotefolders = [ sf(f) for f in cloudfolders.difference(localfolders)]
+        onlylocal = [ sf(f, dirpath, jottapath) for f in localfiles.difference(cloudfiles)]
+        onlyremote = [ sf(f, dirpath, jottapath) for f in cloudfiles.difference(localfiles)]
+        bothplaces = [ sf(f, dirpath, jottapath) for f in localfiles.intersection(cloudfiles)]
+        onlyremotefolders = [ sf(f, dirpath, jottapath) for f in cloudfolders.difference(localfolders)]
         yield dirpath, onlylocal, onlyremote, bothplaces, onlyremotefolders
 
 
@@ -166,12 +174,13 @@ def _decode_filename_to_unicode(f):
         except UnicodeDecodeError:
             log.warning('Exhausted all options. Decoding %r to safe ascii', f)
             return f.decode('ascii', errors='ignore')
-            
+
 
 def _encode_filename_to_filesystem(f):
     '''Get a unicode filename and return bytestring, encoded to file system default.
 
     If the argument already is a bytestring, return as is'''
+    log.debug('_encode_filename_to_filesystem(%s)', repr(f))
     if isinstance(f, str):
         return f
     try:
