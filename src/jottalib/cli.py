@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with jottafs.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright 2011,2013,2014,2015 Håvard Gulldahl <havard@gulldahl.no>
+# Copyright 2011,2013-2016 Håvard Gulldahl <havard@gulldahl.no>
 
 from __future__ import absolute_import, division, unicode_literals
 
@@ -94,6 +94,10 @@ def commandline_text(bytestring):
     unicode_string = bytestring.decode(sys.getfilesystemencoding())
     return unicode_string
 
+def is_dir(path):
+    if not os.path.isdir(path):
+        raise argparse.ArgumentTypeError('%s is not a valid directory' % path)
+    return path.decode(sys.getfilesystemencoding())
 
 ## UTILITIES, ONE PER FUNCTION ##
 
@@ -110,19 +114,24 @@ def fuse(argv=None):
 
 
     from .jottafuse import JottaFuse
-    def is_dir(path):
-        if not os.path.isdir(path):
-            raise argparse.ArgumentTypeError('%s is not a valid directory' % path)
-        return path.decode(sys.getfilesystemencoding())
     parser = argparse.ArgumentParser(description=__doc__,
                                      epilog="""The program expects to find an entry for "jottacloud.com" in your .netrc,
                                      or JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.
                                      This is not an official JottaCloud project.""")
-    parser.add_argument('--debug', action='store_true', help='Run fuse in the foreground and add a lot of messages to help debug')
-    parser.add_argument('--debug-fuse', action='store_true', help='Show all low-level filesystem operations')
-    parser.add_argument('--debug-http', action='store_true', help='Show all HTTP traffic')
-    parser.add_argument('--version', action='version', version=__version__)
-    parser.add_argument('mountpoint', type=is_dir, help='A path to an existing directory where you want your JottaCloud tree mounted')
+    parser.add_argument('--debug',
+                        action='store_true',
+                        help='Run fuse in the foreground and add a lot of messages to help debug')
+    parser.add_argument('--debug-fuse',
+                        action='store_true',
+                        help='Show all low-level filesystem operations')
+    parser.add_argument('--debug-http',
+                        action='store_true',
+                        help='Show all HTTP traffic')
+    parser.add_argument('--version',
+                        action='version', version=__version__)
+    parser.add_argument('mountpoint',
+                        type=is_dir,
+                        help='A path to an existing directory where you want your JottaCloud tree mounted')
     args = parser.parse_args(argv)
     if args.debug_http:
         http_client.HTTPConnection.debuglevel = 1
@@ -174,10 +183,13 @@ def share(argv=None):
     parser = argparse.ArgumentParser(description='Share a file on JottaCloud and get the public URI.',
                                      epilog='Note: This utility needs to find JOTTACLOUD_USERNAME'
                                      ' and JOTTACLOUD_PASSWORD in the running environment.')
-    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
-        choices=('debug', 'info', 'warning', 'error'), default='warning')
-    parser.add_argument('localfile', help='The local file that you want to share',
-                                     type=argparse.FileType('r'))
+    parser.add_argument('-l', '--loglevel',
+                        help='Logging level. Default: %(default)s.',
+                        choices=('debug', 'info', 'warning', 'error'),
+                        default='warning')
+    parser.add_argument('localfile',
+                        help='The local file that you want to share',
+                        type=argparse.FileType('r'))
     args = parse_args_and_apply_logging_level(parser, argv)
     jfs = JFS.JFS()
     jottadev = get_jotta_device(jfs)
@@ -194,16 +206,22 @@ def ls(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='List files in Jotta folder.', add_help=False)
-    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
-        choices=('debug', 'info', 'warning', 'error'), default='warning')
-    parser.add_argument('-h', '--humanize', help='Print human-readable file sizes.',
-        action='store_true')
-    parser.add_argument('-a', '--all', action='store_true',
-        help='Include deleted and incomplete files (otherwise ignored)')
-    parser.add_argument('item', nargs='?',
+    parser.add_argument('-l', '--loglevel',
+                        help='Logging level. Default: %(default)s.',
+                        choices=('debug', 'info', 'warning', 'error'),
+                        default='warning')
+    parser.add_argument('-h', '--humanize', # this matches ls(1)
+                        help='Print human-readable file sizes.',
+                        action='store_true')
+    parser.add_argument('-a',
+                        '--all',
+                        action='store_true',
+                        help='Include deleted and incomplete files (otherwise ignored)')
+    parser.add_argument('item',
+                        nargs='?',
                         help='The file or directory to list. Defaults to the root dir',
                         type=commandline_text)
-    parser.add_argument('-H',
+    parser.add_argument('-H', # because -h means --humanize
                         '--help',
                         help='Print this help',
                         action='help')
@@ -275,9 +293,12 @@ def mkdir(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Create a new folder in Jottacloud.')
-    parser.add_argument('newdir', help='The path to the folder that you want to create')
-    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
-        choices=('debug', 'info', 'warning', 'error'), default='warning')
+    parser.add_argument('newdir',
+                        help='The path to the folder that you want to create')
+    parser.add_argument('-l', '--loglevel',
+                        help='Logging level. Default: %(default)s.',
+                        choices=('debug', 'info', 'warning', 'error'),
+                        default='warning')
     args = parse_args_and_apply_logging_level(parser, argv)
     jfs = JFS.JFS()
     root_folder = get_root_dir(jfs)
@@ -289,11 +310,15 @@ def rm(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Delete an item from Jottacloud')
-    parser.add_argument('file', help='The path to the item that you want to delete')
-    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
-        choices=('debug', 'info', 'warning', 'error'), default='warning')
-    parser.add_argument('-f', '--force', help='Completely deleted, no restore possiblity',
-        action='store_true')
+    parser.add_argument('file',
+                        help='The path to the item that you want to delete')
+    parser.add_argument('-l', '--loglevel',
+                        help='Logging level. Default: %(default)s.',
+                        choices=('debug', 'info', 'warning', 'error'),
+                        default='warning')
+    parser.add_argument('-f', '--force',
+                        help='Completely deleted, no restore possiblity',
+                        action='store_true')
     args = parse_args_and_apply_logging_level(parser, argv)
     jfs = JFS.JFS()
     root_dir = get_root_dir(jfs)
@@ -311,9 +336,13 @@ def restore(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Restore a deleted item from Jottacloud')
-    parser.add_argument('file', help='The path to the item that you want to restore')
-    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
-        choices=('debug', 'info', 'warning', 'error'), default='warning')
+    parser.add_argument('file',
+                        type=commandline_text,
+                        help='The path to the item that you want to restore')
+    parser.add_argument('-l', '--loglevel',
+                        help='Logging level. Default: %(default)s.',
+                        choices=('debug', 'info', 'warning', 'error'),
+                        default='warning')
     args = parse_args_and_apply_logging_level(parser, argv)
     jfs = JFS.JFS()
     root_dir = get_root_dir(jfs)
@@ -329,9 +358,13 @@ def cat(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Display contents of a file from Jottacloud')
-    parser.add_argument('file', help='The path to the file that you want to show')
-    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
-        choices=('debug', 'info', 'warning', 'error'), default='warning')
+    parser.add_argument('file',
+                        type=commandline_text,
+                        help='The path to the file that you want to show')
+    parser.add_argument('-l', '--loglevel',
+                        help='Logging level. Default: %(default)s.',
+                        choices=('debug', 'info', 'warning', 'error'),
+                        default='warning')
     args = parse_args_and_apply_logging_level(parser, argv)
     jfs = JFS.JFS()
     if args.file.startswith('//'):
@@ -356,30 +389,45 @@ def scanner(argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
-    def is_dir(path):
-        if not os.path.isdir(path):
-            raise argparse.ArgumentTypeError('%s is not a valid directory' % path)
-        return path.decode(sys.getfilesystemencoding())
-
     parser = argparse.ArgumentParser(description=__doc__,
                                     epilog="""The program expects to find an entry for "jottacloud.com" in your .netrc,
                                     or JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.
                                     This is not an official JottaCloud project.""")
-    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
-                        choices=('debug', 'info', 'warning', 'error'), default='warning')
-    parser.add_argument('--errorfile', type=commandline_text, help='A file to write errors to', default='./jottacloudclient.log')
-    parser.add_argument('--exclude', type=re.compile, action='append', help='Exclude paths matched by this pattern (can be repeated)')
+    parser.add_argument('-l', '--loglevel',
+                        help='Logging level. Default: %(default)s.',
+                        choices=('debug', 'info', 'warning', 'error'),
+                        default='warning')
+    parser.add_argument('--errorfile',
+                        type=commandline_text,
+                        help='A file to write errors to',
+                        default='./jottacloudclient.log')
+    parser.add_argument('--exclude',
+                        type=re.compile,
+                        action='append',
+                        help='Exclude paths matched by this pattern (can be repeated)')
     parser.add_argument('--prune-files', dest='prune_files',
-                        help='Delete files that does not exist locally', action='store_true')
-    parser.add_argument('--prune-folders', dest='prune_folders',
-                        help='Delete folders that does not exist locally', action='store_true')
-    parser.add_argument('--prune-all', dest='prune_all',
-                        help='Combines --prune-files  and --prune-folders', action='store_true')
-    parser.add_argument('--version', action='version', version=__version__)
-    parser.add_argument('--dry-run', action='store_true',
+                        help='Delete files that does not exist locally',
+                        action='store_true')
+    parser.add_argument('--prune-folders',
+                        dest='prune_folders',
+                        help='Delete folders that does not exist locally',
+                        action='store_true')
+    parser.add_argument('--prune-all',
+                        dest='prune_all',
+                        help='Combines --prune-files  and --prune-folders',
+                        action='store_true')
+    parser.add_argument('--version',
+                        action='version',
+                        version=__version__)
+    parser.add_argument('--dry-run',
+                        action='store_true',
                         help="don't actually do any uploads or deletes, just show what would be done")
-    parser.add_argument('topdir', type=is_dir, help='Path to local dir that needs syncing')
-    parser.add_argument('jottapath', type=commandline_text, help='The path at JottaCloud where the tree shall be synced (must exist)')
+    parser.add_argument('topdir',
+                        type=is_dir,
+                        help='Path to local dir that needs syncing')
+    parser.add_argument('jottapath',
+                        type=commandline_text,
+                        help='The path at JottaCloud where the tree shall be synced (must exist)')
     args = parse_args_and_apply_logging_level(parser, argv)
     if args.prune_all:
         args.prune_files = True
@@ -407,22 +455,29 @@ def monitor(argv=None):
     # Has watchdog, can safely import filemonitor
     from .monitor import filemonitor
 
-    def is_dir(path):
-        if not os.path.isdir(path):
-            raise argparse.ArgumentTypeError('%s is not a valid directory' % path)
-        return path.decode(sys.getfilesystemencoding())
     parser = argparse.ArgumentParser(description=__doc__,
                                     epilog="""The program expects to find an entry for "jottacloud.com" in your .netrc,
                                     or JOTTACLOUD_USERNAME and JOTTACLOUD_PASSWORD in the running environment.
                                     This is not an official JottaCloud project.""")
-    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
-                        choices=('debug', 'info', 'warning', 'error'), default='warning')
-    parser.add_argument('--errorfile', help='A file to write errors to', default='./jottacloudclient.log')
-    parser.add_argument('--version', action='version', version=__version__)
-    parser.add_argument('--dry-run', action='store_true',
+    parser.add_argument('-l', '--loglevel',
+                        help='Logging level. Default: %(default)s.',
+                        choices=('debug', 'info', 'warning', 'error'),
+                        default='warning')
+    parser.add_argument('--errorfile',
+                        help='A file to write errors to',
+                        default='./jottacloudclient.log')
+    parser.add_argument('--version',
+                        action='version',
+                        version=__version__)
+    parser.add_argument('--dry-run',
+                        action='store_true',
                         help="don't actually do any uploads or deletes, just show what would be done")
-    parser.add_argument('topdir', type=is_dir, help='Path to local dir that needs syncing')
-    parser.add_argument('mode', type=commandline_text, help='Mode of operation: ARCHIVE, SYNC or SHARE. See README.md',
+    parser.add_argument('topdir',
+                        type=is_dir,
+                        help='Path to local dir that needs syncing')
+    parser.add_argument('mode',
+                        type=commandline_text,
+                        help='Mode of operation: ARCHIVE, SYNC or SHARE. See README.md',
                         choices=( 'archive', 'sync', 'share') )
     args = parse_args_and_apply_logging_level(parser, argv)
     fh = logging.FileHandler(args.errorfile)
