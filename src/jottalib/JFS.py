@@ -148,8 +148,19 @@ class JFSServerError(JFSError): # HTTP 500
 
 
 class JFSFileDirList(object):
-    'Wrapping <filedirlist>, a simple tree of folders and their files'
-    """get a <filedirlist> for any jottafolder by appending ?mode=list to your query
+    '''Wrapping <filedirlist>, a simple tree of folders and their files
+
+       Get a <filedirlist> for any jottafolder by appending ?mode=list to your query
+
+       Then you will get this object, with a .tree property, which is a list of all
+       files and folders.
+
+       Files will be a namedtuple() with five properties:
+         .name - file name
+         .state - file state (str): one of JFS.ProtoFile.STATE_*, e.g 'COMPLETED' or 'INCOMPLETE'
+         .size - file size (int or None): full size , partially uploaded size or no size, depentant on file state
+         .md5 - jottacloud file hash (str or None): corrupt files have no md5 hash
+         .uuid - jottacloud assigned uuid
 
     <filedirlist time="2015-05-28-T18:57:06Z" host="dn-093.site-000.jotta.no">
         <folders>
@@ -157,7 +168,7 @@ class JFSFileDirList(object):
             <path xml:space="preserve">/havardgulldahl/Jotta</path>
             <abspath xml:space="preserve">/havardgulldahl/Jotta</abspath>
             <files>
-                <file>..."""
+                <file>...'''
 
 
     def __init__(self, filedirlistobject, jfs, parentpath): # filedirlistobject from lxml.objectify
@@ -165,7 +176,7 @@ class JFSFileDirList(object):
         self.parentPath = parentpath
         self.jfs = jfs
 
-        treefile = namedtuple('TreeFile', 'name size md5 uuid')
+        treefile = namedtuple('TreeFile', 'name size md5 uuid state')
 
         self.tree = {}
         for folder in self.filedirlist.folders.iterchildren():
@@ -178,15 +189,27 @@ class JFSFileDirList(object):
                         t.append(treefile(unicode(file_.attrib['name']),
                                           int(file_.currentRevision.size),
                                           unicode(file_.currentRevision.md5),
-                                          unicode(file_.attrib['uuid'])
+                                          unicode(file_.attrib['uuid']),
+                                          unicode(file_.currentRevision.state)
                                           )
                                  )
                     else:
-                        # an incomplete file
+                        # This is an incomplete or, possibly, corrupt file
+                        #
+                        # Incomplete files have no `size` in a filedirlist, you
+                        # need to fetch the JFSFile explicitly to see that property
+                        try:
+                            # incomplete files carry a md5 hash,
+                            _md5 = unicode(file_.latestRevision.md5)
+                        except AttributeError:
+                            # while other may not
+                            # see discussion in #88
+                            _md5 = None
                         t.append(treefile(unicode(file_.attrib['name']),
-                                          -1, # incomplete files have no size
-                                          unicode(file_.latestRevision.md5),
-                                          unicode(file_.attrib['uuid'])
+                                          None, # return size as None
+                                          _md5,
+                                          unicode(file_.attrib['uuid']),
+                                          unicode(file_.latestRevision.state)
                                           )
                                  )
             self.tree[posixpath.join(path, foldername)] = t

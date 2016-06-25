@@ -22,7 +22,7 @@
 __author__ = 'havard@gulldahl.no'
 
 # import standardlib
-import os, logging, datetime
+import os, logging, datetime, types
 import tempfile, posixpath, urllib
 import six
 from six.moves import cStringIO as StringIO
@@ -462,6 +462,14 @@ class TestJFSFileDirList:
         fdl = jfs.getObject('/Jotta/Sync/?mode=list')
         assert isinstance(fdl, JFS.JFSFileDirList)
         assert len(fdl.tree) > 0
+        i = 0
+        for folders in fdl.tree.values(): # iterate over all files in tree list
+            for f in folders:
+                assert isinstance(f.name, unicode)
+                assert isinstance(f.md5, (basestring, types.NoneType))
+                assert isinstance(f.state, basestring)
+                assert isinstance(f.uuid, basestring)
+                assert isinstance(f.size, (int, types.NoneType))
 
 class TestJFSError:
     'Test different JFSErrors'
