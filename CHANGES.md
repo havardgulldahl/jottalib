@@ -23,6 +23,7 @@ Investigations to update to the new API are underway. ***Help and patches are we
 - Remove pinning on `certifi`, see #96.
 - Update monitor.py, to pass along `dry_run` argument to `_new`, see #106. Thanks for the fix, @nuth!!
 - Don't assume non strings have .name member. See issue #100. Thank you, @thusoy
+- Don't use utf-8 in console output on windows, from issue #85. Code by @antonhagg
 
 ### Changed
 
