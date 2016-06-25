@@ -141,14 +141,20 @@ def upload(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Upload a file to JottaCloud.')
-    parser.add_argument('localfile', help='The local file that you want to upload',
-                                     type=argparse.FileType('r'))
-    parser.add_argument('remote_dir', help='The remote directory to upload the file to',
-        nargs='?', type=commandline_text)
-    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
-        choices=('debug', 'info', 'warning', 'error'), default='warning')
+    parser.add_argument('localfile',
+                        help='The local file that you want to upload',
+                        type=argparse.FileType('r'))
+    parser.add_argument('remote_dir',
+                        help='The remote directory to upload the file to',
+                        nargs='?',
+                        type=commandline_text)
+    parser.add_argument('-l', '--loglevel',
+                        help='Logging level. Default: %(default)s.',
+                        choices=('debug', 'info', 'warning', 'error'),
+                        default='warning')
     jfs = JFS.JFS()
     args = parse_args_and_apply_logging_level(parser, argv)
+    decoded_filename = commandline_text(args.localfile.name)
     progress_bar = ProgressBar()
     callback = lambda monitor, size: progress_bar.show(monitor.bytes_read, size)
     root_folder = get_root_dir(jfs)
@@ -157,8 +163,8 @@ def upload(argv=None):
         target_dir = jfs.getObject(target_dir_path)
     else:
         target_dir = root_folder
-    upload = target_dir.up(args.localfile, os.path.basename(args.localfile.name), upload_callback=callback)
-    print('%s uploaded successfully' % args.localfile.name)
+    upload = target_dir.up(args.localfile, os.path.basename(decoded_filename), upload_callback=callback)
+    print('%s uploaded successfully' % decoded_filename)
     return True # TODO: check return value
 
 
@@ -194,9 +200,13 @@ def ls(argv=None):
         action='store_true')
     parser.add_argument('-a', '--all', action='store_true',
         help='Include deleted and incomplete files (otherwise ignored)')
-    parser.add_argument('item', nargs='?', help='The file or directory to list. Defaults to the '
-        'root dir', type=commandline_text)
-    parser.add_argument('-H', '--help', help='Print this help', action='help')
+    parser.add_argument('item', nargs='?',
+                        help='The file or directory to list. Defaults to the root dir',
+                        type=commandline_text)
+    parser.add_argument('-H',
+                        '--help',
+                        help='Print this help',
+                        action='help')
     args = parse_args_and_apply_logging_level(parser, argv)
     jfs = JFS.JFS()
     root_folder = get_root_dir(jfs)
@@ -237,9 +247,13 @@ def download(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Download a file from Jottacloud.')
-    parser.add_argument('remotefile', help='The path to the file that you want to download')
-    parser.add_argument('-l', '--loglevel', help='Logging level. Default: %(default)s.',
-        choices=('debug', 'info', 'warning', 'error'), default='warning')
+    parser.add_argument('remotefile',
+                        help='The path to the file that you want to download',
+                        type=commandline_text)
+    parser.add_argument('-l', '--loglevel',
+                        help='Logging level. Default: %(default)s.',
+                        choices=('debug', 'info', 'warning', 'error'),
+                        default='warning')
     args = parse_args_and_apply_logging_level(parser, argv)
     jfs = JFS.JFS()
     root_folder = get_root_dir(jfs)
