@@ -24,6 +24,9 @@ Investigations to update to the new API are underway. ***Help and patches are we
 - Update monitor.py, to pass along `dry_run` argument to `_new`, see #106. Thanks for the fix, @nuth!!
 - Don't assume non strings have .name member. See issue #100. Thank you, @thusoy
 - Don't use utf-8 in console output on windows, from issue #85. Code by @antonhagg
+- Add .state property to file tuples returned from JFSFileDirList()
+- Revamp logic in `JFS.JFSFileDirList` to be more resilient to unexpected file objects. See #88
+
 
 ### Changed
 
