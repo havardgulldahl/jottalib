@@ -1032,6 +1032,7 @@ class JFS(object):
             self.fs = o
             return self.fs
         elif o.tag == 'filedirlist': return JFSFileDirList(o, jfs=self, parentpath=parent)
+        elif o.tag == 'searchresult': return JFSsearchresult(o, jfs=self)
         raise JFSError("invalid object: %s <- %s" % (repr(o), url_or_requests_response))
 
     def getLatest(self, files=10, sort=None):
