@@ -918,7 +918,7 @@ class JFSsearchresult(object):
     def files(self):
         'iterate over found files'
         for _f in self.searchresult.files.iterchildren():
-            yield ProtoFile.factory(_f, jfs=self.jfs, parentpath=str(_f.abspath))
+            yield ProtoFile.factory(_f, jfs=self.jfs, parentpath=unicode(_f.abspath))
 
 
 
