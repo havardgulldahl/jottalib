@@ -69,16 +69,18 @@ PYTHONPATH=src python -c 'from jottalib import cli; cli.download()' "$LOCALNAME"
 diff -q "$LOCALTESTFILE" "$LOCALNAME" || err "download()ed file contents is not the same as orignal!";
 sleep 1;
 
-
+info "T3. Listing"
 
 echo "$(tput setaf 3)Finishied$(tput sgr0)";
+JDIR=$(dirname "$TESTFILE");
+PYTHONPATH=src python -c 'from jottalib import cli; cli.ls()' "$JDIR" || err "ls() failed";
+sleep 1;
 
 cleanup;
 
 #TODO
 # def fuse(argv=None):
 # def share(argv=None):
-# def ls(argv=None):
 # def mkdir(argv=None):
 # def rm(argv=None):
 # def restore(argv=None):
