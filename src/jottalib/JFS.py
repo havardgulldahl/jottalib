@@ -955,6 +955,8 @@ class JFS(object):
             '?mode=bin',
             '?mode=thumb&ts='
         ]
+        # TODO: replace this buggy thing with proper param support, that requests will encode for us
+        # for free
         separator = separators[0]
         for sep in separators:
             if sep in url:
@@ -968,22 +970,22 @@ class JFS(object):
             url = quote(urlparts[0], safe=self.rootpath)
         return url
 
-    def request(self, url, extra_headers=None):
+    def request(self, url, extra_headers=None, params=None):
         'Make a GET request for url, with or without caching'
         if not url.startswith('http'):
             # relative url
             url = self.rootpath + url
-        log.debug("getting url: %s, extra_headers=%s", url, extra_headers)
+        log.debug("getting url: %r, extra_headers=%r, params=%r", url, extra_headers, params)
         if extra_headers is None: extra_headers={}
-        r = self.session.get(url, headers=extra_headers)
+        r = self.session.get(url, headers=extra_headers, params=params)
 
         if r.status_code in ( 500, ):
             raise JFSError(r.reason)
         return r
 
-    def raw(self, url, extra_headers=None):
+    def raw(self, url, extra_headers=None, params=None):
         'Make a GET request for url and return whatever content we get'
-        r = self.request(url, extra_headers=extra_headers)
+        r = self.request(url, extra_headers=extra_headers, params=params)
         # uncomment to dump raw xml
 #         with open('/tmp/%s.xml' % time.time(), 'wb') as f:
 #             f.write(r.content)
@@ -993,10 +995,10 @@ class JFS(object):
             JFSError.raiseError(o, url)
         return r.content
 
-    def get(self, url):
+    def get(self, url, params=None):
         'Make a GET request for url and return the response content as a generic lxml object'
         url = self.escapeUrl(url)
-        o = lxml.objectify.fromstring(self.raw(url))
+        o = lxml.objectify.fromstring(self.raw(url, params=params))
         if o.tag == 'error':
             JFSError.raiseError(o, url)
         return o
@@ -1036,10 +1038,10 @@ class JFS(object):
         raise JFSError("invalid object: %s <- %s" % (repr(o), url_or_requests_response))
 
     def getLatest(self, files=10, sort=None):
-        'Yield a list of the n latest files, optionally sorted by `sort`.'
-        url = posixpath.join(self.rootpath,
-                             '/Jotta/Latest?sort=updated&max=%i&web=true' % files)
-        result = self.getObject(url)
+        'Yield a list of the n latest files (the server minimum default is 10), optionally sorted by `sort`.'
+        url = '/Jotta/Latest'
+        params = {'sort': 'updated', 'max':files, 'web':'true'}
+        result = self.getObject(self.request(url, params=params))
         for _f in result.files():
             yield _f
 
