@@ -191,10 +191,11 @@ class TestJFS:
             assert jfs_f.path == clean_room_path
             jfs_f.delete()
 
+
     def test_latest_files(self):
         # ensure we can get latest files, and that they look "sane"
-        assert len(list(jfs.getLatest(files=0))) == 0
-        assert len(list(jfs.getLatest(files=1))) == 1
+        assert len(list(jfs.getLatest())) == 10
+        assert len(list(jfs.getLatest(files=20))) == 20
         for f in jfs.getLatest(files=20):
             assert isinstance(f, (JFS.JFSFile, JFS.JFSIncompleteFile, JFS.JFSCorruptFile))
 
