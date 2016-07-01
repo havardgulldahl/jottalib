@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.5] - TBA
+## [0.5] - 2016-07-02
 
 ### Regressions
 

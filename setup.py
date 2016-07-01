@@ -32,10 +32,8 @@ try:
 except:
     long_desc = ''
 
-package_version = '1'
-
 setup(name='jottalib',
-      version='%s-%s' % (__version__, package_version),
+      version=__version__,
       license='GPLv3',
       description='A library and tools to access the JottaCloud API',
       long_description=long_desc,
