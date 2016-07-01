@@ -110,7 +110,8 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patter
                 log.debug("%r excluded by pattern %r", fpath, p.pattern)
                 return True
         return False
-    for dirpath, dirnames, filenames in os.walk(localtopdir, followlinks=followlinks):
+    bytestring_localtopdir = _encode_filename_to_filesystem(localtopdir)
+    for dirpath, dirnames, filenames in os.walk(bytestring_localtopdir, followlinks=followlinks):
         # to keep things explicit, and avoid encoding/decoding issues,
         # keep a bytestring AND a unicode variant of dirpath
         dirpath = _encode_filename_to_filesystem(dirpath)
