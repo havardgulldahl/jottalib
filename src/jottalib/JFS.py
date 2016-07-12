@@ -490,6 +490,15 @@ class JFSIncompleteFile(JFSCorruptFile):
         'Resume uploading an incomplete file, after a previous upload was interrupted. Returns new file object'
         if not hasattr(data, 'read'):
             data = StringIO(data)
+
+        #Check that we actually know from what byte to resume.
+        #If self.size === -1, it means we never got the value from the server.
+        #This is perfectly normal if the file was instatiated via e.g. a file listing,
+        #and not directly via JFS.getObject()
+        if self.size == -1:
+            log.debug('%r is an incomplete file, but .size is unknown. Refreshing the file object from server', self.path)
+            self.f = self.jfs.get(self.path)
+
         #check if what we're asked to upload is actually the right file
         md5 = calculate_md5(data)
         if md5 != self.md5:
