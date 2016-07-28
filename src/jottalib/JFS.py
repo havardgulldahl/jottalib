@@ -278,8 +278,10 @@ class JFSFolder(object):
 
     def mkdir(self, foldername):
         'Create a new subfolder and return the new JFSFolder'
-        url = '%s?mkDir=true' % posixpath.join(self.path, foldername)
-        r = self.jfs.post(url)
+        #url = '%s?mkDir=true' % posixpath.join(self.path, foldername)
+        url = posixpath.join(self.path, foldername)
+        params = {'mkDir':'true'}
+        r = self.jfs.post(url, params)
         self.sync()
         return r
 
@@ -311,8 +313,9 @@ class JFSFolder(object):
 
     def delete(self):
         'Delete this folder and return a deleted JFSFolder'
-        url = '%s?dlDir=true' % self.path
-        r = self.jfs.post(url)
+        #url = '%s?dlDir=true' % self.path
+        params = {'dlDir':'true'}
+        r = self.jfs.post(self.path, params)
         self.sync()
         return r
 
@@ -330,8 +333,11 @@ class JFSFolder(object):
     def rename(self, newpath):
         "Move folder to a new name, possibly a whole new path"
         # POST https://www.jottacloud.com/jfs/**USERNAME**/Jotta/Sync/Ny%20mappe?mvDir=/**USERNAME**/Jotta/Sync/testFolder
-        url = '%s?mvDir=/%s%s' % (self.path, self.jfs.username, newpath)
-        r = self.jfs.post(url, extra_headers={'Content-Type':'application/octet-stream'})
+        #url = '%s?mvDir=/%s%s' % (self.path, self.jfs.username, newpath)
+        params = {'mvDir':'/%s%s' % (self.jfs.username, newpath)}
+        r = self.jfs.post(self.path,
+                          extra_headers={'Content-Type':'application/octet-stream'},
+                          params=params)
         return r
 
     def up(self, fileobj_or_path, filename=None, upload_callback=None):
@@ -364,8 +370,9 @@ class JFSFolder(object):
 
     def filedirlist(self):
         'Get a JFSFileDirList, recursive tree of JFSFile and JFSFolder'
-        url = '%s?mode=list' % self.path
-        return self.jfs.getObject(url)
+        #url = '%s?mode=list' % self.path
+        params = {'mode':'list'}
+        return self.jfs.getObject(self.path, params)
 
 class ProtoFile(object):
     'Prototype for different incarnations fo file, e.g. JFSIncompleteFile and JFSFile'
@@ -551,11 +558,13 @@ class JFSFile(JFSIncompleteFile):
 
     def stream(self, chunk_size=64*1024):
         'Returns a generator to iterate over the file contents'
-        return self.jfs.stream(url='%s?mode=bin' % self.path, chunk_size=chunk_size)
+        #return self.jfs.stream(url='%s?mode=bin' % self.path, chunk_size=chunk_size)
+        return self.jfs.stream(url=self.path, params={'mode':'bin'}, chunk_size=chunk_size)
 
     def read(self):
         'Get the file contents as string'
-        return self.jfs.raw('%s?mode=bin' % self.path)
+        #return self.jfs.raw('%s?mode=bin' % self.path)
+        return self.jfs.raw(url=self.path, params={'mode':'bin'})
         """
             * name = 'jottacloud.sync.pdfname'
             * uuid = '37530f11-d55b-4f31-acf4-27854813cd34'
@@ -573,7 +582,8 @@ class JFSFile(JFSIncompleteFile):
 
     def readpartial(self, start, end):
         'Get a part of the file, from start byte to end byte (integers)'
-        return self.jfs.raw('%s?mode=bin' % self.path,
+        #return self.jfs.raw('%s?mode=bin' % self.path,
+        return self.jfs.raw(url=self.path, params={'mode':'bin'},
                             # note that we deduct 1 from end because
                             # in http Range requests, the end value is included in the slice,
                             # whereas in python, it is not
@@ -644,15 +654,17 @@ class JFSFile(JFSIncompleteFile):
 
     def delete(self):
         'Delete this file and return the new, deleted JFSFile'
-        url = '%s?dl=true' % self.path
-        r = self.jfs.post(url)
+        #url = '%s?dl=true' % self.path
+        r = self.jfs.post(url=self.path, params={'dl':'true'})
         return r
 
     def rename(self, newpath):
         "Move file to a new name, possibly a whole new path"
         # POST https://www.jottacloud.com/jfs/**USERNAME**/Jotta/Sync/testFolder/testFile.txt?mv=/**USERNAME**/Jotta/Sync/testFolder/renamedTestFile.txt
-        url = '%s?mv=/%s%s' % (self.path, self.jfs.username, newpath)
-        r = self.jfs.post(url, extra_headers={'Content-Type':'application/octet-stream'})
+        #url = '%s?mv=/%s%s' % (self.path, self.jfs.username, newpath)
+        r = self.jfs.post(url=self.path,
+                          params={'mv':'/%s%s' % (self.jfs.username, newpath)},
+                          extra_headers={'Content-Type':'application/octet-stream'})
         return r
 
     def thumb(self, size=BIGTHUMB):
@@ -663,8 +675,9 @@ class JFSFile(JFSIncompleteFile):
             return None
         if not size in (self.BIGTHUMB, self.MEDIUMTHUMB, self.SMALLTHUMB, self.XLTHUMB):
             raise JFSError('Invalid thumbnail size: %s for image %s' % (size, self.path))
-
-        return self.jfs.raw('%s?mode=thumb&ts=%s' % (self.path, size))
+        #return self.jfs.raw('%s?mode=thumb&ts=%s' % (self.path, size))
+        return self.jfs.raw(url=self.path,
+                            params={'mode':'thumb', 'ts':size})
 
     @property
     def revisionNumber(self):
@@ -954,6 +967,8 @@ class JFS(object):
     def escapeUrl(self, url):
         if isinstance(url, unicode):
             url = url.encode('utf-8') # urls have to be bytestrings
+        return quote(url, safe=self.rootpath)
+        # TODO: remove rest of this hack after tests pass
         separators = [
             '?dl=true',
             '?mkDir=true',
