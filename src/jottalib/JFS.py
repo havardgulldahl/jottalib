@@ -1120,13 +1120,21 @@ class JFS(object):
         contentlen = fileobject.tell()
 
         # Rewind read head to correct offset
-        # If we're resuming a borked upload, continue from that offset
-        fileobject.seek(resume_offset if resume_offset is not None else 0)
+        # If we're resuming an incomplete upload, continue from that offset
+        try:
+            fileobject.seek(resume_offset)
+        except IOError as e:
+            if resume_offset is not None and resume_offset > 0:
+                log.exception(e)
+                log.warning('Could not seek to file offset %r, re-starting upload of %r from 0',
+                             resume_offset,
+                             url)
+
 
         # Calculate file md5 hash
         md5hash = calculate_md5(fileobject)
 
-        log.debug('posting content (len %s, hash %s) to url %s', contentlen, md5hash, url)
+        log.debug('posting content (len %s, hash %s) to url %r', contentlen, md5hash, url)
         try:
             mtime = os.path.getmtime(fileobject.name)
             timestamp = datetime.datetime.fromtimestamp(mtime).isoformat()

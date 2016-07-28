@@ -1,5 +1,18 @@
 # Change Log
 
+
+## [0.5.1] - TBA
+
+### Bug fixes
+
+- Check that we actually know from what byte to resume in the case of Incomplete files. Previously this would abort e.g. `jotta-scanner`, because it pulled file listings in a way that doesn't return incomplete file sizes. See issue #104 and #81. Thanks, @cowai and @jnylen for reports.
+- When resuming uploads, restart upload if seeking in the source file fails. Related to the issue above.
+
+### Changed
+
+-
+
+
 ## [0.5] - 2016-07-02
 
 ### Regressions
