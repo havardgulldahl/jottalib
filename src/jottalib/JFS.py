@@ -1020,9 +1020,27 @@ class JFS(object):
         return r.content
 
     def get(self, url, params=None):
-        'Make a GET request for url and return the response content as a generic lxml object'
+        'Make a GET request for url and return the response content as a generic lxml.objectify object'
         url = self.escapeUrl(url)
-        o = lxml.objectify.fromstring(self.raw(url, params=params))
+
+        content = StringIO(self.raw(url, params=params))
+        # We need to make sure that the xml fits in available memory before we parse
+        # with lxml.objectify.fromstring(), or else it will bomb out.
+        # If it is too big, we need to buffer it to disk before we run it through objectify. see #87
+        #
+        # get length of buffer
+        content.seek(0,2)
+        contentlen = content.tell()
+        content.seek(0)
+
+        MAX_BUFFER_SIZE=1024*1024*200 # 200MB. TODO: find a way to compute this
+        if contentlen > MAX_BUFFER_SIZE:
+            # xml is too big to parse with lxml.objectify.fromstring()
+            contentfile = tempfile.NamedTemporaryFile()
+            contentfile.write(content.read())
+            o = lxml.objectify.parse(contentfile)
+        else:
+            o = lxml.objectify.fromstring(content.getvalue())
         if o.tag == 'error':
             JFSError.raiseError(o, url)
         return o
@@ -1030,11 +1048,13 @@ class JFS(object):
     def getObject(self, url_or_requests_response):
         'Take a url or some xml response from JottaCloud and wrap it up with the corresponding JFS* class'
         if isinstance(url_or_requests_response, requests.models.Response):
+            # this is a raw xml response that we need to parse
             url = url_or_requests_response.url
             o = lxml.objectify.fromstring(url_or_requests_response.content)
         else:
+            # this is an url that we need to fetch
             url = url_or_requests_response
-            o = self.get(url)
+            o = self.get(url) # (.get() will parse this for us)
 
         parent = os.path.dirname(url).replace('up.jottacloud.com', 'www.jottacloud.com')
         if o.tag == 'error':
