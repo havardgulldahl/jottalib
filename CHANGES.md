@@ -1,16 +1,18 @@
 # Change Log
 
-
-## [0.5.1] - TBA
+## [0.5.1] - 2016-08-26
 
 ### Bug fixes
 
 - Check that we actually know from what byte to resume in the case of Incomplete files. Previously this would abort e.g. `jotta-scanner`, because it pulled file listings in a way that doesn't return incomplete file sizes. See issue #104 and #81. Thanks, @cowai and @jnylen for reports.
 - When resuming uploads, restart upload if seeking in the source file fails. Related to the issue above.
+- When encountering really large JFSFileDirLists, we now buffer the xml to disk to prevent lxml from bombing out on memory errors. #87
+- Make sure all HTTP headers are strings. This fixes an issue that surfaced when `requests>2.10` tightened up their api, and consequently all our uploads would fail. It's good now, though :) Thank you @eiaro for you report.
+
 
 ### Changed
 
--
+- The url escape logic is less buggy now, see #117
 
 
 ## [0.5] - 2016-07-02
