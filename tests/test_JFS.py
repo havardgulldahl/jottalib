@@ -473,6 +473,13 @@ class TestJFSFileDirList:
                 assert isinstance(f.uuid, basestring)
                 assert isinstance(f.size, (int, types.NoneType))
 
+    def test_large_api(self):
+        "Request a tree that is enormous, to test disk buffer code of lxml.objectify.{parse|fromstring}"
+        fdl = jfs.getObject('/Jotta/Archive', params={'mode':'list'})
+        assert isinstance(fdl, JFS.JFSFileDirList)
+        assert len(fdl.tree) > 0
+
+
 class TestJFSError:
     'Test different JFSErrors'
     """
