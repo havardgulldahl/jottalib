@@ -1187,7 +1187,7 @@ class JFS(object):
                    'JCreated': timestamp,
                    'JModified': timestamp,
                    'X-Jfs-DeviceName': 'Jotta',
-                   'JSize': contentlen,
+                   'JSize': str(contentlen), # headers have to be strings or bytes , cf #122
                    'jx_csid': '',
                    'jx_lisence': '',
                    'content-type': m.content_type,
