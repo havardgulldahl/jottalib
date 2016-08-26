@@ -461,7 +461,7 @@ class TestJFSFileDirList:
     'Tests for JFSFileDirList'
 
     def test_api(self):
-        fdl = jfs.getObject('/Jotta/Sync/?mode=list')
+        fdl = jfs.getObject('/Jotta/Sync', params={'mode':'list'})
         assert isinstance(fdl, JFS.JFSFileDirList)
         assert len(fdl.tree) > 0
         i = 0

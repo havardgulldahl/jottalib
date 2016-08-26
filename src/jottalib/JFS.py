@@ -1045,7 +1045,7 @@ class JFS(object):
             JFSError.raiseError(o, url)
         return o
 
-    def getObject(self, url_or_requests_response):
+    def getObject(self, url_or_requests_response, params=None):
         'Take a url or some xml response from JottaCloud and wrap it up with the corresponding JFS* class'
         if isinstance(url_or_requests_response, requests.models.Response):
             # this is a raw xml response that we need to parse
@@ -1054,7 +1054,7 @@ class JFS(object):
         else:
             # this is an url that we need to fetch
             url = url_or_requests_response
-            o = self.get(url) # (.get() will parse this for us)
+            o = self.get(url, params=params) # (.get() will parse this for us)
 
         parent = os.path.dirname(url).replace('up.jottacloud.com', 'www.jottacloud.com')
         if o.tag == 'error':
@@ -1090,9 +1090,9 @@ class JFS(object):
             yield _f
 
 
-    def stream(self, url, chunk_size=64*1024):
+    def stream(self, url, params=None, chunk_size=64*1024):
         'Iterator to get remote content by chunk_size (bytes)'
-        r = self.request(url)
+        r = self.request(url, params=params)
         for chunk in r.iter_content(chunk_size):
             yield chunk
 
@@ -1158,12 +1158,15 @@ class JFS(object):
         # If we're resuming an incomplete upload, continue from that offset
         try:
             fileobject.seek(resume_offset)
+        except TypeError as e:
+            if resume_offset is None:
+                fileobject.seek(0)
         except IOError as e:
-            if resume_offset is not None and resume_offset > 0:
-                log.exception(e)
-                log.warning('Could not seek to file offset %r, re-starting upload of %r from 0',
-                             resume_offset,
-                             url)
+            log.exception(e)
+            log.warning('Could not seek to file offset %r, re-starting upload of %r from 0',
+                        resume_offset,
+                        url)
+            fileobject.seek(0)
 
 
         # Calculate file md5 hash
