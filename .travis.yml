@@ -42,7 +42,7 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python; fi
 install:
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install -qq libfuse-dev pkg-config fuse; sudo mknod /dev/fuse c 10 229; sudo chmod 666 /dev/fuse; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install osxfuse; sudo /bin/cp -RfX /usr/local/opt/osxfuse/Library/Filesystems/osxfusefs.fs /Library/Filesystems; sudo chmod +s /Library/Filesystems/osxfusefs.fs/Support/load_osxfusefs; sudo mknod /dev/fuse c 10 229; sudo chmod 666 /dev/fuse; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew tap caskroom/cask; brew cask install osxfuse; sudo /bin/cp -RfX /usr/local/opt/osxfuse/Library/Filesystems/osxfusefs.fs /Library/Filesystems; sudo chmod +s /Library/Filesystems/osxfusefs.fs/Support/load_osxfusefs; sudo mknod /dev/fuse c 10 229; sudo chmod 666 /dev/fuse; fi
 install:
   - pip install -r tests/requirements.txt
   - pip install .
