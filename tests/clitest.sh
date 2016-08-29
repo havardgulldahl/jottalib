@@ -78,7 +78,7 @@ PYTHONPATH=src python -c 'from jottalib import cli; cli.mkdir()' "$JOTTADIR" || 
 sleep 1;
 
 info "T5. Listing";
-JDIR=$(dirname "$TESTFILE");
+JDIR=$(dirname "$JOTTADIR");
 PYTHONPATH=src python -c 'from jottalib import cli; cli.ls()' "$JDIR" || err "ls() failed";
 sleep 1;
 
