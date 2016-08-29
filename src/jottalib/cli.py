@@ -34,7 +34,6 @@ import re
 from clint.textui import progress, colored, puts
 from functools import partial
 import codecs
-import urlparse
 
 # import our stuff
 from jottalib import JFS, __version__
@@ -348,7 +347,7 @@ def download(argv=None):
             #We need to strip the path to the folder path from account,device and mountpoint details
             logging.debug("folder: %r", folder)
 
-            _abs_folder_path = urlparse.urljoin(JFS.JFS_ROOT, folder[1:])
+            _abs_folder_path = posixpath.join(JFS.JFS_ROOT, folder[1:])
             logging.debug("absolute folder path  : %r", _abs_folder_path)
             _rel_folder_path = _abs_folder_path[len(topdir)+1:]
             logging.info('relative folder path: %r', _rel_folder_path)

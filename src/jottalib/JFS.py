@@ -97,7 +97,7 @@ def calculate_md5(fileobject, size=2**16):
     fileobject.seek(0)
     md5 = hashlib.md5()
     for data in iter(lambda: fileobject.read(size), b''):
-        if isinstance(data, unicode):
+        if isinstance(data, six.text_type):
             data = data.encode('utf-8') # md5 needs a byte string
         md5.update(data)
     fileobject.seek(0) # rewind read head
@@ -965,7 +965,7 @@ class JFS(object):
         self.session.close()
 
     def escapeUrl(self, url):
-        if isinstance(url, unicode):
+        if isinstance(url, six.text_type):
             url = url.encode('utf-8') # urls have to be bytestrings
         return quote(url, safe=self.rootpath)
 
