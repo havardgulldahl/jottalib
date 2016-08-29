@@ -113,13 +113,29 @@ def test_fuse():
     with pytest.raises(SystemExit):
         cli.fuse([]) # argparse should raise systemexit without the mandatory arguments
 
+
+def test_download():
+    with pytest.raises(SystemExit):
+        cli.download([]) # argparse should raise systemexit without the mandatory arguments
+    testcontents = u'12345test'
+    testdir = '/Jotta/Archive/Test/'
+    testfile = 'test.txt'
+    testpath = posixpath.join(testdir, testfile)
+    d = jfs.up(testpath, StringIO(testcontents))
+    assert cli.download(['/%s' % testpath,])
+    assert cli.download(['/%s' % testpath, '--checksum'])
+    #TODO: implement when --resume is - assert cli.download(['/%s' % testpath, '--resume'])
+    assert open(testfile).read() == testcontents
+
+    assert cli.download(['/%s' % testdir,])
+    assert cli.download(['/%s' % testdir, '--checksum'])
+    assert open('Test/text.txt').read() == testcontents
+
 # TODO:
 
 # def parse_args_and_apply_logging_level(parser):
 # def print_size(num, humanize=False):
 # def upload():
 # def share():
-# def download():
-# def rm():
 # def scanner():
 # def monitor():
