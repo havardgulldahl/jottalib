@@ -39,6 +39,12 @@ import codecs
 from jottalib import JFS, __version__
 from .scanner import filescanner
 
+# helper functions
+try:
+    unicode("we are python2")
+except NameError:
+    def unicode(s): return str(s) # TODO: use six
+
 HAS_FUSE = False
 try:
     from fuse import FUSE # pylint: disable=unused-import
