@@ -370,7 +370,6 @@ class JFSFolder(object):
 
     def filedirlist(self):
         'Get a JFSFileDirList, recursive tree of JFSFile and JFSFolder'
-        #url = '%s?mode=list' % self.path
         params = {'mode':'list'}
         return self.jfs.getObject(self.path, params)
 
@@ -969,31 +968,6 @@ class JFS(object):
         if isinstance(url, unicode):
             url = url.encode('utf-8') # urls have to be bytestrings
         return quote(url, safe=self.rootpath)
-        # TODO: remove rest of this hack after tests pass
-        separators = [
-            '?dl=true',
-            '?mkDir=true',
-            '?dlDir=true',
-            '?mvDir=',
-            '?mv=',
-            '?mode=list',
-            '?mode=bin',
-            '?mode=thumb&ts='
-        ]
-        # TODO: replace this buggy thing with proper param support, that requests will encode for us
-        # for free
-        separator = separators[0]
-        for sep in separators:
-            if sep in url:
-                separator = sep
-                break
-
-        urlparts = url.rsplit(separator, 1)
-        if(len(urlparts) == 2):
-            url = quote(urlparts[0], safe=self.rootpath) + separator + urlparts[1]
-        else:
-            url = quote(urlparts[0], safe=self.rootpath)
-        return url
 
     def request(self, url, extra_headers=None, params=None):
         'Make a GET request for url, with or without caching'
