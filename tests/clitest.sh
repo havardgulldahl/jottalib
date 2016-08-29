@@ -35,7 +35,7 @@ BACK="$PWD";
 cd "/tmp";
 
 function cleanup {
-  #mount | grep -q JottaCloudFS && unmount "$TMPDIR";
+  mount | grep -q JottaCloudFS && unmount "$TESTDIR";
   cd "$BACK";
   rmdir "$TMPDIR";
 }
@@ -63,27 +63,43 @@ PYTHONPATH=src python -c 'from jottalib import cli; cli.upload()' "$LOCALTESTFIL
 sleep 1;
 
 info "T2. Download";
-
 LOCALNAME=$(basename "$LOCALTESTFILE");
 PYTHONPATH=src python -c 'from jottalib import cli; cli.download()' "$LOCALNAME" || err "download() failed";
 diff -q "$LOCALTESTFILE" "$LOCALNAME" || err "download()ed file contents is not the same as orignal!";
 sleep 1;
 
-info "T3. Listing"
+info "T3. Read contents";
+PYTHONPATH=src python -c 'from jottalib import cli; cli.cat()' "$LOCALNAME" || err "cat() failed";
+sleep 1;
 
-echo "$(tput setaf 3)Finishied$(tput sgr0)";
+info "T4. Make dir";
+PYTHONPATH=src python -c 'from jottalib import cli; cli.mkdir()' "$TESTDIR" || err "mkdir() failed";
+sleep 1;
+
+info "T5. Listing";
 JDIR=$(dirname "$TESTFILE");
 PYTHONPATH=src python -c 'from jottalib import cli; cli.ls()' "$JDIR" || err "ls() failed";
 sleep 1;
 
+info "T6. Remove dir";
+PYTHONPATH=src python -c 'from jottalib import cli; cli.rm()' "$TESTDIR" || err "rm() dir failed";
+sleep 1;
+
+info "T7. Remove file";
+PYTHONPATH=src python -c 'from jottalib import cli; cli.rm()' "$LOCALNAME" || err "rm() file failed";
+sleep 1;
+
+info "T8. Fuse";
+PYTHONPATH=src python -c 'from jottalib import cli; cli.fuse()' "$TESTDIR" || err "fuse() file failed";
+sleep 1;
+
+
 cleanup;
+echo "$(tput setaf 3)Finishied$(tput sgr0)";
 
 #TODO
 # def fuse(argv=None):
 # def share(argv=None):
-# def mkdir(argv=None):
-# def rm(argv=None):
 # def restore(argv=None):
-# def cat(argv=None):
 # def scanner(argv=None):
 # def monitor(argv=None):
