@@ -334,8 +334,10 @@ def download(argv=None):
     if isinstance(remote_object, JFS.JFSFile):
         if download_jfsfile(remote_object, checksum=args.checksum):
             logging.info('%r downloaded successfully', remote_object.path)
+            return True
         else:
             puts(colored.red('%r download failed' % remote_object.path))
+            return False
 
     else: #if it's not a file it has to be a folder
         incomplete_files = [] #Create an list where we can store incomplete files
@@ -425,6 +427,7 @@ def download(argv=None):
         print('Folder and files not downloaded because of path too long: %d' % len(long_path))
         for _files in long_path:
             logging.info("Path too long: %r", _files)
+        return True
 
 
 def mkdir(argv=None):

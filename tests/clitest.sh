@@ -26,6 +26,7 @@ STAMP=$(date +%s);
 TESTFILE="$TMPDIR/Jotta/Archive/test/jottafuse.clitest.${STAMP}.txt";
 INDIR=$(dirname "$TESTFILE");
 TESTDIR="$INDIR/test-${STAMP}";
+JOTTADIR="//Jotta/Archive/test-${STAMP}"
 LOCALTESTFILE="${TMPDIR}/cli-${STAMP}-æøåöä.txt";
 cat << HERE > "$LOCALTESTFILE"
 Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec qu
@@ -73,7 +74,7 @@ PYTHONPATH=src python -c 'from jottalib import cli; cli.cat()' "$LOCALNAME" || e
 sleep 1;
 
 info "T4. Make dir";
-PYTHONPATH=src python -c 'from jottalib import cli; cli.mkdir()' "$TESTDIR" || err "mkdir() failed";
+PYTHONPATH=src python -c 'from jottalib import cli; cli.mkdir()' "$JOTTADIR" || err "mkdir() failed";
 sleep 1;
 
 info "T5. Listing";
@@ -81,17 +82,18 @@ JDIR=$(dirname "$TESTFILE");
 PYTHONPATH=src python -c 'from jottalib import cli; cli.ls()' "$JDIR" || err "ls() failed";
 sleep 1;
 
-info "T6. Remove dir";
-PYTHONPATH=src python -c 'from jottalib import cli; cli.rm()' "$TESTDIR" || err "rm() dir failed";
-sleep 1;
-
-info "T7. Remove file";
+info "T6. Remove file";
 PYTHONPATH=src python -c 'from jottalib import cli; cli.rm()' "$LOCALNAME" || err "rm() file failed";
 sleep 1;
 
-info "T8. Fuse";
-PYTHONPATH=src python -c 'from jottalib import cli; cli.fuse()' "$TESTDIR" || err "fuse() file failed";
+info "T7. Fuse";
+PYTHONPATH=src python -c 'from jottalib import cli; cli.fuse()' "$JOTTADIR" || err "fuse() file failed";
 sleep 1;
+
+info "T8. Remove dir";
+PYTHONPATH=src python -c 'from jottalib import cli; cli.rm()' "$JOTTADIR" || err "rm() dir failed";
+sleep 1;
+
 
 
 cleanup;
