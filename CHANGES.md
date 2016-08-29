@@ -1,5 +1,17 @@
 # Change Log
 
+## [0.6] - TBA
+
+### Bug fixes
+
+
+
+### Changed
+
+- Add suport for folder download and file checksumming in jotta-download. Code by @antonhagg
+- Add session timeout and retries, from @antonhagg
+
+
 ## [0.5.1] - 2016-08-26
 
 ### Bug fixes
