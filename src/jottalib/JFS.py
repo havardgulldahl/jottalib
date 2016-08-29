@@ -949,6 +949,7 @@ class JFS(object):
         from requests.auth import HTTPBasicAuth
         self.apiversion = '2.2' # hard coded per october 2014
         self.session = requests.Session() # create a session for connection pooling, ssl keepalives and cookie jar
+        self.session.mount('https://',requests.adapters.HTTPAdapter(max_retries=10))
         self.session.stream = True
         if not auth:
             auth = get_auth_info()
@@ -1001,7 +1002,7 @@ class JFS(object):
             url = self.rootpath + url
         log.debug("getting url: %r, extra_headers=%r, params=%r", url, extra_headers, params)
         if extra_headers is None: extra_headers={}
-        r = self.session.get(url, headers=extra_headers, params=params)
+        r = self.session.get(url, headers=extra_headers, params=params, timeout=1800) #max retries is set in __init__
 
         if r.status_code in ( 500, ):
             raise JFSError(r.reason)
