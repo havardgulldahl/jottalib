@@ -44,7 +44,7 @@ from jottalib.contrib.mwt import Memoize
 try:
     from fuse import FUSE, Operations, LoggingMixIn, FuseOSError # this is 'pip install fusepy'
 except ImportError:
-    print "JottaFuse won't work without fusepy! Please run `pip install fusepy`."
+    print("JottaFuse won't work without fusepy! Please run `pip install fusepy`.")
     raise
 
 class JottaFuseError(FuseOSError):
