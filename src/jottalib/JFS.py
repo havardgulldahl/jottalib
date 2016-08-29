@@ -1151,7 +1151,8 @@ class JFS(object):
             mtime = os.path.getmtime(fileobject.name)
             timestamp = datetime.datetime.fromtimestamp(mtime).isoformat()
         except Exception as e:
-            log.exception('Problems getting mtime from fileobjet: %r', e)
+            if hasattr(fileobject, 'name'):
+                log.exception('Problems getting mtime from fileobjet: %r', e)
             timestamp = datetime.datetime.now().isoformat()
         params = {'cphash': md5hash}
         m = requests_toolbelt.MultipartEncoder({
