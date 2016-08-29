@@ -1,9 +1,13 @@
 sudo: true
 # we dont want to use the container based setup because fuse isnt available there, so we set "sudo: true"
 
-os:
-  - linux
-  - osx
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      sudo: required
+    - os: osx
+      osx_image: xcode7.2
 
 language: python
 
