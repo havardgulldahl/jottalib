@@ -31,8 +31,10 @@ import posixpath
 import sys
 import time
 import re
-from clint.textui import progress
+from clint.textui import progress, colored, puts
 from functools import partial
+import codecs
+import urlparse
 
 # import our stuff
 from jottalib import JFS, __version__
@@ -59,10 +61,9 @@ if sys.platform != "win32":
 else:
     ProgressBar = partial(progress.Bar)
 
-
 ## HELPER FUNCTIONS ##
 
-def get_jotta_device(jfs):
+def get_jfs_device(jfs,device='Jotta'): #Default device is Jotta but can be changed
     jottadev = None
     for j in jfs.devices: # find Jotta/Shared folder
         if j.name == 'Jotta':
@@ -70,9 +71,9 @@ def get_jotta_device(jfs):
     return jottadev
 
 
-def get_root_dir(jfs):
-    jottadev = get_jotta_device(jfs)
-    root_dir = jottadev.mountPoints['Sync']
+def get_root_dir(jfs,device='Jotta',mountpoint='Sync'): #Default device is Jotta and mountpoint is Sync but can be changed
+    jottadev = get_jfs_device(jfs,device)
+    root_dir = jottadev.mountPoints[mountpoint]
     return root_dir
 
 def parse_args_and_apply_logging_level(parser, argv):
@@ -192,7 +193,7 @@ def share(argv=None):
                         type=argparse.FileType('r'))
     args = parse_args_and_apply_logging_level(parser, argv)
     jfs = JFS.JFS()
-    jottadev = get_jotta_device(jfs)
+    jottadev = get_jfs_device(jfs)
     jottashare = jottadev.mountPoints['Shared']
     upload = jottashare.up(args.localfile)  # upload file
     public = upload.share() # share file
@@ -262,31 +263,163 @@ def ls(argv=None):
 
 
 def download(argv=None):
+
+    def download_jfsfile(remote_object, tofolder=None, checksum=False):
+        'Helper function to get a jfsfile and store it in a local folder, optionally checksumming it. Returns boolean'
+        if tofolder is None:
+            tofolder = '.' # with no arguments, store in current dir
+        total_size = remote_object.size
+        if remote_object.state in (JFS.ProtoFile.STATE_CORRUPT, JFS.ProtoFile.STATE_INCOMPLETE):
+            puts(colored.red('%s was NOT downloaded successfully - Incomplete file' % remote_file.name))
+            return False
+        topath = os.path.join(tofolder, remote_object.name)
+        with open(topath, 'wb') as fh:
+            bytes_read = 0
+            with ProgressBar(expected_size=total_size,
+                             label='Downloading: %s, size: %s \t' % (remote_object.name,
+                                                                   print_size(total_size, humanize=True))) as bar:
+                for chunk_num, chunk in enumerate(remote_object.stream()):
+                    fh.write(chunk)
+                    bytes_read += len(chunk)
+                    bar.show(bytes_read)
+        if checksum:
+            md5_lf = JFS.calculate_md5(open(topath, 'rb'))
+            md5_jf = remote_object.md5
+            logging.info('%s - Checksum for downloaded file' % md5_lf)
+            logging.info('%s - Checksum for server file' % md5_jf)
+            if md5_lf != md5_jf:
+                puts(colored.blue('%s - Checksum for downloaded file' % md5_lf))
+                puts(colored.blue('%s - Checksum for server file' % md5_jf))
+                puts(colored.red('%s was NOT downloaded successfully - cheksum mismatch' % remote_object.name))
+                return False
+            puts(colored.green('%s was downloaded successfully - checksum  matched' % remote_object.name))
+        return True
+
     if argv is None:
         argv = sys.argv[1:]
-    parser = argparse.ArgumentParser(description='Download a file from Jottacloud.')
-    parser.add_argument('remotefile',
-                        help='The path to the file that you want to download',
-                        type=commandline_text)
+    parser = argparse.ArgumentParser(description='Download a file or folder from Jottacloud.')
+    parser.add_argument('remoteobject',
+                        help='The path to the file or folder that you want to download',
+                       type=commandline_text)
     parser.add_argument('-l', '--loglevel',
                         help='Logging level. Default: %(default)s.',
                         choices=('debug', 'info', 'warning', 'error'),
                         default='warning')
+    parser.add_argument('-c', '--checksum',
+                        help='Verify checksum of file after download',
+                        action='store_true' )
+    #parser.add_argument('-r', '--resume',
+    #                    help='Will not download the files again if it exist in path',
+    #                    action='store_true' )
     args = parse_args_and_apply_logging_level(parser, argv)
     jfs = JFS.JFS()
-    root_folder = get_root_dir(jfs)
-    path_to_object = posixpath.join(root_folder.path, args.remotefile)
-    remote_file = jfs.getObject(path_to_object)
-    total_size = remote_file.size
-    with open(remote_file.name, 'wb') as fh:
-        bytes_read = 0
-        with ProgressBar(expected_size=total_size) as bar:
-            for chunk_num, chunk in enumerate(remote_file.stream()):
-                fh.write(chunk)
-                bytes_read += len(chunk)
-                bar.show(bytes_read)
-    print('%s downloaded successfully' % args.remotefile)
-    return True # TODO: check/set return value
+
+    if args.remoteobject.startswith('//'):
+        # break out of root_folder
+        root_folder = jfs.rootpath
+        item_path = posixpath.join(root_folder, args.remoteobject[2:])
+    else:
+        root_folder = get_root_dir(jfs).path
+        item_path = posixpath.join(root_folder, args.remoteobject)
+
+    logging.info('Root folder path: %s' % root_folder)
+    logging.info('Command line path to object: %s' % args.remoteobject)
+    logging.info('Jotta path to object: %s' % item_path)
+    remote_object = jfs.getObject(item_path)
+    if isinstance(remote_object, JFS.JFSFile):
+        if download_jfsfile(remote_object, checksum=args.checksum):
+            logging.info('%r downloaded successfully', remote_object.path)
+        else:
+            puts(colored.red('%r download failed' % remote_object.path))
+
+    else: #if it's not a file it has to be a folder
+        incomplete_files = [] #Create an list where we can store incomplete files
+        checksum_error_files = [] #Create an list where we can store checksum error files
+        zero_files = [] #Create an list where we can store zero files
+        long_path = [] #Create an list where we can store skipped files and folders because of long path
+        puts(colored.blue("Getting index for folder: %s" % remote_object.name))
+        fileTree = remote_object.filedirlist().tree #Download the folder tree
+        puts(colored.blue('Total number of folders to download: %d' % len(fileTree)))
+        topdir = os.path.dirname(item_path)
+        logging.info("topdir: %r", topdir)
+
+        #Iterate through each folder
+        for folder in fileTree:
+            #We need to strip the path to the folder path from account,device and mountpoint details
+            logging.debug("folder: %r", folder)
+
+            _abs_folder_path = urlparse.urljoin(JFS.JFS_ROOT, folder[1:])
+            logging.debug("absolute folder path  : %r", _abs_folder_path)
+            _rel_folder_path = _abs_folder_path[len(topdir)+1:]
+            logging.info('relative folder path: %r', _rel_folder_path)
+
+            if len(_rel_folder_path) > 250: #Windows has a limit of 250 characters in path
+                puts(colored.red('%s was NOT downloaded successfully - path too long' % _rel_folder_path))
+                long_path.append(_rel_folder_path)
+            else:
+                logging.info('Entering a new folder: %s' % _rel_folder_path)
+                if not os.path.exists(_rel_folder_path): #Create the folder locally if it doesn't exist
+                    os.makedirs(_rel_folder_path)
+                for _file in fileTree[folder]: #Enter the folder and download the files within
+                    logging.info("file: %r", _file)
+                    #This is the absolute path to the file that is going to be downloaded
+                    abs_path_to_object = posixpath.join(topdir, _rel_folder_path, _file.name)
+                    logging.info('Downloading the file from: %s' % abs_path_to_object)
+                    if _file.state in (JFS.ProtoFile.STATE_CORRUPT, JFS.ProtoFile.STATE_INCOMPLETE):
+                        #Corrupt and incomplete files will be skipped
+                        puts(colored.red('%s was NOT downloaded successfully - Incomplete or corrupt file' % _file.name))
+                        incomplete_files.append(posixpath.join(_rel_folder_path,_file.name))
+                        continue
+                    remote_object = jfs.getObject(abs_path_to_object)
+                    remote_file = remote_object
+                    total_size = remote_file.size
+                    if total_size == 0: # Indicates an zero file
+                        puts(colored.red('%s was NOT downloaded successfully - zero file' % remote_file.name))
+                        zero_files.append(posixpath.join(_rel_folder_path,remote_file.name))
+                        continue
+                    if len(posixpath.join(_rel_folder_path,remote_file.name)) > 250: #Windows has a limit of 250 characters in path
+                        puts(colored.red('%s was NOT downloaded successfully - path too long' % remote_file.name))
+                        long_path.append(posixpath.join(_rel_folder_path,remote_file.name))
+                        continue
+                    #TODO: implement args.resume:
+                    if not download_jfsfile(remote_file, tofolder=_rel_folder_path, checksum=args.checksum):
+                        # download failed
+                        puts(colored.red("Download failed: %r" % remote_file.path))
+        #Incomplete files
+        if len(incomplete_files)> 0:
+            with codecs.open("incomplete_files.txt", "w", "utf-8") as text_file:
+                for item in incomplete_files:
+                    text_file.write("%s\n" % item)
+        print('Incomplete files (not downloaded): %d' % len(incomplete_files))
+        for _files in incomplete_files:
+            logging.info("Incomplete: %r", _files)
+
+        #Checksum error files
+        if len(checksum_error_files)> 0:
+            with codecs.open("checksum_error_files.txt", "w", "utf-8") as text_file:
+                for item in checksum_error_files:
+                    text_file.write("%s\n" % item)
+        print('Files with checksum error (not downloaded): %d' % len(checksum_error_files))
+        for _files in checksum_error_files:
+            logging.info("Checksum error: %r", _files)
+
+        #zero files
+        if len(zero_files)> 0:
+            with codecs.open("zero_files.txt", "w", "utf-8") as text_file:
+                for item in zero_files:
+                    text_file.write("%s\n" % item)
+        print('Files with zero size (not downloaded): %d' % len(zero_files))
+        for _files in zero_files:
+            logging.info("Zero sized files: %r", _files)
+
+        #long path
+        if len(long_path)> 0:
+            with codecs.open("long_path.txt", "w", "utf-8") as text_file:
+                for item in long_path:
+                    text_file.write("%s\n" % item)
+        print('Folder and files not downloaded because of path too long: %d' % len(long_path))
+        for _files in long_path:
+            logging.info("Path too long: %r", _files)
 
 
 def mkdir(argv=None):
@@ -383,9 +516,7 @@ def cat(argv=None):
         s = s + chunk
     return s
 
-
 def scanner(argv=None):
-
     if argv is None:
         argv = sys.argv[1:]
 
