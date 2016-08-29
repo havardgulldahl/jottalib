@@ -23,6 +23,7 @@ __author__ = 'havard@gulldahl.no'
 
 # import standardlib
 import os, sys, logging, tempfile, random, hashlib
+import os.path, posixpath
 
 from six import StringIO
 

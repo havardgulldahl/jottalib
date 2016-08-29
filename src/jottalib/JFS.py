@@ -27,7 +27,6 @@ import sys, os, os.path, time
 import posixpath, logging, datetime, hashlib
 from collections import namedtuple
 import six
-from six.moves import cStringIO as StringIO
 
 # importing external dependencies (pip these, please!)
 import requests
@@ -495,7 +494,7 @@ class JFSIncompleteFile(JFSCorruptFile):
     def resume(self, data):
         'Resume uploading an incomplete file, after a previous upload was interrupted. Returns new file object'
         if not hasattr(data, 'read'):
-            data = StringIO(data)
+            data = six.BytesIO(data)#StringIO(data)
 
         #Check that we actually know from what byte to resume.
         #If self.size === -1, it means we never got the value from the server.
@@ -591,7 +590,7 @@ class JFSFile(JFSIncompleteFile):
     def write(self, data):
         'Put, possibly replace, file contents with (new) data'
         if not hasattr(data, 'read'):
-            data = StringIO(data)
+            data = six.BytesIO(data)#StringIO(data)
         self.jfs.up(self.path, data)
 
     def share(self):
@@ -998,7 +997,7 @@ class JFS(object):
         'Make a GET request for url and return the response content as a generic lxml.objectify object'
         url = self.escapeUrl(url)
 
-        content = StringIO(self.raw(url, params=params))
+        content = six.BytesIO(self.raw(url, params=params))
         # We need to make sure that the xml fits in available memory before we parse
         # with lxml.objectify.fromstring(), or else it will bomb out.
         # If it is too big, we need to buffer it to disk before we run it through objectify. see #87
