@@ -1,0 +1,20 @@
+# enumerating ALL dependencies, also extras, for both packages, for easy testing
+# windows
+
+# jottalib
+
+requests
+requests_toolbelt
+certifi
+python-dateutil
+lxml    # you need to install it from a .whl wheel
+humanize
+chardet
+
+# jottacloudclient
+
+clint
+watchdog
+
+# test environment
+pytest
