@@ -79,7 +79,7 @@ sleep 1;
 
 info "T5. Listing";
 JDIR=$(dirname "$JOTTADIR");
-PYTHONPATH=src python -c 'from jottalib import cli; cli.ls()' "$JDIR" || err "ls() failed";
+PYTHONPATH=src python -c 'from jottalib import cli; cli.ls()' "$JDIR" >/dev/null || err "ls() failed";
 sleep 1;
 
 info "T6. Remove file";
