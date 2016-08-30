@@ -14,7 +14,7 @@ init:
   - "ECHO %PYTHON%"
   - "ECHO %LXML%"
   - ps: Invoke-WebRequest "https://bootstrap.pypa.io/ez_setup.py" -OutFile "c:/ez_setup.py"
-  - ps: Invoke-WebRequest "https://raw.github.com/pypa/pip/master/contrib/get-pip.py" -OutFile "c:/get-pip.py"
+  - ps: Invoke-WebRequest "https://bootstrap.pypa.io/get-pip.py" -OutFile "c:/get-pip.py"
   - ps: "git config --global core.autocrlf false" # always use unix lineendings
 
 install:
