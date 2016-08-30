@@ -20,7 +20,7 @@ init:
 install:
   - "%PYTHON%/python.exe c:/ez_setup.py > NUL"
   - "%PYTHON%/python.exe c:/get-pip.py"
-  - "%PYTHON%/Scripts/pip.exe %LXML%"
+  - "%PYTHON%/Scripts/pip.exe install %LXML%"
   - "%PYTHON%/Scripts/pip.exe -q install -r %REQUIREMENTS%"
 
 test_script:
