@@ -24,6 +24,5 @@ install:
   - "%PYTHON%/Scripts/pip.exe -q install -r %REQUIREMENTS%"
 
 test_script:
-  - "%PYTHON%/Scripts/pip.exe --version"
-  - "%PYTHON%/Scripts/http.exe --debug"
-  - "%PYTHON%/python.exe setup.py test"
+  - ls "%PYTHON%/Scripts"
+  - "%PYTHON%/Scripts/py.test tests"
