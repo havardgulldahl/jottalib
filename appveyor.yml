@@ -4,18 +4,24 @@ build: false
 environment:
   matrix:
     - PYTHON: "C:/Python27"
-    # Python 3.4 has outdated pip
-    # - PYTHON: "C:/Python34"
-    - PYTHON: "C:/Python35"
+      LXML: "tests/contrib/lxml-3.6.4-cp27-cp27m-win32.whl"
+      REQUIREMENTS: "test/requirements.txt"
+    - PYTHON: "C:/Python34"
+      LXML: "tests/contrib/lxml-3.6.4-cp35-cp35m-win32.whl"
+      REQUIREMENTS: "test/requirements.txt"
 
 init:
   - "ECHO %PYTHON%"
-  - ps: "ls C:/Python*"
+  - "ECHO %LXML%"
+  - ps: Invoke-WebRequest "https://bootstrap.pypa.io/ez_setup.py" -OutFile "c:/ez_setup.py"
+  - ps: Invoke-WebRequest "https://raw.github.com/pypa/pip/master/contrib/get-pip.py" -OutFile "c:/get-pip.py"
+  - ps: "git config --global core.autocrlf false" # always use unix lineendings
 
 install:
-  # FIXME: updating pip fails with PermissionError
-  # - "%PYTHON%/Scripts/pip.exe install -U pip setuptools"
-  - "%PYTHON%/Scripts/pip.exe install -e ."
+  - "%PYTHON%/python.exe c:/ez_setup.py > NUL"
+  - "%PYTHON%/python.exe c:/get-pip.py"
+  - "%PYTHON%/Scripts/pip.exe %LXML%"
+  - "%PYTHON%/Scripts/pip.exe -q install -r %REQUIREMENTS%"
 
 test_script:
   - "%PYTHON%/Scripts/pip.exe --version"
