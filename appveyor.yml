@@ -5,10 +5,10 @@ environment:
   matrix:
     - PYTHON: "C:/Python27"
       LXML: "tests/contrib/lxml-3.6.4-cp27-cp27m-win32.whl"
-      REQUIREMENTS: "test/requirements.txt"
+      REQUIREMENTS: "tests/requirements.txt"
     - PYTHON: "C:/Python34"
       LXML: "tests/contrib/lxml-3.6.4-cp35-cp35m-win32.whl"
-      REQUIREMENTS: "test/requirements.txt"
+      REQUIREMENTS: "tests/requirements.txt"
 
 init:
   - "ECHO %PYTHON%"
