@@ -435,6 +435,7 @@ def mkdir(argv=None):
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Create a new folder in Jottacloud.')
     parser.add_argument('newdir',
+                        type=commandline_text,
                         help='The path to the folder that you want to create')
     parser.add_argument('-l', '--loglevel',
                         help='Logging level. Default: %(default)s.',
@@ -452,6 +453,7 @@ def rm(argv=None):
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Delete an item from Jottacloud')
     parser.add_argument('file',
+                        type=commandline_text,
                         help='The path to the item that you want to delete')
     parser.add_argument('-l', '--loglevel',
                         help='Logging level. Default: %(default)s.',
