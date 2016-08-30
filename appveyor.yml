@@ -6,7 +6,7 @@ environment:
     - PYTHON: "C:/Python27"
       LXML: "tests/contrib/lxml-3.6.4-cp27-cp27m-win32.whl"
       REQUIREMENTS: "tests/requirements.win.txt"
-    - PYTHON: "C:/Python34"
+    - PYTHON: "C:/Python35"
       LXML: "tests/contrib/lxml-3.6.4-cp35-cp35m-win32.whl"
       REQUIREMENTS: "tests/requirements.win.txt"
 
@@ -17,12 +17,14 @@ init:
   - ps: Invoke-WebRequest "https://bootstrap.pypa.io/get-pip.py" -OutFile "c:/get-pip.py"
   - ps: "git config --global core.autocrlf false" # always use unix lineendings
 
+
 install:
   - "%PYTHON%/python.exe c:/ez_setup.py > NUL"
   - "%PYTHON%/python.exe c:/get-pip.py"
   - "%PYTHON%/Scripts/pip.exe install %LXML%"
   - "%PYTHON%/Scripts/pip.exe -q install -r %REQUIREMENTS%"
+  - set PYTHONPATH=%PYTHONPATH%;tests
 
 test_script:
-  - ls "%PYTHON%/Scripts"
+  - ls 
   - "%PYTHON%/Scripts/py.test tests"
