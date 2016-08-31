@@ -3,13 +3,17 @@ build: false
 
 environment:
   matrix:
-    - PYTHON: "C:/Python27"
+    - PYTHON: "C:/Python27" # this is win32
       LXML: "tests/contrib/lxml-3.6.4-cp27-cp27m-win32.whl"
+      #PY2EXE: py2exe_py2
       REQUIREMENTS: "tests/requirements.win.txt"
     - PYTHON: "C:/Python35"
       LXML: "tests/contrib/lxml-3.6.4-cp35-cp35m-win32.whl"
+      #PY2EXE: "py2exe
       REQUIREMENTS: "tests/requirements.win.txt"
-
+    #- PYTHON: "C:\\Python27-x64" #TODO: enable x64 build
+    #  PYTHON_VERSION: "2.7.x" # currently 2.7.9
+    #  PYTHON_ARCH: "64"
 init:
   - "ECHO %PYTHON%"
   - "ECHO %LXML%"
@@ -22,9 +26,12 @@ install:
   - "%PYTHON%/python.exe c:/ez_setup.py > NUL"
   - "%PYTHON%/python.exe c:/get-pip.py"
   - "%PYTHON%/Scripts/pip.exe install %LXML%"
+  - "%PYTHON%/Scripts/pip.exe install %PY2EXE%"
   - "%PYTHON%/Scripts/pip.exe -q install -r %REQUIREMENTS%"
-  - set PYTHONPATH=%PYTHONPATH%;tests
+  - "%PYTHON%/Scripts/pip.exe install ." # install jottalib
+  #- git clone https://github.com/havardgulldahl/jottalib
+  - set PYTHONPATH=%PYTHONPATH%;tests;%CD%\tests"
 
 test_script:
-  - ls 
+  - echo "PYTHONPATH=%PYTHONPATH%"
   - "%PYTHON%/Scripts/py.test tests"
