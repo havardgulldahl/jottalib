@@ -75,12 +75,12 @@ def test_get_jottapath(tmpdir):
 
 def test_new():
     # def new(localfile, jottapath, JFS):
-    _localfile = u'tests/crazyfilenames/easy.ascii.txt'
+    _localfile = u'tests/requirements.txt'
     _jottapath = u'/Jotta/Archive/TEST/test_new_ascii_filename.txt'
     _new = jottacloud.new(_localfile, _jottapath, jfs)
     assert isinstance(_new, JFS.JFSFile)
     _new.delete()
-    _localfile2 = u'tests/crazyfilenames/blåbær.utf8.txt'
+    _localfile2 = u'tests/requirements.txt'
     _jottapath2 = u'/Jotta/Archive/TEST/test_new_blåbær_utf8_filename.txt'
     _new2 = jottacloud.new(_localfile2, _jottapath2, jfs)
     assert isinstance(_new2, JFS.JFSFile)
@@ -90,7 +90,7 @@ def test_new():
 
 def test_is_file():
     # def is_file(jottapath, JFS):
-    _localfile = u'tests/crazyfilenames/easy.ascii.txt'
+    _localfile = u'tests/requirements.txt'
     _jottapath = u'/Jotta/Archive/TEST/test_is_file.txt'
     _new = jottacloud.new(_localfile, _jottapath, jfs)
     assert jottacloud.is_file(_jottapath, jfs)
@@ -99,7 +99,7 @@ def test_is_file():
 
 def test_delete():
     # def delete(jottapath, JFS):
-    _localfile = u'tests/crazyfilenames/easy.ascii.txt'
+    _localfile = u'tests/requirements.txt'
     _jottapath = u'/Jotta/Archive/TEST/test_delete.txt'
     _new = jottacloud.new(_localfile, _jottapath, jfs)
     _del = _new.delete()
@@ -109,7 +109,7 @@ def test_replace_if_changed():
     # def replace_if_changed(localfile, jottapath, JFS):
     # first test non-existing jottapath
     # it should raise a not found JFSNotFoundError
-    _localfile = u'tests/crazyfilenames/easy.ascii.txt'
+    _localfile = u'tests/requirements.txt'
     rndm = random.randint(0, 1000)
     with pytest.raises(JFS.JFSNotFoundError):
         assert jottacloud.replace_if_changed(_localfile,
