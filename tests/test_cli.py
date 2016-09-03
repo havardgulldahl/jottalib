@@ -133,7 +133,7 @@ def test_download():
     with pytest.raises(SystemExit):
         cli.download([]) # argparse should raise systemexit without the mandatory arguments
     testcontents = u'12345test'
-    testdir = '/Jotta/Archive/Test/'
+    testdir = '/Jotta/Archive/Test'
     testfile = 'test.txt'
     testpath = posixpath.join(testdir, testfile)
     d = jfs.up(testpath, StringIO(testcontents))
