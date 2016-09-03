@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 #
-# This file is part of jottafs.
+# This file is part of jottalib.
 #
 # jottafs is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,15 +16,19 @@
 # You should have received a copy of the GNU General Public License
 # along with jottafs.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright 2014,2015 Håvard Gulldahl <havard@gulldahl.no>
+# Copyright 2014-2016 Håvard Gulldahl <havard@gulldahl.no>
 
 from setuptools import setup
 
 import os
 import sys
-sys.path.insert(0, './src')
+import os.path
+import re
+#sys.path.insert(0, './src')
 
-from jottalib import __version__
+# get metadata (__version__, etc) from module magic
+with open(os.path.join('src', 'jottalib', '__init__.py')) as f:
+    metadata = dict(re.findall("__([a-z]+)__\s*=\s*'([^']+)'", f.read()))
 
 try:
     with open('README.txt') as f:
@@ -33,7 +37,7 @@ except:
     long_desc = ''
 
 setup(name='jottalib',
-      version=__version__,
+      version=metadata['version'],
       license='GPLv3',
       description='A library and tools to access the JottaCloud API',
       long_description=long_desc,
