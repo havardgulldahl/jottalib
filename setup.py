@@ -36,6 +36,33 @@ try:
 except:
     long_desc = ''
 
+REQUIRES = ['requests',
+            'requests_toolbelt',
+            'certifi',
+            'clint',
+            'python-dateutil',
+            'humanize',
+            'six',
+            'chardet',]
+
+# see https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
+EXTRAS = {
+          'Qt':  [],                 # required for qt models
+          'FUSE':  [],               # required for jotta-fuse
+          'monitor': ['watchdog',],  # required for jotta-monitor
+          'scanner': [],             # optional for jotta-scanner
+        }
+
+if sys.platform != 'win32':
+    # all the stuff that doesnt work on windows
+    REQUIRES.append('lxml') 
+    EXTRAS['scanner'].append('xattr')
+    EXTRAS['FUSE'].append('fusepy')
+    EXTRAS['Qt'].append('python-qt4')
+else:
+    print('WARNING: jottalib requires `lxml`, please get it from http://www.lfd.uci.edu/~gohlke/pythonlibs/')
+
+
 setup(name='jottalib',
       version=metadata['version'],
       license='GPLv3',
@@ -46,23 +73,8 @@ setup(name='jottalib',
       url='https://github.com/havardgulldahl/jottalib',
       package_dir={'':'src'},
       packages=['jottalib', 'jottalib.contrib'],
-      install_requires=['requests',
-                        'requests_toolbelt',
-                        'certifi',
-                        'clint',
-                        'python-dateutil',
-                        'humanize',
-                        'lxml',
-                        'six',
-                        'chardet',
-      ],
-      # see https://pythonhosted.org/setuptools/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
-      extras_require={
-          'Qt':  ['python-qt4',],
-          'FUSE':  ['fusepy',],      # required for jotta-fuse
-          'monitor': ['watchdog',],  # required for jotta-monitor
-          'scanner': ['xattr',],     # optional for jotta-scanner
-      },
+      install_requires=REQUIRES,
+      extras_require=EXTRAS,
       entry_points={
           'console_scripts': [
               'jotta-download = jottalib.cli:download',
