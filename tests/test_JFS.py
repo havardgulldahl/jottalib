@@ -43,8 +43,20 @@ jfs = JFS.JFS() # get username and password from environment or .netrc
 
 
 TESTFILEDATA=b"""
-Lørem ipsum dolor sit amet, consectetur adipiscing elit. Nulla est dolor, convallis fermentum sapien in, fringilla congue ligula. Fusce at justo ac felis vulputate laoreet vel at metus. Aenean justo lacus, porttitor dignissim imperdiet a, elementum cursus ligula. Vivamus eu est viverra, pretium arcu eget, imperdiet eros. Curabitur in bibendum."""
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+Nulla est dolor, convallis fermentum sapien in, fringilla congue ligula. 
+Fusce at justo ac felis vulputate laoreet vel at metus. 
+Aenean justo lacus, porttitor dignissim imperdiet a, elementum cursus ligula. 
+Vivamus eu est viverra, pretium arcu eget, imperdiet eros. 
+Curabitur in bibendum."""
 
+TESTFILETEXT=u"""
+Lørem ipsum dolor sit amet, consectetur adipiscing elit. 
+Nulla est dolor, convallis fermentum sapien in, fringilla congue ligula. 
+Fusce at justo ac felis vulputate laoreet vel at metus. 
+Aenean justo lacus, porttitor dignissim imperdiet a, elementum cursus ligula. 
+Vivamus eu est viverra, pretium arcu eget, imperdiet eros. 
+Curabitur in bibendum."""
 
 class TestJFS:
     def test_xml(self):
@@ -108,9 +120,17 @@ class TestJFS:
     def test_devices(self):
         assert all(isinstance(item, JFS.JFSDevice) for item in jfs.devices)
 
-    def test_up_and_delete(self):
-        p = "/Jotta/Archive/testfile_up_and_delete.txt"
+    def test_up_and_delete_data(self):
+        p = "/Jotta/Archive/testfile_up_and_delete_data.txt"
         t = jfs.up(p, six.BytesIO(TESTFILEDATA))
+        assert isinstance(t, JFS.JFSFile)
+        d = t.delete()
+        assert isinstance(d, JFS.JFSFile)
+        assert d.is_deleted()
+
+    def test_up_and_delete_text(self):
+        p = "/Jotta/Archive/testfile_up_and_delete_text.txt"
+        t = jfs.up(p, six.StringIO(TESTFILETEXT.encode('utf-8')))
         assert isinstance(t, JFS.JFSFile)
         d = t.delete()
         assert isinstance(d, JFS.JFSFile)
