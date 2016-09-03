@@ -97,6 +97,8 @@ def print_size(num, humanize=False):
 
 def commandline_text(bytestring):
     'Convert bytestring from command line to unicode, using default file system encoding'
+    if six.PY3:
+        return bytestring
     unicode_string = bytestring.decode(sys.getfilesystemencoding())
     return unicode_string
 
@@ -281,7 +283,7 @@ def download(argv=None):
         with open(topath, 'wb') as fh:
             bytes_read = 0
             puts(colored.white('Downloading: %s, size: %s \t' % (remote_object.name, 
-                                                                 print_size(total_size, humanize=True))))
+                                                                 print_size(total_size, humanize=True))))   
             with ProgressBar(expected_size=total_size) as bar:
                 for chunk_num, chunk in enumerate(remote_object.stream()):
                     fh.write(chunk)
