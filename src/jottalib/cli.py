@@ -280,9 +280,9 @@ def download(argv=None):
         topath = os.path.join(tofolder, remote_object.name)
         with open(topath, 'wb') as fh:
             bytes_read = 0
-            with ProgressBar(expected_size=total_size,
-                             label='Downloading: %s, size: %s \t' % (remote_object.name,
-                                                                   print_size(total_size, humanize=True))) as bar:
+            puts(colored.white('Downloading: %s, size: %s \t' % (remote_object.name, 
+                                                                 print_size(total_size, humanize=True))))
+            with ProgressBar(expected_size=total_size) as bar:
                 for chunk_num, chunk in enumerate(remote_object.stream()):
                     fh.write(chunk)
                     bytes_read += len(chunk)
