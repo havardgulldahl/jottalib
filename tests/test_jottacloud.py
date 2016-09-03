@@ -22,7 +22,7 @@
 __author__ = 'havard@gulldahl.no'
 
 # import standardlib
-import os, logging, tempfile, random, hashlib
+import os, logging, tempfile, random, hashlib, stat
 try:
     from io import StringIO # py3
 except ImportError:
@@ -132,10 +132,42 @@ def test_replace_if_changed():
     assert cloudobj.read() == newdata
     _del = cloudobj.delete()
 
+def test_special_files(tmpdir):
+    # FIFO
+    os.mkfifo(str(tmpdir.join('fifo')))
+    # Block device
+    try:
+        os.mknod(str(tmpdir.join('blck')), 0o600 | stat.S_IFBLK, os.makedev(10, 20))
+    except OSError as e:
+        pass
+    # Char device
+    try:
+        os.mknod(str(tmpdir.join('char')), 0o600 | stat.S_IFCHR, os.makedev(30, 40))
+    except OSError as e:
+        pass
+    # add some control group files
+    tmpdir.join('control1').write('control1', ensure=True)
+    tmpdir.join('control2.txt').write('control2.txt', ensure=True)
+
+    _jottapath = u'/Jotta/Archive/TEST_SPECIAL'
+    #def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patterns=None):
+    # dirpath, # byte string, full path
+    #    onlylocal, # set(), files that only exist locally, i.e. newly added files that don't exist online,
+    #    onlyremote, # set(), files that only exist in the JottaCloud, i.e. deleted locally
+    #    bothplaces # set(), files that exist both locally and remotely
+    #    onlyremotefolders,
+
+    tree = list(jottacloud.compare(str(tmpdir), _jottapath, jfs))
+    _, onlylocal, _, _, _ = tree[0]
+    assert len(onlylocal) == 2
+    for _basename in [os.path.basename(x.localpath) for x in onlylocal]:
+        assert _basename in ('control1', 'control2.txt')
+
+
 
 # TODO:
 # def filelist(jottapath, JFS):
-# def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patterns=None):
+# def compare w exclude_patterns
 # def resume(localfile, jottafile, JFS):
 # def mkdir(jottapath, JFS):
 # def iter_tree(jottapath, JFS):

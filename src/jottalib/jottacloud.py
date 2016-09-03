@@ -18,7 +18,7 @@
 #
 # Copyright 2014-2016 Håvard Gulldahl <havard@gulldahl.no>
 
-import sys, os, os.path, posixpath, logging, collections
+import sys, os, os.path, posixpath, logging, collections, stat
 
 log = logging.getLogger(__name__)
 
@@ -103,6 +103,12 @@ def compare(localtopdir, jottamountpoint, JFS, followlinks=False, exclude_patter
     """
     def excluded(unicodepath, fname):
         fpath = os.path.join(unicodepath, _decode_filename_to_unicode(fname))
+        # skip FIFOs, block devices, character devices and the like, see bug#129
+        mode = os.stat(fpath).st_mode
+        if not (stat.S_ISREG(mode) or 
+                stat.S_ISLNK(mode) or
+                stat.S_ISDIR(mode)): # we only like regular files, dirs or symlinks
+            return True
         if exclude_patterns is None:
             return False
         for p in exclude_patterns:
