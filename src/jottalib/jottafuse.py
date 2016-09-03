@@ -142,7 +142,7 @@ class JottaFuse(LoggingMixIn, Operations):
             return {
                 'st_atime': time.time(),
                 'st_gid': pw.pw_gid,
-                'st_mode': stat.S_IFDIR | 0755,
+                'st_mode': stat.S_IFDIR | 0o755,
                 'st_mtime': time.time(),
                 'st_size': 0,
                 'st_uid': pw.pw_uid,
@@ -151,7 +151,7 @@ class JottaFuse(LoggingMixIn, Operations):
             return {
                 'st_atime': time.time(),
                 'st_gid': pw.pw_gid,
-                'st_mode': stat.S_IFREG | 0644,
+                'st_mode': stat.S_IFREG | 0o644,
                 'st_mtime': time.time(),
                 'st_size': 0,
                 'st_uid': pw.pw_uid,
@@ -164,15 +164,15 @@ class JottaFuse(LoggingMixIn, Operations):
             raise OSError(errno.ENOENT)
 
         if isinstance(f, (JFS.JFSIncompleteFile, JFS.JFSFile)):
-            _mode = stat.S_IFREG | 0644
+            _mode = stat.S_IFREG | 0o644
         elif isinstance(f, JFS.JFSFolder):
-            _mode = stat.S_IFDIR | 0755
+            _mode = stat.S_IFDIR | 0o755
         elif isinstance(f, (JFS.JFSMountPoint, JFS.JFSDevice) ):
-            _mode = stat.S_IFDIR | 0555 # these are special jottacloud dirs, make them read only
+            _mode = stat.S_IFDIR | 0o555 # these are special jottacloud dirs, make them read only
         else:
             if not f.tag in ('user', ):
                 log.warning('Unknown jfs object: %s <-> "%s"' % (type(f), f.tag) )
-            _mode = stat.S_IFDIR | 0555
+            _mode = stat.S_IFDIR | 0o555
         return {
                 'st_atime': time.mktime(f.modified.timetuple()) if isinstance(f, JFS.JFSFile) else time.time(),
                 'st_gid': pw.pw_gid,
