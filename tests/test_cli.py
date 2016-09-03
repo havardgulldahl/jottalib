@@ -23,7 +23,7 @@ __author__ = 'havard@gulldahl.no'
 
 # import standardlib
 import os, sys, logging, tempfile, random, hashlib
-import os.path, posixpath, glob
+import os.path, posixpath, zipfile
 
 from six import StringIO
 
@@ -71,15 +71,18 @@ def test_upload():
     assert isinstance(fi, JFS.JFSFile)
     fi.delete()
 
-def test_upload_crazy_filenames():
+def test_upload_crazy_filenames(tmpdir):
     # test crazy filenames
     jotta_test_path = '//Jotta/Archive/crazyfilename'
     cli.mkdir([jotta_test_path])
-    for crazyfilename in glob.glob('tests/crazyfilenames/*'):
-        _filename = os.path.basename(crazyfilename)
-        assert cli.upload([crazyfilename, jotta_test_path])
+    zip = zipfile.ZipFile('tests/crazyfilenames.zip')
+    zip.extractall(path=str(tmpdir))
+    for crazyfilename in tmpdir.join('crazyfilenames').listdir():
+        _filename = crazyfilename.basename
+        _base, _enc, _ext = _filename.split('.') 
+        assert cli.upload([str(crazyfilename), jotta_test_path])
         # TODO: enable this
-        #assert cli.cat([os.path.join(jotta_test_path, _filename), ]) == open(crazyfilename).read()
+        #assert cli.cat([os.path.join(jotta_test_path, _filename), ]) == crazyfilename.read()
     cli.rm([jotta_test_path])
 
 def test_rm():
@@ -138,7 +141,7 @@ def test_download():
     assert cli.download(['/%s' % testpath, '--checksum'])
     #TODO: implement when --resume is - assert cli.download(['/%s' % testpath, '--resume'])
     assert open(testfile).read() == testcontents
-
+    # download the whole directlry
     assert cli.download(['/%s' % testdir,])
     assert cli.download(['/%s' % testdir, '--checksum'])
     assert open('Test/text.txt').read() == testcontents
