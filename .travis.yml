@@ -52,5 +52,5 @@ script:
   - PYTHONPATH=$PYTHONPATH:./src py.test tests/
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ./tests/fusetest.sh; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then ./tests/clitest.sh; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo ./tests/fusetest.sh; fi 
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then ./tests/fusetest.sh; fi 
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then ./tests/clitest.sh; fi
