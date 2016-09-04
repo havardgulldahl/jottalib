@@ -27,6 +27,7 @@ echo "RUNNING TESTS FOR RELEASE v$VERSION"
 echo "=======================";
 PYTHONPATH=src py.test tests/ || err "Tests failed";
 tests/fusetest.sh || err "FUSE tests failed";
+tests/clitest.sh || err "CLI tests failed";
 
 
 confirm "Continue with release of v$VERSION?" || exit 0;
@@ -36,7 +37,7 @@ echo "RELEASE JOTTALIB AND JOTTACLOUDCLIENT VERSION $VERSION:"
 echo "=======================";
 printf "Uploading cheese to pypi";
 printf "... jottalib ";
-python setup.py sdist upload || err "jottalib setup.py upload failed";
+python setup.py sdist bdist_wheel upload || err "jottalib setup.py upload failed";
 echo "=======================";
 echo "Creating git tag $VERSION and pushing it to git server";
 git tag -a "v$VERSION" -m "Version $VERSION release" || err "couldnt tag git tree";
