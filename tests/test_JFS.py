@@ -181,7 +181,7 @@ class TestJFS:
         assert isinstance(jfs.getObject('/Jotta/Archive/test'), JFS.JFSFolder)
         #TODO: test with a python-requests object
 
-    def test_urlencoded_filename(self):
+    def test_urlencoded_filename(self, tmpdir):
         # make sure filenames that contain percent-encoded characters are
         # correctly parsed and the percent encoding is preserved
         tests = ['%2FVolumes%2FMedia%2Ftest.txt', # existing percent encoding, see #25
@@ -204,12 +204,9 @@ class TestJFS:
 
         for f in tests:
             p = posixpath.join('/Jotta/Archive', f)
-            if six.PY2:
-                _f = tempfile.NamedTemporaryFile(mode='w+', prefix=f)
-            elif six.PY3:
-                _f = tempfile.NamedTemporaryFile(mode='w+', encoding='utf-8', prefix=f)
-            _f.write('123test')
-            jfs_f = jfs.up(p, _f)
+            _f = tmpdir.join(f).ensure()
+            _f.write(f)
+            jfs_f = jfs.up(p, six.BytesIO(_f.read_binary()))
             clean_room_path = '%s%s%s%s' % (JFS.JFS_ROOT, jfs.username, '/Jotta/Archive/', f)
             assert jfs.session.get(clean_room_path).status_code == 200 # check that strange file name is preserved
             assert jfs_f.path == clean_room_path
@@ -357,7 +354,7 @@ class TestJFSMountPoint:
         newf.delete()
 
         _f = tempfile.NamedTemporaryFile()
-        _f.write(u'123test')
+        _f.write(b'123test')
 
         newfile = dev.up(_f)
         assert isinstance(newfile, JFS.JFSFile)
@@ -711,7 +708,7 @@ class TestJFSFolder:
 
 
         _f = tempfile.NamedTemporaryFile()
-        _f.write('123test')
+        _f.write(b'123test')
 
         newfile = dev.up(_f)
         assert isinstance(newfile, JFS.JFSFile)
