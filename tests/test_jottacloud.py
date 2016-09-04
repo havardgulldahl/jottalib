@@ -22,7 +22,7 @@
 __author__ = 'havard@gulldahl.no'
 
 # import standardlib
-import os, logging, tempfile, random, hashlib, stat
+import sys, os, logging, tempfile, random, hashlib, stat
 try:
     from io import StringIO # py3
 except ImportError:
@@ -36,6 +36,8 @@ try:
     HAS_XATTR=True
 except ImportError: # no xattr installed, not critical because it is optional
     HAS_XATTR=False
+
+WIN32 = (sys.platform == "win32")
 
 
 # import jotta
@@ -132,6 +134,7 @@ def test_replace_if_changed():
     assert cloudobj.read() == newdata
     _del = cloudobj.delete()
 
+@pytest.mark.skipif(WIN32==True, reason="No file system support for special files")
 def test_special_files(tmpdir):
     # FIFO
     os.mkfifo(str(tmpdir.join('fifo')))

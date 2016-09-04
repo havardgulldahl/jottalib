@@ -22,8 +22,9 @@
 __author__ = 'havard@gulldahl.no'
 
 # import standardlib
-import os, sys, logging, tempfile, random, hashlib
+import os, sys, logging, random, hashlib
 import os.path, posixpath, zipfile
+from datetime import datetime
 
 from six import StringIO
 
@@ -33,8 +34,18 @@ import pytest # pip install pytest
 # import jotta
 from jottalib import JFS, __version__, cli
 
+WIN32 = (sys.platform == "win32")
+
 TESTFILEDATA=u"""
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla est dolor, convallis fermentum sapien in, fringilla congue ligula. Fusce at justo ac felis vulputate laoreet vel at metus. Aenean justo lacus, porttitor dignissim imperdiet a, elementum cursus ligula. Vivamus eu est viverra, pretium arcu eget, imperdiet eros. Curabitur in bibendum."""
+
+EPOCH = datetime(1970, 1, 1)
+
+def timestamp():
+    """
+    :return: now in unix time, eg. seconds since 1970
+    """
+    return (datetime.utcnow() - EPOCH).total_seconds()
 
 jfs = JFS.JFS()
 dev = cli.get_jfs_device(jfs)
@@ -61,14 +72,16 @@ def test_mkdir():
     assert isinstance(d, JFS.JFSFolder)
     assert d.is_deleted() == False
 
-def test_upload():
+def test_upload(tmpdir):
     with pytest.raises(SystemExit):
         cli.upload([]) # argparse should raise systemexit without the mandatory arguments
-    filename = tempfile.NamedTemporaryFile(suffix='.txt', prefix='test_upload-')
-    filename.write(TESTFILEDATA)
-    assert cli.upload([filename.name, '//Jotta/Archive'])
-    fi = jfs.getObject('/Jotta/Archive/%s' % os.path.basename(filename.name))
+
+    testfile = tmpdir.join('test_upload-%s.txt' % timestamp()).ensure()
+    testfile.write(TESTFILEDATA)
+    assert cli.upload([str(testfile), '//Jotta/Archive'])
+    fi = jfs.getObject('/Jotta/Archive/%s' % str(testfile.basename))
     assert isinstance(fi, JFS.JFSFile)
+    assert fi.read() == TESTFILEDATA
     fi.delete()
 
 def test_upload_crazy_filenames(tmpdir):

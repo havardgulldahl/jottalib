@@ -187,7 +187,6 @@ class TestJFS:
         tests = ['%2FVolumes%2FMedia%2Ftest.txt', # existing percent encoding, see #25
                  'My funky file.txt', # file name with spaces, see 57
                  'My+funky+file.txt', # file name with plus signs
-                 'My?funky?file.txt', # file name with question marks
                  'My=funky=file.txt', # file name with equal signs
                  'My&funky&file.txt', # file name with ampersand signs
                  'My#funky#file.txt', # file name with pound signs
@@ -198,6 +197,11 @@ class TestJFS:
                  'My%funky%file.txt', # file name with per cent signs
                  'My,funky,file.txt', # file name with commas
                 ]
+        if sys.platform != "win32":
+            # some filenames are not allowed on fat32 
+            test = tests + ['My?funky?file.txt', # file name with question marks
+                            ]
+
         for f in tests:
             p = posixpath.join('/Jotta/Archive', f)
             if six.PY2:
