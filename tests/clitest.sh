@@ -25,7 +25,7 @@ TMPDIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir');
 STAMP=$(date +%s);
 TESTFILE="$TMPDIR/Jotta/Archive/test/jottafuse.clitest.${STAMP}.txt";
 INDIR=$(dirname "$TESTFILE");
-TESTDIR="$INDIR/test-${STAMP}";
+FUSEDIR="$INDIR/fuse-${STAMP}";
 JOTTADIR="//Jotta/Archive/test-${STAMP}"
 LOCALTESTFILE="${TMPDIR}/cli-${STAMP}-æøåöä.txt";
 cat << HERE > "$LOCALTESTFILE"
@@ -36,9 +36,9 @@ BACK="$PWD";
 cd "/tmp";
 
 function cleanup {
-  mount | grep -q JottaCloudFS && unmount "$TESTDIR";
+  mount | grep -q JottaCloudFS && unmount "$FUSEDIR";
   cd "$BACK";
-  rmdir "$TMPDIR";
+  rmdir "$FUSEDIR";
 }
 
 function err {
@@ -87,7 +87,8 @@ PYTHONPATH=src python -c 'from jottalib import cli; cli.rm()' "$LOCALNAME" || er
 sleep 1;
 
 info "T7. Fuse";
-PYTHONPATH=src python -c 'from jottalib import cli; cli.fuse()' "$JOTTADIR" || err "fuse() file failed";
+mkdir "$FUSEDIR" || true;
+PYTHONPATH=src python -c 'from jottalib import cli; cli.fuse()' "$FUSEDIR" || err "fuse() file failed";
 sleep 1;
 
 info "T8. Remove dir";
