@@ -112,7 +112,7 @@ class TestJFS:
 
     def test_properties(self):
         assert isinstance(jfs.capacity, int)
-        assert isinstance(jfs.usage, int)
+        assert isinstance(jfs.usage, (int, long))
         assert isinstance(jfs.locked, bool)
         assert isinstance(jfs.read_locked, bool)
         assert isinstance(jfs.write_locked, bool)
