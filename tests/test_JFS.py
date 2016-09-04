@@ -22,7 +22,7 @@
 __author__ = 'havard@gulldahl.no'
 
 # import standardlib
-import os, logging, datetime, types
+import sys, os, logging, datetime, types
 import tempfile, posixpath, urllib
 import six
 from six.moves import cStringIO as StringIO
@@ -200,7 +200,7 @@ class TestJFS:
         if sys.platform != "win32":
             # some filenames are not allowed on fat32 
             test = tests + ['My?funky?file.txt', # file name with question marks
-                            ]
+                            ] 
 
         for f in tests:
             p = posixpath.join('/Jotta/Archive', f)
