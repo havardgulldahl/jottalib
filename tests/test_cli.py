@@ -129,7 +129,7 @@ def test_fuse():
         cli.fuse([]) # argparse should raise systemexit without the mandatory arguments
 
 
-def test_download():
+def test_download(tmpdir):
     with pytest.raises(SystemExit):
         cli.download([]) # argparse should raise systemexit without the mandatory arguments
     testcontents = u'12345test'
@@ -137,14 +137,15 @@ def test_download():
     testfile = 'test.txt'
     testpath = posixpath.join(testdir, testfile)
     d = jfs.up(testpath, StringIO(testcontents))
-    assert cli.download(['/%s' % testpath,])
-    assert cli.download(['/%s' % testpath, '--checksum'])
-    #TODO: implement when --resume is - assert cli.download(['/%s' % testpath, '--resume'])
-    assert open(testfile).read() == testcontents
-    # download the whole directlry
-    assert cli.download(['/%s' % testdir,])
-    assert cli.download(['/%s' % testdir, '--checksum'])
-    assert open('Test/text.txt').read() == testcontents
+    with tmpdir.as_cwd():
+        assert cli.download(['/%s' % testpath,])
+        assert cli.download(['/%s' % testpath, '--checksum'])
+        #TODO: implement when --resume is - assert cli.download(['/%s' % testpath, '--resume'])
+        assert tmpdir.join(testfile).read_text('utf-8') == testcontents
+        # download the whole directlry
+        assert cli.download(['/%s' % testdir,])
+        assert cli.download(['/%s' % testdir, '--checksum'])
+        assert tmpdir.join('Test').join(testfile).read() == testcontents
 
 # TODO:
 
