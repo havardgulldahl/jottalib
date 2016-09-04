@@ -491,11 +491,11 @@ class TestJFSFileDirList:
         i = 0
         for folders in fdl.tree.values(): # iterate over all files in tree list
             for f in folders:
-                assert isinstance(f.name, unicode)
-                assert isinstance(f.md5, (basestring, types.NoneType))
-                assert isinstance(f.state, basestring)
-                assert isinstance(f.uuid, basestring)
-                assert isinstance(f.size, (int, types.NoneType))
+                assert isinstance(f.name, six.text_type)
+                assert (f.md5 is None or isinstance(f.md5, six.string_types))
+                assert isinstance(f.state, six.string_types)
+                assert isinstance(f.uuid, six.string_types)
+                assert (f.size is None or isinstance(f.size, six.integer_types))
 
     def test_large_api(self):
         "Request a tree that is enormous, to test disk buffer code of lxml.objectify.{parse|fromstring}"
