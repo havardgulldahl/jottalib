@@ -107,29 +107,25 @@ def test_delete():
     _del = _new.delete()
     assert _del.is_deleted() == True
 
-def test_replace_if_changed():
+def test_replace_if_changed(tmpdir):
     # def replace_if_changed(localfile, jottapath, JFS):
     # first test non-existing jottapath
     # it should raise a not found JFSNotFoundError
-    _localfile = u'tests/requirements.txt'
+    _localfile = os.path.join('tests', 'requirements.txt')
     rndm = random.randint(0, 1000)
     with pytest.raises(JFS.JFSNotFoundError):
         assert jottacloud.replace_if_changed(_localfile,
                                              '/Jotta/Archive/test_replace_if_changed_nonexisting-%i.txt' % rndm,
                                              jfs)
     # now, put some data there and uplaod
-    _localfile = tempfile.NamedTemporaryFile() # auto close, auto delete on out of scope
-    _localfilepath = _localfile.name
+    _localfile = tmpdir.join('test_replace_if_changed-%s.txt' % rndm)
     _localfile.write(1*TESTFILEDATA)
-    _localfile.flush()
-    _localfile.seek(0)
     _jottapath = u'/Jotta/Archive/TEST/test_replace_if_changed.txt'
-    assert jottacloud.new(_localfilepath, _jottapath, jfs)
+    assert jottacloud.new(str(_localfile), _jottapath, jfs)
     # lastly, edit data, and see if it is automatically reuploaded
     newdata = 2*TESTFILEDATA
     _localfile.write(newdata)
-    _localfile.flush()
-    jottacloud.replace_if_changed(_localfilepath, _jottapath, jfs)
+    jottacloud.replace_if_changed(str(_localfile), _jottapath, jfs)
     cloudobj = jfs.getObject(_jottapath)
     assert cloudobj.read() == newdata
     _del = cloudobj.delete()
