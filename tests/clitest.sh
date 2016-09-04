@@ -25,7 +25,7 @@ TMPDIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir');
 STAMP=$(date +%s);
 TESTFILE="$TMPDIR/Jotta/Archive/test/jottafuse.clitest.${STAMP}.txt";
 INDIR=$(dirname "$TESTFILE");
-FUSEDIR="$INDIR/fuse-${STAMP}";
+FUSEDIR="$TMPDIR/FUSEMOUNT-${STAMP}";
 JOTTADIR="//Jotta/Archive/test-${STAMP}"
 LOCALTESTFILE="${TMPDIR}/cli-${STAMP}-æøåöä.txt";
 cat << HERE > "$LOCALTESTFILE"
