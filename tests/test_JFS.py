@@ -190,7 +190,6 @@ class TestJFS:
                  'My=funky=file.txt', # file name with equal signs
                  'My&funky&file.txt', # file name with ampersand signs
                  'My#funky#file.txt', # file name with pound signs
-                 'My:funky:file.txt', # file name with colon signs
                  'My@funky@file.txt', # file name with at signs
                  'My;funky;file.txt', # file name with semi-colon signs
                  'My$funky$file.txt', # file name with dollar signs
@@ -200,6 +199,7 @@ class TestJFS:
         if sys.platform != "win32":
             # some filenames are not allowed on fat32 
             test = tests + ['My?funky?file.txt', # file name with question marks
+                            'My:funky:file.txt', # file name with colon signs
                             ] 
 
         for f in tests:
