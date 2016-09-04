@@ -112,7 +112,7 @@ class TestJFS:
 
     def test_properties(self):
         assert isinstance(jfs.capacity, int)
-        assert isinstance(jfs.usage, (int, long))
+        assert isinstance(jfs.usage, six.integer_types)
         assert isinstance(jfs.locked, bool)
         assert isinstance(jfs.read_locked, bool)
         assert isinstance(jfs.write_locked, bool)
@@ -130,7 +130,7 @@ class TestJFS:
 
     def test_up_and_delete_text(self):
         p = "/Jotta/Archive/testfile_up_and_delete_text.txt"
-        t = jfs.up(p, six.StringIO(TESTFILETEXT.encode('utf-8')))
+        t = jfs.up(p, six.StringIO(TESTFILETEXT))
         assert isinstance(t, JFS.JFSFile)
         d = t.delete()
         assert isinstance(d, JFS.JFSFile)
