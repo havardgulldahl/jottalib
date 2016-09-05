@@ -23,13 +23,13 @@ tools, some different plugins as well as a FUSE implementation in here.
 
 Caveats
 -------
+Write support is reverse engineered and not based on official docs. Any issue where
+the behaviour of `jottalib` differs from the official clients, is considered a bug.
 
-This code is **not production ready** and it might not eat your cat, but it
-might mangle your cat photos!
+Please add anything you find to the `bug tracker! <https://github.com/havardgulldahl/jottalib/issues/>`__ 
 
-Write support is reverse engineered and not based on official docs. Bugs
-patrol these waters! (When you find them, add to the `bug
-tracker! <https://github.com/havardgulldahl/jottalib/issues/>`__ )
+That being said, this library is in daily use by the community, and no data loss
+has ever been reported. 
 
 Installation
 ------------
